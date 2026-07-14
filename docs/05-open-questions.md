@@ -8,10 +8,6 @@
 
 - `DashboardGrid`를 완전 controlled 컴포넌트로 제공할지, 내부 state를 갖는 uncontrolled 모드도 제공할지 결정이 필요하다.
 
-## Persistence Contract
-
-- 레이아웃 저장 포맷을 GridStack 좌표와 동일하게 둘지, Comins 전용 추상 포맷으로 둘지 결정이 필요하다.
-
 ## Maximize Semantics
 
 - 최대화 시 다른 위젯을 숨길지, 현재 컬럼 전체 폭으로 확장하고 아래로 밀어낼지 결정이 필요하다.

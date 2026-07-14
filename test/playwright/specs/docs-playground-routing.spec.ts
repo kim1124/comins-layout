@@ -194,6 +194,16 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.locator("#api-dashboard-rendering").locator(".docs-reference-list__sample").first()).toHaveCSS("padding-left", "10px");
   });
 
+  test("documents the previousLayouts persistence contract", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "Persistence contract rendering is checked on the desktop project only.");
+
+    await page.goto("/api");
+
+    const layoutApi = page.locator("#api-layout-save-restore");
+    await expect(layoutApi).toContainText("serializeState()은 widgets, columns, previousLayouts를 저장합니다.");
+    await expect(layoutApi).toContainText("serializeLayout()은 columns와 widget geometry만 저장합니다.");
+  });
+
   test("unmounts the previous live route when docs pages change", async ({ page }) => {
     await page.goto("/docs/getting-started");
 

@@ -317,7 +317,8 @@ const apiFeatures: ApiFeatureSection[] = [
         name: "DashboardLayoutSnapshot / DashboardStateSnapshot",
         type: "type",
         description: "layout-only 저장과 full-state 저장을 구분하는 snapshot 타입입니다.",
-        detail: "layout snapshot은 좌표 중심, state snapshot은 widget metadata와 data 중심입니다.",
+        detail:
+          "serializeState()은 widgets, columns, previousLayouts를 저장합니다. 최대화 또는 최소화 후에도 restore가 원래 geometry를 복원합니다. serializeLayout()은 columns와 widget geometry만 저장합니다. pending maximize/minimize restore geometry는 포함하지 않습니다.",
       },
     ],
     methods: [
@@ -325,7 +326,7 @@ const apiFeatures: ApiFeatureSection[] = [
         name: "serializeLayout / serializeState / resetLayout / restoreLayout",
         params: "resetLayout(snapshot?), restoreLayout(snapshot)",
         returns: "serializeLayout: DashboardLayoutSnapshot, serializeState: DashboardStateSnapshot, reset/restore: void",
-        description: "현재 dashboard 상태를 저장하거나 저장된 snapshot을 복원합니다.",
+        description: "restore geometry가 필요하면 serializeState를, geometry-only 전달에는 serializeLayout을 사용합니다.",
         sample: { code: layoutSample, language: "ts", title: "Layout 저장 / 복원 methods" },
       },
     ],

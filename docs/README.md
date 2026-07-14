@@ -14,6 +14,7 @@
 - `04-verification-strategy.md`: Vitest, Playwright, 빌드 검증 기준
 - `05-open-questions.md`: 후속 합의가 필요한 항목
 - `superpowers/specs/2026-07-14-persistence-performance-stabilization-design.md`: persistence round-trip 및 100+ widget 안정화 설계
+- `superpowers/plans/2026-07-14-persistence-performance-stabilization.md`: persistence 및 Chrome resource counter 구현 계획
 
 프로젝트 운영 및 기여 절차는 루트 `GUIDE.md`를 따른다.
 

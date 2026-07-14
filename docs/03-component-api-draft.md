@@ -9,10 +9,17 @@ type DashboardGridProps<TWidgetData = unknown> = {
   editable?: boolean;
   movable?: boolean;
   resizable?: boolean;
-  autoArrange?: boolean;
-  onWidgetsChange?: (widgets: DashboardWidget<TWidgetData>[]) => void;
-  onLayoutChange?: (snapshot: DashboardLayoutSnapshot) => void;
+  className?: string;
+  refreshKey?: number;
+  showControls?: boolean;
+  actionLabels?: Partial<DashboardWidgetActionLabels>;
+  onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
+  onWidgetLayoutChange?: (id: string, layout: DashboardWidgetLayout) => void;
   onWidgetResizeFrame?: (event: DashboardWidgetResizeFrameEvent) => void;
+  onMaximizeWidget?: (id: string) => void;
+  onMinimizeWidget?: (id: string) => void;
+  onRestoreWidget?: (id: string) => void;
+  onRemoveWidget?: (id: string) => void;
   renderWidget: (widget: DashboardWidget<TWidgetData>) => React.ReactNode;
 };
 ```
@@ -28,6 +35,8 @@ type DashboardWidget<TData = unknown> = {
   minimized?: boolean;
   maximized?: boolean;
   locked?: boolean;
+  movable?: boolean;
+  resizable?: boolean;
 };
 ```
 
@@ -35,17 +44,23 @@ type DashboardWidget<TData = unknown> = {
 
 ```ts
 type DashboardGridCommands<TData = unknown> = {
-  createWidget: (widget: DashboardWidget<TData>) => void;
+  addWidget: (widget: DashboardWidget<TData>) => void;
   updateWidget: (id: string, patch: Partial<DashboardWidget<TData>>) => void;
+  updateWidgetLayout: (id: string, patch: Partial<Omit<DashboardWidgetLayout, "id">>) => void;
   removeWidget: (id: string) => void;
+  clearWidgets: () => void;
   maximizeWidget: (id: string) => void;
   minimizeWidget: (id: string) => void;
   restoreWidget: (id: string) => void;
   autoArrangeWidgets: () => void;
+  fitWidgetsToColumns: () => void;
+  fitWidgetToColumns: (id: string) => void;
   resetLayout: (snapshot?: DashboardLayoutSnapshot) => void;
+  restoreLayout: (snapshot: DashboardStateSnapshot<TData>) => void;
   refreshLayout: () => void;
-  setColumns: (columns: DashboardColumnCount) => void;
+  setColumns: (columns: number) => void;
   serializeLayout: () => DashboardLayoutSnapshot;
+  serializeState: () => DashboardStateSnapshot<TData>;
 };
 ```
 
@@ -55,14 +70,20 @@ type DashboardGridCommands<TData = unknown> = {
 - `movable=false`: movement is disabled even when `editable=true`.
 - `resizable=false`: resizing is disabled even when `editable=true`.
 - Widget-level `locked=true`: the widget cannot move or resize.
-- `columns` outside `1..12` must be clamped or rejected by an explicit API decision. Current scaffold provides a clamp helper.
+- `columns` outside `1..12` are clamped by the core state helper.
 
 ## Event Semantics
 
-- `onLayoutChange` should run after committed layout changes, not on every pointer move.
+- `onLayoutCommit` runs after committed layout changes, not on every pointer move.
 - `onWidgetResizeFrame` can run during resize, but must be animation-frame scheduled.
 - CRUD callbacks should preserve widget identity and layout snapshot consistency.
 
-## Initial Export Surface
+## Snapshot Persistence
 
-The initial scaffold exports type contracts and column helpers only. React components and GridStack adapter implementation should be added by TDD in later tasks.
+- `serializeState()` returns `DashboardStateSnapshot`: `columns`, full `widgets`, and `previousLayouts` restore geometry.
+- `serializeLayout()` returns `DashboardLayoutSnapshot`: `columns` and widget geometry only.
+- `restoreLayout()` accepts a full state snapshot. A legacy JSON snapshot without `previousLayouts` is read with an empty restore map.
+
+## Current Export Surface
+
+`DashboardGrid`, `DashboardWidgetShell`, `useDashboardGrid`, core layout helpers, types, resize scheduler, and option mapper are public exports. GridStack adapter creation remains internal to the package boundary.
