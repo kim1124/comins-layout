@@ -13,6 +13,7 @@
 - `03-component-api-draft.md`: 컴포넌트와 훅 API 기준
 - `04-verification-strategy.md`: Vitest, Playwright, 빌드 검증 기준
 - `05-open-questions.md`: 후속 합의가 필요한 항목
+- `superpowers/specs/2026-07-14-persistence-performance-stabilization-design.md`: persistence round-trip 및 100+ widget 안정화 설계
 
 프로젝트 운영 및 기여 절차는 루트 `GUIDE.md`를 따른다.
 
