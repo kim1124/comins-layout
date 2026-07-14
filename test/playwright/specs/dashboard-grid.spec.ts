@@ -8,6 +8,57 @@ type WidgetLayout = {
   h: number;
 };
 
+type ResourceCounters = {
+  heap: number;
+  nodes: number;
+  listeners: number;
+  documents: number;
+};
+
+function createStressSnapshot() {
+  return {
+    columns: 12,
+    previousLayouts: {},
+    widgets: Array.from({ length: 100 }, (_, index) => {
+      const id = `stress-${index}`;
+
+      return {
+        id,
+        title: `Stress ${index}`,
+        layout: { id, x: (index % 6) * 2, y: Math.floor(index / 6) * 2, w: 2, h: 2 },
+        data: { description: `stress widget ${index}`, value: String(index) },
+      };
+    }),
+  };
+}
+
+async function readResourceCounters(page: Page): Promise<ResourceCounters> {
+  const session = await page.context().newCDPSession(page);
+
+  try {
+    await session.send("Performance.enable");
+    await session.send("HeapProfiler.enable");
+    await session.send("HeapProfiler.collectGarbage");
+
+    const [performance, dom] = await Promise.all([
+      session.send("Performance.getMetrics"),
+      session.send("Memory.getDOMCounters"),
+    ]);
+    const heap = performance.metrics.find((metric) => metric.name === "JSHeapUsedSize")?.value ?? 0;
+
+    return { heap, nodes: dom.nodes, listeners: dom.jsEventListeners, documents: dom.documents };
+  } finally {
+    await session.detach();
+  }
+}
+
+function growsMonotonically(values: number[]) {
+  return (
+    values.slice(1).every((value, index) => value >= values[index]!) &&
+    values.slice(1).some((value, index) => value > values[index]!)
+  );
+}
+
 function collectBrowserDiagnostics(page: Page) {
   const diagnostics: string[] = [];
 
@@ -377,6 +428,98 @@ test("saves and restores the current layout as JSON", async ({ page }) => {
   await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "4");
   await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-w", "3");
   await expect(page.getByText("복원 완료")).toBeVisible();
+});
+
+test("keeps 100 widgets stable through repeated column changes", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Chrome CDP resource checks run on the desktop project only.");
+  test.setTimeout(120_000);
+
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/");
+
+  const grid = page.getByTestId("dashboard-grid");
+  const layoutJson = page.getByLabel("저장된 레이아웃 JSON");
+  await layoutJson.fill(JSON.stringify(createStressSnapshot()));
+  await page.getByRole("button", { name: "레이아웃 복원" }).click();
+
+  await expect(page.getByText("위젯 100개")).toBeVisible();
+  await expect(grid).toHaveAttribute("data-columns", "12");
+  await expect(grid.locator(".grid-stack-item")).toHaveCount(100);
+
+  const counters: ResourceCounters[] = [await readResourceCounters(page)];
+  const columnSelect = page.getByLabel("컬럼 선택");
+
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    for (let columns = 1; columns <= 12; columns += 1) {
+      await columnSelect.selectOption(String(columns));
+      await expect(grid).toHaveAttribute("data-columns", String(columns));
+    }
+
+    counters.push(await readResourceCounters(page));
+  }
+
+  const stressWidget = page.getByTestId("dashboard-widget-stress-0");
+  const beforeDrag = await readWidgetLayout(stressWidget);
+  await dragWidget(page, stressWidget, 80, 120);
+  await expect.poll(async () => readWidgetLayout(stressWidget)).not.toEqual(beforeDrag);
+  counters.push(await readResourceCounters(page));
+
+  const beforeResize = await readWidgetLayout(stressWidget);
+  await resizeWidget(page, stressWidget, 120, 80);
+  await expect.poll(async () => {
+    const layout = await readWidgetLayout(stressWidget);
+    return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
+  }).toBe(true);
+
+  counters.push(await readResourceCounters(page));
+
+  for (let interactionCycle = 0; interactionCycle < 2; interactionCycle += 1) {
+    await dragWidget(page, stressWidget, 0, 180);
+    await resizeWidget(page, stressWidget, 80, 60);
+
+    counters.push(await readResourceCounters(page));
+  }
+
+  const columnCycleCounters = counters.slice(0, 4);
+  const interactionWarmupCounters = counters.slice(4, 6);
+  const interactionCounters = counters.slice(5);
+  const resourceCounters = {
+    columnCycles: columnCycleCounters,
+    interactionWarmup: interactionWarmupCounters,
+    repeatedInteractions: interactionCounters,
+  };
+
+  await testInfo.attach("100-widget-resource-counters.json", {
+    body: JSON.stringify(resourceCounters, null, 2),
+    contentType: "application/json",
+  });
+  console.log("100-widget resource counters", JSON.stringify(resourceCounters));
+
+  expect(diagnostics).toEqual([]);
+  await expect(grid).toHaveAttribute("data-columns", "12");
+  await expect(grid.locator(".grid-stack-item")).toHaveCount(100);
+  await expect.poll(async () => (await readWidgetInteractionState(stressWidget)).isDragging).toBe(false);
+  await expect.poll(async () => (await readWidgetInteractionState(stressWidget)).isResizing).toBe(false);
+
+  const columnBaseline = columnCycleCounters[0];
+  if (!columnBaseline) {
+    throw new Error("Column-cycle resource baseline is unavailable");
+  }
+
+  expect(columnCycleCounters.every((counter) => counter.documents === columnBaseline.documents)).toBe(true);
+  expect(columnCycleCounters.every((counter) => counter.listeners === columnBaseline.listeners)).toBe(true);
+  expect(columnCycleCounters.slice(1).every((counter) => counter.nodes <= columnBaseline.nodes)).toBe(true);
+  expect(growsMonotonically(columnCycleCounters.map((counter) => counter.heap))).toBe(false);
+
+  const interactionBaseline = interactionCounters[0];
+  if (!interactionBaseline) {
+    throw new Error("Interaction resource baseline is unavailable");
+  }
+
+  expect(interactionCounters.every((counter) => counter.documents === interactionBaseline.documents)).toBe(true);
+  expect(interactionCounters.every((counter) => counter.nodes === interactionBaseline.nodes)).toBe(true);
+  expect(interactionCounters.every((counter) => counter.listeners === interactionBaseline.listeners)).toBe(true);
+  expect(growsMonotonically(interactionCounters.map((counter) => counter.heap))).toBe(false);
 });
 
 test("adds widgets with user-selected size into horizontal free space", async ({ page }) => {
