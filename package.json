@@ -1,0 +1,62 @@
+{
+  "name": "comins-grid-layout",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.example.config.ts",
+    "build": "vite build && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
+    "verify": "npm run lint && npm run test:run && npm run build",
+    "verify:e2e": "npm run test:e2e",
+    "verify:full": "npm run verify && npm run verify:e2e"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./dist/styles.css"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": [
+    "./dist/styles.css"
+  ],
+  "dependencies": {
+    "gridstack": "latest",
+    "lucide-react": "^1.11.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "latest",
+    "@types/node": "^26.1.1",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@vitejs/plugin-react": "latest",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router": "^7.17.0",
+    "typescript": "^6.0.3",
+    "vite": "latest",
+    "vitest": "latest"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0 <20.0.0",
+    "react-dom": ">=18.0.0 <20.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kim1124/comins-layout.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kim1124/comins-layout/issues"
+  },
+  "homepage": "https://github.com/kim1124/comins-layout#readme"
+}

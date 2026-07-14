@@ -1,0 +1,187 @@
+# comins-grid-layout
+
+`comins-grid-layout`는 React 애플리케이션에서 dashboard widget layout을 구성하기 위한 GridStack 기반 package다. 런타임은 Next.js API에 의존하지 않고 React component와 serializable layout state 중심으로 동작한다.
+
+이 프로젝트는 기존 KMSF 모노레포의 `packages/gridstack`에서 분리되어 관리되는 독립 저장소다. 이후 기능 구현, 문서화, 검증, 릴리스 작업의 기준 저장소는 이 프로젝트이며, KMSF 패키지는 이력 참고 대상으로만 취급한다.
+
+## 패키지 상태
+
+- 현재 `package.json` 기준 독립 npm package metadata를 가진 standalone package다.
+- GitHub 원격 저장소는 [`kim1124/comins-layout`](https://github.com/kim1124/comins-layout)이며, 기본 반영 브랜치는 `main`이다.
+- 로컬 개발 기준 경로는 `<repo-root>`이다.
+- React와 React DOM은 peer dependency로 유지한다.
+- `gridstack`은 runtime dependency이며, consumer는 GridStack CSS와 package CSS를 함께 import해야 한다.
+- npm 배포 전에는 files, dependency, browser verification 상태를 별도 검토해야 한다.
+
+## 저장소 운영 기준
+
+- 패키지명은 `comins-grid-layout`이고, GitHub 저장소명은 `comins-layout`이다.
+- 기능 구현과 이슈 수정은 이 저장소에서만 수행한다. KMSF 모노레포와의 소스 동기화 또는 동시 릴리스는 기본 작업 범위가 아니다.
+- 작업 전에는 `README.md`, `GUIDE.md`, `docs/README.md`와 경로별 `AGENTS.md`를 확인한다.
+- substantial 변경은 `reports/YYYY-MM-DD.md`에 작업 내용과 실제 검증 결과를 기록한다.
+
+## 구현된 기능
+
+- `DashboardGrid` React component
+- `useDashboardGrid` state/command hook
+- widget create, update, remove, clear
+- maximize, minimize, restore
+- runtime column count `1..12`
+- auto arrange와 fit-to-columns helper
+- movable/resizable option
+- scheduled widget resize frame callback
+- serializable layout/state snapshot
+- GridStack adapter boundary
+- package stylesheet export
+
+## Public API
+
+| Import | 설명 |
+| --- | --- |
+| `comins-grid-layout` | `DashboardGrid`, `useDashboardGrid`, layout/state helpers, option mapper, public types |
+| `comins-grid-layout/styles.css` | dashboard grid stylesheet |
+| `cominsGridLayoutPackage` | package 식별 상수 |
+
+## 설치
+
+```bash
+npm install comins-grid-layout react react-dom
+```
+
+`gridstack` stylesheet을 package stylesheet보다 먼저 import한다.
+
+```ts
+import "gridstack/dist/gridstack.min.css";
+import "comins-grid-layout/styles.css";
+```
+
+## 빠른 시작
+
+```tsx
+import { DashboardGrid, useDashboardGrid, type DashboardWidget } from "comins-grid-layout";
+import "gridstack/dist/gridstack.min.css";
+import "comins-grid-layout/styles.css";
+
+type MetricData = {
+  description: string;
+  value: string;
+};
+
+const initialWidgets: DashboardWidget<MetricData>[] = [
+  {
+    id: "sales",
+    title: "Sales",
+    layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 },
+    data: { value: "$128k", description: "MRR" },
+  },
+];
+
+export function DashboardPage() {
+  const dashboard = useDashboardGrid<MetricData>({
+    initialColumns: 6,
+    initialWidgets,
+  });
+
+  return (
+    <DashboardGrid
+      columns={dashboard.columns}
+      onMaximizeWidget={dashboard.commands.maximizeWidget}
+      onMinimizeWidget={dashboard.commands.minimizeWidget}
+      onRemoveWidget={dashboard.commands.removeWidget}
+      onRestoreWidget={dashboard.commands.restoreWidget}
+      onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
+      refreshKey={dashboard.refreshVersion}
+      renderWidget={(widget) => <strong>{widget.data?.value}</strong>}
+      widgets={dashboard.widgets}
+    />
+  );
+}
+```
+
+## 주요 command
+
+`useDashboardGrid`는 serializable dashboard state와 command helper를 제공한다.
+
+- `addWidget(widget)`
+- `updateWidget(id, patch)`
+- `updateWidgetLayout(id, patch)`
+- `removeWidget(id)`
+- `clearWidgets()`
+- `maximizeWidget(id)`
+- `minimizeWidget(id)`
+- `restoreWidget(id)`
+- `autoArrangeWidgets()`
+- `fitWidgetsToColumns()`
+- `setColumns(columns)`
+- `resetLayout(snapshot?)`
+- `restoreLayout(snapshot)`
+- `refreshLayout()`
+- `serializeLayout()`
+- `serializeState()`
+
+## Component API 요약
+
+| Prop | 설명 |
+| --- | --- |
+| `widgets` | 렌더링할 widget model |
+| `columns` | runtime column count, 기본 `12` |
+| `editable` | 전체 edit interaction 활성/비활성 |
+| `movable` | widget move 활성/비활성 |
+| `resizable` | widget resize 활성/비활성 |
+| `refreshKey` | adapter refresh 요청 |
+| `showControls` | 기본 widget control 표시 |
+| `renderWidget` | consumer-owned widget content 렌더링 |
+| `onLayoutCommit` | committed layout snapshot 수신 |
+| `onWidgetLayoutChange` | widget별 layout 변경 수신 |
+| `onWidgetResizeFrame` | scheduled resize frame event 수신 |
+
+## Styling
+
+```ts
+import "gridstack/dist/gridstack.min.css";
+import "comins-grid-layout/styles.css";
+```
+
+Comins token과 package-local CSS variable을 override할 수 있다.
+
+```css
+:root {
+  --comins-color-accent: #2563eb;
+  --comins-radius-md: 0.5rem;
+}
+
+.comins-grid-layout {
+  --comins-grid-layout-shadow: none;
+}
+```
+
+## Playground
+
+루트에서 실행:
+
+```bash
+npm run dev
+```
+
+기본 포트는 `6001`이다. Chromium unsafe port 이슈 때문에 `6000`은 사용하지 않는다.
+
+포트 변경:
+
+```bash
+COMINS_GRID_LAYOUT_PORT=6002 npm run dev
+```
+
+## 검증
+
+```bash
+npm run lint
+npm run test:run
+npm run build
+npm run test:e2e
+npm run verify
+npm run verify:full
+```
+
+## Publishing note
+
+현재 package는 Comins standalone package로 이관된 상태다. npm publish 전에는 package contents, dependency version policy, browser verification 상태를 별도 검토해야 한다. GitHub 원격 반영은 `kim1124/comins-layout`의 `main` 브랜치를 기준으로 한다.
