@@ -45,7 +45,7 @@ Use Playwright for:
 ## 100-Widget Resource Stability Gate
 
 1. Complete example의 JSON restore control로 100개 widget을 로드하고, `1..12` column cycle 1회로 runtime을 warm-up한다.
-2. animation frame과 interaction cleanup이 끝난 뒤 강제 garbage collection으로 column baseline을 기록하고, 측정 대상 `1..12` column cycle을 세 번 수행한다.
+2. 각 counter 측정은 animation frame 및 100ms idle 대기, 강제 garbage collection, 250ms idle 대기, 두 번째 강제 garbage collection 순서로 안정화한다. warm-up 이후 column baseline을 기록하고, 측정 대상 `1..12` column cycle을 세 번 수행한다.
 3. drag/resize 1회로 GridStack interaction runtime을 초기화한다. resize 완료 뒤 interaction baseline을 기록하고, 동일 interaction을 두 번 더 수행한다.
 4. column cycle 구간에서는 Documents, DOM Nodes, Event Listeners가 baseline과 같아야 한다. interaction baseline 이후 반복에서도 같은 세 counter가 증가하면 실패다.
 5. 각 구간의 post-GC JS Heap은 단조 증가하면 실패다. 최대값과 최종값을 모두 baseline과 비교한다. column 구간은 V8의 일회성 post-GC peak을 고려해 최대 12%·최종 2%, interaction 구간은 최대·최종 모두 2%를 초과하면 실패다.

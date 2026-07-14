@@ -32,11 +32,15 @@ function createStressSnapshot() {
   };
 }
 
-async function readResourceCounters(page: Page): Promise<ResourceCounters> {
-  await page.evaluate(async () => {
+async function waitForPageToSettle(page: Page, idleMs = 100) {
+  await page.evaluate(async (delay) => {
     await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 100));
-  });
+    await new Promise<void>((resolve) => window.setTimeout(resolve, delay));
+  }, idleMs);
+}
+
+async function readResourceCounters(page: Page): Promise<ResourceCounters> {
+  await waitForPageToSettle(page);
 
   const session = await page.context().newCDPSession(page);
 
@@ -44,12 +48,17 @@ async function readResourceCounters(page: Page): Promise<ResourceCounters> {
     await session.send("Performance.enable");
     await session.send("HeapProfiler.enable");
     await session.send("HeapProfiler.collectGarbage");
+    await waitForPageToSettle(page, 250);
+    await session.send("HeapProfiler.collectGarbage");
 
     const [performance, dom] = await Promise.all([
       session.send("Performance.getMetrics"),
       session.send("Memory.getDOMCounters"),
     ]);
-    const heap = performance.metrics.find((metric) => metric.name === "JSHeapUsedSize")?.value ?? 0;
+    const heap = performance.metrics.find((metric) => metric.name === "JSHeapUsedSize")?.value;
+    if (heap === undefined) {
+      throw new Error("Chrome DevTools Protocol did not report JSHeapUsedSize");
+    }
 
     return { heap, nodes: dom.nodes, listeners: dom.jsEventListeners, documents: dom.documents };
   } finally {
