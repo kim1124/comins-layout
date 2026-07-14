@@ -5,7 +5,7 @@ export default defineConfig({
     coverage: {
       reportsDirectory: "test/vitest/coverage",
     },
-    exclude: ["test/playwright/**", "node_modules/**", "dist/**"],
+    exclude: ["test/playwright/**", "**/.worktrees/**", "node_modules/**", "dist/**"],
     globals: true,
     passWithNoTests: true,
     reporters: ["default"],
