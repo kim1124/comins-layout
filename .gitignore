@@ -3,3 +3,4 @@ node_modules/
 test/playwright/html-report/
 test/playwright/results/
 reports/artifacts/
+.worktrees/
