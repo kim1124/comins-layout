@@ -30,7 +30,7 @@
 
 1. Generate a 100-widget full state snapshot and restore it through the complete example's existing JSON control.
 2. Run three `1..12` column cycles, return to 12, drag and resize `stress-0`.
-3. Assert 100 GridStack items, no diagnostics, and no remaining drag/resize interaction class.
+3. Assert 100 GridStack items, no diagnostics, and no remaining drag/resize interaction class. Run the counter scenario in the isolated single-worker `chromium-resource` Playwright project.
 4. Capture Chromium CDP `JSHeapUsedSize`, DOM nodes, event listeners, and documents after forced collection. Do not alter runtime code unless this test proves a defect.
 
 ## Task 3: Align Public Contract and Leak Verification Gate

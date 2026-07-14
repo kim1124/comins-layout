@@ -3,6 +3,7 @@ import type {
   DashboardLayoutSnapshot,
   DashboardLayoutState,
   DashboardStateSnapshot,
+  DashboardStateSnapshotInput,
   DashboardWidget,
   DashboardWidgetId,
   DashboardWidgetLayout,
@@ -10,12 +11,7 @@ import type {
 
 type DashboardLayoutStateInput<TData> =
   | DashboardLayoutSnapshot
-  | DashboardStateSnapshot<TData>
-  | {
-      columns: number;
-      widgets: DashboardWidget<TData>[];
-      previousLayouts?: Record<DashboardWidgetId, DashboardWidgetLayout>;
-    };
+  | DashboardStateSnapshotInput<TData>;
 
 export function createDashboardLayoutState<TData = unknown>(
   snapshot: DashboardLayoutStateInput<TData>,

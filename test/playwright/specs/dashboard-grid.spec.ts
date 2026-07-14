@@ -33,6 +33,11 @@ function createStressSnapshot() {
 }
 
 async function readResourceCounters(page: Page): Promise<ResourceCounters> {
+  await page.evaluate(async () => {
+    await new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve())));
+    await new Promise<void>((resolve) => window.setTimeout(resolve, 100));
+  });
+
   const session = await page.context().newCDPSession(page);
 
   try {
@@ -57,6 +62,35 @@ function growsMonotonically(values: number[]) {
     values.slice(1).every((value, index) => value >= values[index]!) &&
     values.slice(1).some((value, index) => value > values[index]!)
   );
+}
+
+function staysWithinHeapBudget(
+  counters: ResourceCounters[],
+  { finalTolerance = 0.02, peakTolerance = finalTolerance }: { finalTolerance?: number; peakTolerance?: number } = {},
+) {
+  const baseline = counters[0];
+  const final = counters.at(-1);
+  if (!baseline || !final) {
+    return false;
+  }
+
+  const peakUpperLimit = baseline.heap * (1 + peakTolerance);
+  const finalUpperLimit = baseline.heap * (1 + finalTolerance);
+  const maxHeap = Math.max(...counters.map((counter) => counter.heap));
+
+  return maxHeap <= peakUpperLimit && final.heap <= finalUpperLimit;
+}
+
+async function runColumnCycle(columnSelect: Locator, grid: Locator) {
+  for (let columns = 1; columns <= 12; columns += 1) {
+    await columnSelect.selectOption(String(columns));
+    await expect(grid).toHaveAttribute("data-columns", String(columns));
+  }
+}
+
+async function waitForInteractionToSettle(widget: Locator) {
+  await expect.poll(async () => (await readWidgetInteractionState(widget)).isDragging).toBe(false);
+  await expect.poll(async () => (await readWidgetInteractionState(widget)).isResizing).toBe(false);
 }
 
 function collectBrowserDiagnostics(page: Page) {
@@ -431,7 +465,7 @@ test("saves and restores the current layout as JSON", async ({ page }) => {
 });
 
 test("keeps 100 widgets stable through repeated column changes", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Chrome CDP resource checks run on the desktop project only.");
+  test.skip(testInfo.project.name !== "chromium-resource", "Chrome CDP resource checks run in the isolated resource project only.");
   test.setTimeout(120_000);
 
   const diagnostics = collectBrowserDiagnostics(page);
@@ -446,23 +480,21 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect(grid.locator(".grid-stack-item")).toHaveCount(100);
 
-  const counters: ResourceCounters[] = [await readResourceCounters(page)];
   const columnSelect = page.getByLabel("컬럼 선택");
+  await runColumnCycle(columnSelect, grid);
+  const columnCycleCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
   for (let cycle = 0; cycle < 3; cycle += 1) {
-    for (let columns = 1; columns <= 12; columns += 1) {
-      await columnSelect.selectOption(String(columns));
-      await expect(grid).toHaveAttribute("data-columns", String(columns));
-    }
-
-    counters.push(await readResourceCounters(page));
+    await runColumnCycle(columnSelect, grid);
+    columnCycleCounters.push(await readResourceCounters(page));
   }
 
   const stressWidget = page.getByTestId("dashboard-widget-stress-0");
   const beforeDrag = await readWidgetLayout(stressWidget);
   await dragWidget(page, stressWidget, 80, 120);
   await expect.poll(async () => readWidgetLayout(stressWidget)).not.toEqual(beforeDrag);
-  counters.push(await readResourceCounters(page));
+  await waitForInteractionToSettle(stressWidget);
+  const interactionWarmupCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
   const beforeResize = await readWidgetLayout(stressWidget);
   await resizeWidget(page, stressWidget, 120, 80);
@@ -470,19 +502,18 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
     const layout = await readWidgetLayout(stressWidget);
     return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
   }).toBe(true);
+  await waitForInteractionToSettle(stressWidget);
 
-  counters.push(await readResourceCounters(page));
+  const interactionCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
   for (let interactionCycle = 0; interactionCycle < 2; interactionCycle += 1) {
     await dragWidget(page, stressWidget, 0, 180);
     await resizeWidget(page, stressWidget, 80, 60);
+    await waitForInteractionToSettle(stressWidget);
 
-    counters.push(await readResourceCounters(page));
+    interactionCounters.push(await readResourceCounters(page));
   }
 
-  const columnCycleCounters = counters.slice(0, 4);
-  const interactionWarmupCounters = counters.slice(4, 6);
-  const interactionCounters = counters.slice(5);
   const resourceCounters = {
     columnCycles: columnCycleCounters,
     interactionWarmup: interactionWarmupCounters,
@@ -508,8 +539,9 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
 
   expect(columnCycleCounters.every((counter) => counter.documents === columnBaseline.documents)).toBe(true);
   expect(columnCycleCounters.every((counter) => counter.listeners === columnBaseline.listeners)).toBe(true);
-  expect(columnCycleCounters.slice(1).every((counter) => counter.nodes <= columnBaseline.nodes)).toBe(true);
+  expect(columnCycleCounters.every((counter) => counter.nodes === columnBaseline.nodes)).toBe(true);
   expect(growsMonotonically(columnCycleCounters.map((counter) => counter.heap))).toBe(false);
+  expect(staysWithinHeapBudget(columnCycleCounters, { peakTolerance: 0.12 })).toBe(true);
 
   const interactionBaseline = interactionCounters[0];
   if (!interactionBaseline) {
@@ -520,6 +552,7 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   expect(interactionCounters.every((counter) => counter.nodes === interactionBaseline.nodes)).toBe(true);
   expect(interactionCounters.every((counter) => counter.listeners === interactionBaseline.listeners)).toBe(true);
   expect(growsMonotonically(interactionCounters.map((counter) => counter.heap))).toBe(false);
+  expect(staysWithinHeapBudget(interactionCounters)).toBe(true);
 });
 
 test("adds widgets with user-selected size into horizontal free space", async ({ page }) => {

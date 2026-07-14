@@ -318,7 +318,7 @@ const apiFeatures: ApiFeatureSection[] = [
         type: "type",
         description: "layout-only 저장과 full-state 저장을 구분하는 snapshot 타입입니다.",
         detail:
-          "serializeState()은 widgets, columns, previousLayouts를 저장합니다. 최대화 또는 최소화 후에도 restore가 원래 geometry를 복원합니다. serializeLayout()은 columns와 widget geometry만 저장합니다. pending maximize/minimize restore geometry는 포함하지 않습니다.",
+          "serializeState()은 widgets, columns, previousLayouts를 저장합니다. 최대화 또는 최소화 후에도 restore가 원래 geometry를 복원합니다. serializeLayout()은 columns와 widget geometry만 저장합니다. pending maximize/minimize restore geometry는 포함하지 않습니다. 이전 JSON은 DashboardStateSnapshotInput으로 previousLayouts 없이 읽을 수 있습니다.",
       },
     ],
     methods: [

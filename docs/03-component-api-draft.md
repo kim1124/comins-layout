@@ -56,7 +56,7 @@ type DashboardGridCommands<TData = unknown> = {
   fitWidgetsToColumns: () => void;
   fitWidgetToColumns: (id: string) => void;
   resetLayout: (snapshot?: DashboardLayoutSnapshot) => void;
-  restoreLayout: (snapshot: DashboardStateSnapshot<TData>) => void;
+  restoreLayout: (snapshot: DashboardStateSnapshotInput<TData>) => void;
   refreshLayout: () => void;
   setColumns: (columns: number) => void;
   serializeLayout: () => DashboardLayoutSnapshot;
@@ -82,7 +82,7 @@ type DashboardGridCommands<TData = unknown> = {
 
 - `serializeState()` returns `DashboardStateSnapshot`: `columns`, full `widgets`, and `previousLayouts` restore geometry.
 - `serializeLayout()` returns `DashboardLayoutSnapshot`: `columns` and widget geometry only.
-- `restoreLayout()` accepts a full state snapshot. A legacy JSON snapshot without `previousLayouts` is read with an empty restore map.
+- `restoreLayout()` accepts `DashboardStateSnapshotInput`. A legacy JSON snapshot without `previousLayouts` is read with an empty restore map, while `serializeState()` always produces the complete `DashboardStateSnapshot` output.
 
 ## Current Export Surface
 

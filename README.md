@@ -123,7 +123,7 @@ export function DashboardPage() {
 
 - `serializeState()`는 `columns`, 전체 `widgets`, `previousLayouts`를 저장한다. 따라서 최대화 또는 최소화된 widget도 JSON 복원 뒤 `restoreWidget()`으로 원래 geometry를 되돌릴 수 있다.
 - `serializeLayout()`는 `columns`와 widget geometry만 저장한다. pending maximize/minimize restore geometry는 포함하지 않으므로, 해당 상태를 보존해야 하면 `serializeState()`를 사용한다.
-- 이전 저장본처럼 `previousLayouts`가 없는 snapshot은 빈 restore map으로 읽는다.
+- 이전 저장본처럼 `previousLayouts`가 없는 snapshot은 빈 restore map으로 읽는다. TypeScript consumer는 optional restore map을 갖는 `DashboardStateSnapshotInput`을 `restoreLayout()`에 전달할 수 있다.
 
 ## Component API 요약
 

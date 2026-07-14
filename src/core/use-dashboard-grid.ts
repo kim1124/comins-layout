@@ -20,6 +20,7 @@ import type {
   DashboardLayoutSnapshot,
   DashboardLayoutState,
   DashboardStateSnapshot,
+  DashboardStateSnapshotInput,
   DashboardWidget,
   DashboardWidgetId,
   DashboardWidgetLayout,
@@ -39,7 +40,7 @@ type DashboardGridAction<TData> =
   | { type: "fit-columns" }
   | { type: "fit-widget-columns"; id: DashboardWidgetId }
   | { type: "refresh" }
-  | { type: "reset"; snapshot: DashboardLayoutSnapshot | DashboardStateSnapshot<TData> | { columns: number; widgets: DashboardWidget<TData>[] } };
+  | { type: "reset"; snapshot: DashboardLayoutSnapshot | DashboardStateSnapshotInput<TData> };
 
 export type UseDashboardGridOptions<TData = unknown> = {
   initialColumns?: number;
@@ -59,8 +60,8 @@ export type DashboardGridCommands<TData = unknown> = {
   fitWidgetsToColumns: () => void;
   fitWidgetToColumns: (id: DashboardWidgetId) => void;
   setColumns: (columns: number) => void;
-  resetLayout: (snapshot?: DashboardLayoutSnapshot) => void;
-  restoreLayout: (snapshot: DashboardStateSnapshot<TData>) => void;
+  resetLayout: (snapshot?: DashboardLayoutSnapshot | DashboardStateSnapshotInput<TData>) => void;
+  restoreLayout: (snapshot: DashboardStateSnapshotInput<TData>) => void;
   refreshLayout: () => void;
   serializeLayout: () => DashboardLayoutSnapshot;
   serializeState: () => DashboardStateSnapshot<TData>;

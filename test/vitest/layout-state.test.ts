@@ -15,6 +15,7 @@ import {
   updateDashboardWidget,
   updateDashboardWidgetLayout,
 } from "../../src";
+import type { DashboardStateSnapshotInput } from "../../src";
 
 describe("dashboard layout state", () => {
   it("adds, updates, removes, and serializes widgets without mutating previous state", () => {
@@ -176,9 +177,23 @@ describe("dashboard layout state", () => {
   });
 
   it("loads a legacy state snapshot without previous layouts", () => {
+    const snapshot: DashboardStateSnapshotInput<{ value: string }> = {
+      columns: 6,
+      widgets: [{ id: "sales", layout: { id: "sales", x: 1, y: 2, w: 3, h: 2 }, data: { value: "1.28억" } }],
+    };
+    const restored = createDashboardLayoutState(snapshot);
+
+    expect(restored.previousLayouts).toEqual({});
+  });
+
+  it("discards restore entries with a stale widget id or mismatched layout id", () => {
     const restored = createDashboardLayoutState({
       columns: 6,
       widgets: [{ id: "sales", layout: { id: "sales", x: 1, y: 2, w: 3, h: 2 } }],
+      previousLayouts: {
+        sales: { id: "traffic", x: 0, y: 0, w: 3, h: 2 },
+        removed: { id: "removed", x: 0, y: 0, w: 3, h: 2 },
+      },
     });
 
     expect(restored.previousLayouts).toEqual({});

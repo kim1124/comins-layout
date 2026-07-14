@@ -37,6 +37,12 @@ export type DashboardStateSnapshot<TData = unknown> = {
   previousLayouts: Record<DashboardWidgetId, DashboardWidgetLayout>;
 };
 
+export type DashboardStateSnapshotInput<TData = unknown> = {
+  columns: number;
+  widgets: DashboardWidget<TData>[];
+  previousLayouts?: Record<DashboardWidgetId, DashboardWidgetLayout>;
+};
+
 export type DashboardInteractionOptions = {
   editable?: boolean;
   movable?: boolean;
