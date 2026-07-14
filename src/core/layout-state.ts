@@ -11,15 +11,26 @@ import type {
 type DashboardLayoutStateInput<TData> =
   | DashboardLayoutSnapshot
   | DashboardStateSnapshot<TData>
-  | { columns: number; widgets: DashboardWidget<TData>[] };
+  | {
+      columns: number;
+      widgets: DashboardWidget<TData>[];
+      previousLayouts?: Record<DashboardWidgetId, DashboardWidgetLayout>;
+    };
 
 export function createDashboardLayoutState<TData = unknown>(
   snapshot: DashboardLayoutStateInput<TData>,
 ): DashboardLayoutState<TData> {
+  const columns = clampDashboardColumnCount(snapshot.columns);
+  const widgets: DashboardWidget<TData>[] = snapshot.widgets.map((widget): DashboardWidget<TData> =>
+    "layout" in widget
+      ? normalizeWidget<TData>(widget, columns)
+      : normalizeWidget<TData>({ id: widget.id, layout: widget }, columns),
+  );
+
   return {
-    columns: clampDashboardColumnCount(snapshot.columns),
-    widgets: snapshot.widgets.map((widget) => ("layout" in widget ? normalizeWidget(widget) : normalizeWidget({ id: widget.id, layout: widget }))),
-    previousLayouts: {},
+    columns,
+    widgets,
+    previousLayouts: restorePreviousLayouts(snapshot, widgets, columns),
     refreshVersion: 0,
   };
 }
@@ -326,7 +337,30 @@ export function serializeDashboardState<TData>(state: DashboardLayoutState<TData
       ...widget,
       layout: { ...widget.layout },
     })),
+    previousLayouts: Object.fromEntries(
+      Object.entries(state.previousLayouts)
+        .filter((entry): entry is [DashboardWidgetId, DashboardWidgetLayout] => entry[1] !== undefined)
+        .map(([id, layout]) => [id, { ...layout, id }]),
+    ),
   };
+}
+
+function restorePreviousLayouts<TData>(
+  snapshot: DashboardLayoutStateInput<TData>,
+  widgets: DashboardWidget<TData>[],
+  columns: number,
+): Record<DashboardWidgetId, DashboardWidgetLayout | undefined> {
+  if (!("previousLayouts" in snapshot) || !snapshot.previousLayouts) {
+    return {};
+  }
+
+  const widgetIds = new Set(widgets.map((widget) => widget.id));
+
+  return Object.fromEntries(
+    Object.entries(snapshot.previousLayouts)
+      .filter(([id, layout]) => widgetIds.has(id) && layout?.id === id)
+      .map(([id, layout]) => [id, normalizeLayout({ ...layout, id }, columns)]),
+  );
 }
 
 function placeWidgetInFirstAvailableSpace<TData>(

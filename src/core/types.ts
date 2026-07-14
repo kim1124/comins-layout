@@ -34,6 +34,7 @@ export type DashboardLayoutSnapshot = {
 export type DashboardStateSnapshot<TData = unknown> = {
   columns: DashboardColumnCount;
   widgets: DashboardWidget<TData>[];
+  previousLayouts: Record<DashboardWidgetId, DashboardWidgetLayout>;
 };
 
 export type DashboardInteractionOptions = {

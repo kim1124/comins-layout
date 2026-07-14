@@ -132,6 +132,7 @@ describe("dashboard layout state", () => {
 
     expect(saved).toEqual({
       columns: 6,
+      previousLayouts: {},
       widgets: [
         {
           id: "sales",
@@ -147,6 +148,40 @@ describe("dashboard layout state", () => {
       layout: { id: "sales", x: 1, y: 2, w: 3, h: 2 },
       data: { value: "1.28억" },
     });
+  });
+
+  it("restores original geometry after a maximized state snapshot is rehydrated", () => {
+    const initial = createDashboardLayoutState({
+      columns: 6,
+      widgets: [{ id: "sales", layout: { id: "sales", x: 2, y: 1, w: 2, h: 2 } }],
+    });
+
+    const saved = serializeDashboardState(maximizeDashboardWidget(initial, "sales"));
+    const restored = restoreDashboardWidget(createDashboardLayoutState(saved), "sales");
+
+    expect(saved.previousLayouts).toEqual({ sales: { id: "sales", x: 2, y: 1, w: 2, h: 2 } });
+    expect(restored.widgets[0]?.layout).toEqual({ id: "sales", x: 2, y: 1, w: 2, h: 2 });
+  });
+
+  it("restores original geometry after a minimized state snapshot is rehydrated", () => {
+    const initial = createDashboardLayoutState({
+      columns: 6,
+      widgets: [{ id: "sales", layout: { id: "sales", x: 1, y: 2, w: 3, h: 2 } }],
+    });
+
+    const saved = serializeDashboardState(minimizeDashboardWidget(initial, "sales"));
+    const restored = restoreDashboardWidget(createDashboardLayoutState(saved), "sales");
+
+    expect(restored.widgets[0]?.layout).toEqual({ id: "sales", x: 1, y: 2, w: 3, h: 2 });
+  });
+
+  it("loads a legacy state snapshot without previous layouts", () => {
+    const restored = createDashboardLayoutState({
+      columns: 6,
+      widgets: [{ id: "sales", layout: { id: "sales", x: 1, y: 2, w: 3, h: 2 } }],
+    });
+
+    expect(restored.previousLayouts).toEqual({});
   });
 
   it("clears all widgets and previous layout snapshots", () => {
