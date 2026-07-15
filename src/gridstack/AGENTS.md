@@ -2,7 +2,7 @@
 
 ## Scope
 
-This file applies to `comins/grid-layout/src/gridstack`.
+This file applies to `src/gridstack`.
 
 ## Role
 

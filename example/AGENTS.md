@@ -2,7 +2,7 @@
 
 ## Scope
 
-This file applies to `comins/grid-layout/example`.
+This file applies to `example`.
 
 ## Role
 
@@ -10,7 +10,7 @@ The example is the package consumer surface used for manual inspection and Playw
 
 ## Rules
 
-- MUST: the example as consumer code, not as package internals.
+- MUST: Treat the example as consumer code, not as package internals.
 - Import the package through public exports where practical.
 - MUST: example-only styles and demo data out of runtime exports.
 - Maintain accessible labels for controls used by Playwright.

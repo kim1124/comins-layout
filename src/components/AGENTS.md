@@ -2,7 +2,7 @@
 
 ## Scope
 
-This file applies to `comins/grid-layout/src/components`.
+This file applies to `src/components`.
 
 ## Role
 

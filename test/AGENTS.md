@@ -2,7 +2,7 @@
 
 ## Scope
 
-This file applies to `comins/grid-layout/test`.
+This file applies to `test`.
 
 ## Role
 
@@ -12,11 +12,13 @@ The test workspace owns package-local Vitest, Playwright, browser artifacts, and
 
 - MUST: Vitest tests under `test/vitest`.
 - MUST: Playwright specs under `test/playwright/specs`.
-- MUST: new package work reports under `comins/grid-layout/reports/YYYY-MM-DD.md`.
+- MUST: new package work reports under `reports/YYYY-MM-DD.md`.
 - DO NOT: leave active artifacts under repository root `test-results`.
 - REPORT: skipped browser checks with the reason and remaining risk.
 - Prefer focused tests before package baseline verification.
 - MUST: For behavior changes, write or update the smallest failing test before production code unless the change is documentation-only or instruction-only.
+- MUST: For GridStack mount/unmount, drag, resize, column-cycle, or 100+ widget changes, run `npm run verify:full`. Its isolated `chromium-resource` project is the automated Chrome DevTools Protocol resource gate.
+- REPORT: Distinguish automated CDP counter verification from direct Chrome DevTools GUI verification. If direct GUI verification is requested but unavailable, report it as an unverified acceptance item.
 
 ## Verification Routing
 

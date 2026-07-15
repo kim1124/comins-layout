@@ -2,7 +2,7 @@
 
 `comins-grid-layout`는 React 애플리케이션에서 dashboard widget layout을 구성하기 위한 GridStack 기반 package다. 런타임은 Next.js API에 의존하지 않고 React component와 serializable layout state 중심으로 동작한다.
 
-이 프로젝트는 기존 KMSF 모노레포의 `packages/gridstack`에서 분리되어 관리되는 독립 저장소다. 이후 기능 구현, 문서화, 검증, 릴리스 작업의 기준 저장소는 이 프로젝트이며, KMSF 패키지는 이력 참고 대상으로만 취급한다.
+이 저장소는 기능 구현, 문서화, 검증, 작업 보고, 릴리스 준비의 단일 기준이다.
 
 ## 패키지 상태
 
@@ -16,7 +16,7 @@
 ## 저장소 운영 기준
 
 - 패키지명은 `comins-grid-layout`이고, GitHub 저장소명은 `comins-layout`이다.
-- 기능 구현과 이슈 수정은 이 저장소에서만 수행한다. KMSF 모노레포와의 소스 동기화 또는 동시 릴리스는 기본 작업 범위가 아니다.
+- 기능 구현과 이슈 수정은 이 저장소에서만 수행한다. 다른 저장소와의 소스 동기화 또는 동시 릴리스는 명시 요청이 있을 때만 검토한다.
 - 작업 전에는 `README.md`, `GUIDE.md`, `docs/README.md`와 경로별 `AGENTS.md`를 확인한다.
 - substantial 변경은 `reports/YYYY-MM-DD.md`에 작업 내용과 실제 검증 결과를 기록한다.
 

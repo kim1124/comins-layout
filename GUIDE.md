@@ -2,14 +2,14 @@
 
 ## Project Ownership
 
-`comins-grid-layout`는 KMSF 모노레포의 `packages/gridstack`에서 분리된 독립 프로젝트다. 기능 구현, 문서, 테스트, 작업 보고, 릴리스 준비는 이 저장소에서 관리한다.
+`comins-grid-layout`는 독립 React package 프로젝트다. 기능 구현, 문서, 테스트, 작업 보고, 릴리스 준비는 이 저장소에서 관리한다.
 
 - Local root: `<repo-root>`
 - GitHub repository: [`kim1124/comins-layout`](https://github.com/kim1124/comins-layout)
 - Integration branch: `main`
 - npm package name: `comins-grid-layout`
 
-KMSF `packages/gridstack`는 분리 이전의 이력과 구현 배경을 확인할 때만 참고한다. 별도 지시가 없으면 두 저장소 간 소스 동기화, 변경 복제, 동시 릴리스를 수행하지 않는다.
+이 저장소의 source, 문서, 테스트, report가 현재 동작과 release 준비의 기준이다. 다른 저장소와의 소스 동기화, 변경 복제, 동시 릴리스는 명시 요청이 있을 때만 수행한다.
 
 ## Working Agreement
 
@@ -32,4 +32,4 @@ npm run verify
 npm run verify:full
 ```
 
-검증 결과와 `git diff --check`를 확인한 뒤, 의도한 파일만 커밋하여 `origin/main`에 반영한다. 검증을 실행하지 못했거나 실패한 항목은 완료 보고의 잔여 리스크로 명시한다.
+검증 결과와 `git diff --check`를 확인한 뒤, 의도한 파일만 커밋한다. push와 publish는 명시 요청이 있을 때만 수행한다. 검증을 실행하지 못했거나 실패한 항목은 완료 보고의 잔여 리스크로 명시한다.

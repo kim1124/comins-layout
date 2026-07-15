@@ -38,9 +38,9 @@
 
 ## Repository Scope
 
-- 이 패키지는 KMSF 모노레포의 하위 패키지가 아닌 독립 Git 저장소로 관리한다.
+- 이 패키지는 독립 Git 저장소로 관리한다.
 - 기능 구현, 검증, 작업 보고, 원격 반영은 이 저장소와 `kim1124/comins-layout`의 `main` 브랜치를 기준으로 한다.
-- KMSF `packages/gridstack`는 이관 이전 이력 참고 대상으로만 사용하며, 기본 작업에서 소스 동기화를 요구하지 않는다.
+- 다른 저장소와의 소스 동기화, 변경 복제, 동시 릴리스는 기본 작업 범위가 아니다.
 
 ## Library Research Notes
 

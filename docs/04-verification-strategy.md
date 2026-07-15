@@ -52,6 +52,8 @@ Use Playwright for:
 
 Playwright는 일반 Chromium/mobile suite 완료 뒤 단일 worker `chromium-resource` project에서 Chromium CDP counter JSON을 test artifact에 기록한다. 수동 Chrome DevTools 확인 시에도 같은 순서로 JS Heap, DOM Nodes, Event Listeners를 기록해 `reports/YYYY-MM-DD.md`와 비교한다.
 
+CDP counter gate는 자동화된 Chrome DevTools Protocol 검증이다. 직접 Chrome DevTools GUI 확인을 요청받은 경우에는 별도로 실행하고, 실행하지 못했으면 GUI 확인을 통과한 것으로 보고하지 않는다.
+
 ## Completion Gate
 
 Do not mark implementation work complete if:

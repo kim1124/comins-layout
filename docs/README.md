@@ -2,9 +2,9 @@
 
 이 디렉터리는 `comins-grid-layout` 패키지 설계, public API, 검증 기준을 관리한다.
 
-## 독립 저장소 기준
+## Standalone Documentation Contract
 
-`comins-grid-layout`는 KMSF 모노레포의 `packages/gridstack`에서 분리된 독립 프로젝트다. 현재 개발과 릴리스의 기준은 `<repo-root>` 및 GitHub [`kim1124/comins-layout`](https://github.com/kim1124/comins-layout) 저장소다. KMSF 경로와 과거 문서는 이력 참고용이며, 이 저장소의 변경을 자동으로 동기화하는 대상이 아니다.
+현재 개발과 릴리스 준비의 기준은 `<repo-root>`, npm package `comins-grid-layout`, GitHub [`kim1124/comins-layout`](https://github.com/kim1124/comins-layout) 저장소다. 이 디렉터리의 current contract는 root `GUIDE.md`와 경로별 `AGENTS.md`를 따른다.
 
 ## 문서 목록
 
@@ -17,6 +17,10 @@
 - `superpowers/plans/2026-07-14-persistence-performance-stabilization.md`: persistence 및 Chrome resource counter 구현 계획
 
 프로젝트 운영 및 기여 절차는 루트 `GUIDE.md`를 따른다.
+
+## Historical Records
+
+`reports/`와 완료된 `superpowers/specs`, `superpowers/plans` 문서는 당시의 결정과 검증 증적이다. 현재 운영 지침을 바꾸는 대상이 아니며, 과거 저장소·환경 참조는 이력으로 유지한다.
 
 ## 현재 상태
 
