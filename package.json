@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "vitest",
+    "test:consumer": "node scripts/consumer-smoke.mjs",
     "test:run": "vitest run",
     "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
     "verify": "npm run lint && npm run test:run && npm run build",
@@ -23,28 +24,29 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "sideEffects": [
     "./dist/styles.css"
   ],
   "dependencies": {
-    "gridstack": "latest",
+    "gridstack": "^12.6.0",
     "lucide-react": "^1.11.0"
   },
   "devDependencies": {
-    "@playwright/test": "latest",
+    "@playwright/test": "^1.61.1",
     "@types/node": "^26.1.1",
-    "@types/react": "latest",
-    "@types/react-dom": "latest",
-    "@vitejs/plugin-react": "latest",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router": "^7.17.0",
     "typescript": "^6.0.3",
-    "vite": "latest",
-    "vitest": "latest"
+    "vite": "^8.1.4",
+    "vitest": "^4.1.10"
   },
   "peerDependencies": {
     "react": ">=18.0.0 <20.0.0",

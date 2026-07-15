@@ -13,6 +13,21 @@
 - `gridstack`은 runtime dependency이며, consumer는 GridStack CSS와 package CSS를 함께 import해야 한다.
 - npm 배포 전에는 files, dependency, browser verification 상태를 별도 검토해야 한다.
 
+## Runtime Boundary
+
+`comins-grid-layout`는 GridStack browser interaction을 사용하므로 SSR 애플리케이션에서는 client boundary 안에서 사용한다. package source는 network request, remote asset load, telemetry, error report를 수행하지 않는다.
+
+## 지원 범위
+
+| Surface | Support |
+| --- | --- |
+| React | `>=18.0.0 <20.0.0` |
+| React DOM | `>=18.0.0 <20.0.0` |
+| Chrome and Edge | 현재 stable Chromium 기반 release |
+| 자동 browser gate | Playwright에 포함된 Chromium |
+| Firefox and Safari | Firefox 및 WebKit project 추가 전까지 지원 계약에서 제외 |
+| SSR | client boundary 필수; server rendering은 현재 미지원 |
+
 ## 저장소 운영 기준
 
 - 패키지명은 `comins-grid-layout`이고, GitHub 저장소명은 `comins-layout`이다.
@@ -184,10 +199,13 @@ npm run lint
 npm run test:run
 npm run build
 npm run test:e2e
+npm run test:consumer
 npm run verify
 npm run verify:full
 ```
 
 ## Publishing note
 
-현재 package는 Comins standalone package로 이관된 상태다. npm publish 전에는 package contents, dependency version policy, browser verification 상태를 별도 검토해야 한다. GitHub 원격 반영은 `kim1124/comins-layout`의 `main` 브랜치를 기준으로 한다.
+`comins-grid-layout`는 아직 npm registry에 존재하지 않는다. npm은 신규 package가 registry에 생성되기 전에는 trusted publisher 또는 staged publishing을 등록할 수 없으므로, 최초 공개 버전은 maintainer가 automation token 없이 npm 2FA로 대화형 배포한다.
+
+bootstrap 배포 후 `kim1124/comins-layout`, `publish.yml`, `npm` environment를 trusted publisher로 등록한다. `npm stage publish`만 허용하고 token publish를 차단하며, 모든 staged version은 maintainer가 npm 2FA로 승인한다. repository workflow는 수동 실행만 허용하며 non-`main` ref, version 불일치, bootstrap 미완료 package를 거부한다.

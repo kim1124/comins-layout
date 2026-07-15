@@ -1,0 +1,52 @@
+name: Stage npm package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact package.json version to stage
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-stage
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    if: github.ref == 'refs/heads/main'
+    environment: npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@11.15.0
+      - name: Verify requested version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: >-
+          node -e 'const { version } = require("./package.json");
+          if (version !== process.env.REQUESTED_VERSION) {
+          console.error(`Expected ${version}, received ${process.env.REQUESTED_VERSION}`);
+          process.exit(1); }'
+      - name: Require bootstrap package
+        run: >-
+          node -e 'const { execFileSync } = require("node:child_process");
+          const { name } = require("./package.json");
+          execFileSync("npm", ["view", name, "version"], { stdio: "inherit" });'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run verify:full
+      - run: npm run test:consumer
+      - run: npm pack --dry-run --json
+      - run: npm stage publish --access public
