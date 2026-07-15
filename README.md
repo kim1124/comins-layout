@@ -206,6 +206,6 @@ npm run verify:full
 
 ## Publishing note
 
-`comins-grid-layout`는 아직 npm registry에 존재하지 않는다. npm은 신규 package가 registry에 생성되기 전에는 trusted publisher 또는 staged publishing을 등록할 수 없으므로, 최초 공개 버전은 maintainer가 automation token 없이 npm 2FA로 대화형 배포한다.
+`comins-grid-layout@0.1.0` bootstrap 배포가 완료되었다. 이후 배포는 `kim1124/comins-layout`, `publish.yml`, `npm` environment에 등록된 trusted publisher를 통해 진행한다.
 
-bootstrap 배포 후 `kim1124/comins-layout`, `publish.yml`, `npm` environment를 trusted publisher로 등록한다. `npm stage publish`만 허용하고 token publish를 차단하며, 모든 staged version은 maintainer가 npm 2FA로 승인한다. repository workflow는 수동 실행만 허용하며 non-`main` ref, version 불일치, bootstrap 미완료 package를 거부한다.
+배포 workflow는 `npm stage publish`만 허용하고 token publishing을 사용하지 않는다. 모든 staged version은 maintainer 승인을 거치며, workflow는 수동 실행만 허용하고 non-`main` ref와 version 불일치를 거부한다.

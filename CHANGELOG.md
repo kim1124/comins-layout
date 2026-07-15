@@ -1,5 +1,10 @@
 # comins-grid-layout
 
+## 0.1.1
+
+- Removed the maintainer's local absolute path from the published README.
+- Updated the publishing documentation after the trusted-publisher bootstrap.
+
 ## 0.1.0
 
 - Initial standalone React dashboard grid package.
