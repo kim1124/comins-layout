@@ -1,5 +1,10 @@
 # comins-grid-layout
 
+## 0.1.2
+
+- Republished the privacy-safe package after npm maintainer metadata remediation.
+- No runtime or public API changes.
+
 ## 0.1.1
 
 - Removed the maintainer's local absolute path from the published README.
