@@ -520,7 +520,9 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   await expect(grid.locator(".grid-stack-item")).toHaveCount(100);
 
   const columnSelect = page.getByLabel("컬럼 선택");
-  await runColumnCycle(columnSelect, grid);
+  for (let warmupCycle = 0; warmupCycle < 2; warmupCycle += 1) {
+    await runColumnCycle(columnSelect, grid);
+  }
   const columnCycleCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
   for (let cycle = 0; cycle < 3; cycle += 1) {
