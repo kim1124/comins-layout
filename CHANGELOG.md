@@ -2,8 +2,10 @@
 
 ## 0.1.2
 
-- Republished the privacy-safe package after npm maintainer metadata remediation.
-- No runtime or public API changes.
+- Prepared a privacy-safe package after npm maintainer metadata remediation.
+- Escaped widget IDs before using them in DOM attribute selectors.
+- Hardened GitHub verification and staged-publishing workflows and added Dependabot update checks.
+- No public API changes.
 
 ## 0.1.1
 

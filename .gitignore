@@ -4,3 +4,12 @@ test/playwright/html-report/
 test/playwright/results/
 reports/artifacts/
 .worktrees/
+.env
+.env.*
+!.env.example
+.npmrc
+!.npmrc.example
+*.pem
+*.key
+*.p12
+*.pfx

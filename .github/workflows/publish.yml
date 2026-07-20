@@ -16,21 +16,19 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  stage:
+  verify-and-pack:
     if: github.ref == 'refs/heads/main'
-    environment: npm
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
-          registry-url: https://registry.npmjs.org
           package-manager-cache: false
-      - run: npm install --global npm@11.15.0
       - name: Verify requested version
         env:
           REQUESTED_VERSION: ${{ inputs.version }}
@@ -49,4 +47,38 @@ jobs:
       - run: npm run verify:full
       - run: npm run test:consumer
       - run: npm pack --dry-run --json
-      - run: npm stage publish --access public
+      - name: Pack verified artifact
+        id: pack
+        run: >-
+          npm pack --json |
+          node -e 'const fs = require("node:fs");
+          const [pack] = JSON.parse(fs.readFileSync(0, "utf8"));
+          if (!pack?.filename) process.exit(1);
+          process.stdout.write(`package-file=${pack.filename}\n`);' >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-package-${{ inputs.version }}
+          path: ${{ steps.pack.outputs.package-file }}
+          if-no-files-found: error
+          retention-days: 1
+
+  stage:
+    needs: verify-and-pack
+    if: github.ref == 'refs/heads/main'
+    environment: npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - run: npm install --global npm@11.15.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: npm-package-${{ inputs.version }}
+          path: package-artifact
+      - run: npm stage publish ./package-artifact/*.tgz --access public

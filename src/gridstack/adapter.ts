@@ -364,6 +364,10 @@ export function readDashboardLayoutSnapshot(grid: GridStack, columns: number): D
   };
 }
 
+export function findWidgetElementById(element: HTMLElement, widgetId: string) {
+  return element.querySelector<HTMLElement>(`[data-widget-id="${CSS.escape(widgetId)}"]`);
+}
+
 function syncGridWidgets<TData>(
   grid: GridStack,
   element: HTMLElement,
@@ -380,7 +384,7 @@ function syncGridWidgets<TData>(
   });
 
   widgets.forEach((widget) => {
-    const item = element.querySelector<HTMLElement>(`[data-widget-id="${widget.id}"]`);
+    const item = findWidgetElementById(element, widget.id);
     if (!item) {
       return;
     }

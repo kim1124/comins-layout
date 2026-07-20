@@ -6,7 +6,12 @@ Report potential vulnerabilities privately through this repository's GitHub Secu
 
 ## Supported Versions
 
-Supported versions and the security-fix support window will be documented with each public release.
+Only the current `0.1.x` release line receives security fixes.
+
+| Version | Supported |
+| --- | --- |
+| `0.1.x` | Yes |
+| `< 0.1.0` | No |
 
 ## Before a Public npm Release
 
