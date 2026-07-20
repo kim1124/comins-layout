@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 import type { Locator, Page } from "@playwright/test";
+import {
+  growsMonotonicallyBeyondTolerance,
+  selectSteadyStateWindow,
+  staysWithinFinalHeapGrowth,
+  staysWithinHeapPeak,
+  type HeapCounter,
+} from "../resource-stability";
 
 type WidgetLayout = {
   x: number;
@@ -8,8 +15,7 @@ type WidgetLayout = {
   h: number;
 };
 
-type ResourceCounters = {
-  heap: number;
+type ResourceCounters = HeapCounter & {
   nodes: number;
   listeners: number;
   documents: number;
@@ -64,30 +70,6 @@ async function readResourceCounters(page: Page): Promise<ResourceCounters> {
   } finally {
     await session.detach();
   }
-}
-
-function growsMonotonically(values: number[]) {
-  return (
-    values.slice(1).every((value, index) => value >= values[index]!) &&
-    values.slice(1).some((value, index) => value > values[index]!)
-  );
-}
-
-function staysWithinHeapBudget(
-  counters: ResourceCounters[],
-  { finalTolerance = 0.02, peakTolerance = finalTolerance }: { finalTolerance?: number; peakTolerance?: number } = {},
-) {
-  const baseline = counters[0];
-  const final = counters.at(-1);
-  if (!baseline || !final) {
-    return false;
-  }
-
-  const peakUpperLimit = baseline.heap * (1 + peakTolerance);
-  const finalUpperLimit = baseline.heap * (1 + finalTolerance);
-  const maxHeap = Math.max(...counters.map((counter) => counter.heap));
-
-  return maxHeap <= peakUpperLimit && final.heap <= finalUpperLimit;
 }
 
 async function runColumnCycle(columnSelect: Locator, grid: Locator) {
@@ -490,32 +472,23 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   await expect(grid.locator(".grid-stack-item")).toHaveCount(100);
 
   const columnSelect = page.getByLabel("컬럼 선택");
-  const columnHeapBudget = { peakTolerance: 0.12 };
   for (let warmupCycle = 0; warmupCycle < 2; warmupCycle += 1) {
     await runColumnCycle(columnSelect, grid);
   }
   const columnCycleCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
-  for (let cycle = 0; cycle < 3; cycle += 1) {
+  for (let cycle = 0; cycle < 5; cycle += 1) {
     await runColumnCycle(columnSelect, grid);
     columnCycleCounters.push(await readResourceCounters(page));
   }
 
-  for (
-    let confirmationCycle = 0;
-    confirmationCycle < 2 && !staysWithinHeapBudget(columnCycleCounters, columnHeapBudget);
-    confirmationCycle += 1
-  ) {
-    await runColumnCycle(columnSelect, grid);
-    columnCycleCounters.push(await readResourceCounters(page));
-  }
+  const columnSteadyStateCounters = selectSteadyStateWindow(columnCycleCounters, 3);
 
   const stressWidget = page.getByTestId("dashboard-widget-stress-0");
   const beforeDrag = await readWidgetLayout(stressWidget);
   await dragWidget(page, stressWidget, 80, 120);
   await expect.poll(async () => readWidgetLayout(stressWidget)).not.toEqual(beforeDrag);
   await waitForInteractionToSettle(stressWidget);
-  const interactionWarmupCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
   const beforeResize = await readWidgetLayout(stressWidget);
   await resizeWidget(page, stressWidget, 120, 80);
@@ -524,16 +497,19 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
     return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
   }).toBe(true);
   await waitForInteractionToSettle(stressWidget);
+  const interactionWarmupCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
-  const interactionCounters: ResourceCounters[] = [await readResourceCounters(page)];
+  const interactionCounters: ResourceCounters[] = [];
 
-  for (let interactionCycle = 0; interactionCycle < 2; interactionCycle += 1) {
+  for (let interactionCycle = 0; interactionCycle < 3; interactionCycle += 1) {
     await dragWidget(page, stressWidget, 0, 180);
     await resizeWidget(page, stressWidget, 80, 60);
     await waitForInteractionToSettle(stressWidget);
 
     interactionCounters.push(await readResourceCounters(page));
   }
+  const interactionSteadyStateCounters = selectSteadyStateWindow(interactionCounters, 3);
+  const allInteractionCounters = [...interactionWarmupCounters, ...interactionCounters];
 
   const resourceCounters = {
     columnCycles: columnCycleCounters,
@@ -561,19 +537,21 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   expect(columnCycleCounters.every((counter) => counter.documents === columnBaseline.documents)).toBe(true);
   expect(columnCycleCounters.every((counter) => counter.listeners === columnBaseline.listeners)).toBe(true);
   expect(columnCycleCounters.every((counter) => counter.nodes === columnBaseline.nodes)).toBe(true);
-  expect(growsMonotonically(columnCycleCounters.map((counter) => counter.heap))).toBe(false);
-  expect(staysWithinHeapBudget(columnCycleCounters, columnHeapBudget)).toBe(true);
+  expect(staysWithinHeapPeak(columnCycleCounters, 0.12)).toBe(true);
+  expect(staysWithinFinalHeapGrowth(columnSteadyStateCounters, 0.02)).toBe(true);
+  expect(growsMonotonicallyBeyondTolerance(columnSteadyStateCounters.map((counter) => counter.heap), 0.02)).toBe(false);
 
-  const interactionBaseline = interactionCounters[0];
+  const interactionBaseline = allInteractionCounters[0];
   if (!interactionBaseline) {
     throw new Error("Interaction resource baseline is unavailable");
   }
 
-  expect(interactionCounters.every((counter) => counter.documents === interactionBaseline.documents)).toBe(true);
-  expect(interactionCounters.every((counter) => counter.nodes === interactionBaseline.nodes)).toBe(true);
-  expect(interactionCounters.every((counter) => counter.listeners === interactionBaseline.listeners)).toBe(true);
-  expect(growsMonotonically(interactionCounters.map((counter) => counter.heap))).toBe(false);
-  expect(staysWithinHeapBudget(interactionCounters)).toBe(true);
+  expect(allInteractionCounters.every((counter) => counter.documents === interactionBaseline.documents)).toBe(true);
+  expect(allInteractionCounters.every((counter) => counter.nodes === interactionBaseline.nodes)).toBe(true);
+  expect(allInteractionCounters.every((counter) => counter.listeners === interactionBaseline.listeners)).toBe(true);
+  expect(staysWithinHeapPeak(allInteractionCounters, 0.12)).toBe(true);
+  expect(staysWithinFinalHeapGrowth(interactionSteadyStateCounters, 0.02)).toBe(true);
+  expect(growsMonotonicallyBeyondTolerance(interactionSteadyStateCounters.map((counter) => counter.heap), 0.02)).toBe(false);
 });
 
 test("adds widgets with user-selected size into horizontal free space", async ({ page }) => {

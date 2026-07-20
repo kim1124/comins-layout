@@ -18,6 +18,7 @@ The test workspace owns package-local Vitest, Playwright, browser artifacts, and
 - Prefer focused tests before package baseline verification.
 - MUST: For behavior changes, write or update the smallest failing test before production code unless the change is documentation-only or instruction-only.
 - MUST: For GridStack mount/unmount, drag, resize, column-cycle, or 100+ widget changes, run `npm run verify:full`. Its isolated `chromium-resource` project is the automated Chrome DevTools Protocol resource gate.
+- MUST: CDP heap gates separate the bounded warm-up/transient peak from final retained-heap growth in a trailing steady-state window. Do not treat a pre-lazy-initialization sample as the permanent final baseline or reject non-monotonic post-GC jitter when final growth remains inside the declared tolerance.
 - REPORT: Distinguish automated CDP counter verification from direct Chrome DevTools GUI verification. If direct GUI verification is requested but unavailable, report it as an unverified acceptance item.
 
 ## Verification Routing
