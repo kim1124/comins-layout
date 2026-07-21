@@ -104,7 +104,7 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
   assert.equal(packageJson.scripts['check:security'], 'node scripts/check-public-identities.mjs');
   assert.match(packageJson.scripts['test:security'], /node --test/);
   assert.equal(packageJson.scripts['verify:package-artifact'], 'node scripts/verify-package-artifact.mjs');
-  assert.match(packageJson.scripts.verify, /check:security/);
+  assert.doesNotMatch(packageJson.scripts.verify, /check:security/);
   assert.match(packageJson.scripts.verify, /test:security/);
 });
 

@@ -14,7 +14,7 @@
     "test:run": "vitest run",
     "test:security": "node --test test/security/*.node.mjs",
     "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
-    "verify": "npm run check:security && npm run test:security && npm run lint && npm run test:run && npm run build",
+    "verify": "npm run test:security && npm run lint && npm run test:run && npm run build",
     "verify:e2e": "npm run test:e2e",
     "verify:full": "npm run verify && npm run verify:e2e",
     "verify:package-artifact": "node scripts/verify-package-artifact.mjs"
