@@ -116,6 +116,32 @@ test('accepts a matching public noreply identity', () => {
   assert.equal(result.stderr, '');
 });
 
+test('accepts GitHub service committer on a Dependabot commit', () => {
+  const cwd = repository();
+  const base = commit(cwd, 'base');
+  git(cwd, 'config', 'user.name', 'dependabot[bot]');
+  git(cwd, 'config', 'user.email', email('49699333+dependabot[bot]', 'users.noreply.github.com'));
+  writeFileSync(join(cwd, 'change.txt'), 'dependency update\n', { flag: 'a' });
+  git(cwd, 'add', 'change.txt');
+  const committed = spawnSync('git', ['commit', '--quiet', '-m', 'dependency update'], {
+    cwd,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      GIT_COMMITTER_NAME: 'GitHub',
+      GIT_COMMITTER_EMAIL: email('noreply', 'github.com'),
+    },
+  });
+  assert.equal(committed.status, 0, committed.stderr);
+  const head = git(cwd, 'rev-parse', 'HEAD');
+
+  const result = run(cwd, base, head);
+
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, '');
+  assert.equal(result.stderr, '');
+});
+
 test('rejects unsafe local and range identities without values', () => {
   const cwd = repository();
   const base = commit(cwd, 'safe');

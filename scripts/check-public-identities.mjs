@@ -11,6 +11,9 @@ const SERVICES = new Map([
   ['dependabot[bot]', new Set([
     '49699333+dependabot[bot]@users.noreply.github.com',
   ])],
+  ['GitHub', new Set([
+    ['noreply', 'github.com'].join('@'),
+  ])],
 ]);
 
 function git(args) {
