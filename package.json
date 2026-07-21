@@ -5,15 +5,19 @@
   "scripts": {
     "dev": "vite --config vite.example.config.ts",
     "build": "vite build && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+    "check:security": "node scripts/check-public-identities.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
+    "setup:hooks": "git config core.hooksPath .githooks",
     "test": "vitest",
     "test:consumer": "node scripts/consumer-smoke.mjs",
     "test:run": "vitest run",
+    "test:security": "node --test test/security/*.node.mjs",
     "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
-    "verify": "npm run lint && npm run test:run && npm run build",
+    "verify": "npm run check:security && npm run test:security && npm run lint && npm run test:run && npm run build",
     "verify:e2e": "npm run test:e2e",
-    "verify:full": "npm run verify && npm run verify:e2e"
+    "verify:full": "npm run verify && npm run verify:e2e",
+    "verify:package-artifact": "node scripts/verify-package-artifact.mjs"
   },
   "exports": {
     ".": {
