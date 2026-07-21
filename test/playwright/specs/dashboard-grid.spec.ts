@@ -455,6 +455,36 @@ test("saves and restores the current layout as JSON", async ({ page }) => {
   await expect(page.getByText("복원 완료")).toBeVisible();
 });
 
+test("supports selector-significant widget IDs", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  const widgetId = 'sales\"] .grid-stack-item';
+
+  await page.goto("/");
+  await page.getByLabel("저장된 레이아웃 JSON").fill(
+    JSON.stringify({
+      columns: 12,
+      previousLayouts: {},
+      widgets: [
+        {
+          id: widgetId,
+          title: "Selector-safe widget",
+          layout: { id: widgetId, x: 0, y: 0, w: 2, h: 2 },
+          data: { description: "selector-safe widget", value: "safe" },
+        },
+      ],
+    }),
+  );
+  await page.getByRole("button", { name: "레이아웃 복원" }).click();
+
+  const widget = page.getByTestId(`dashboard-widget-${widgetId}`);
+  await expect(widget).toBeVisible();
+  await expect(widget).toHaveAttribute("data-widget-id", widgetId);
+  await expect
+    .poll(() => widget.evaluate((element) => Boolean((element as HTMLElement & { gridstackNode?: unknown }).gridstackNode)))
+    .toBe(true);
+  expect(diagnostics).toEqual([]);
+});
+
 test("keeps 100 widgets stable through repeated column changes", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-resource", "Chrome CDP resource checks run in the isolated resource project only.");
   test.setTimeout(120_000);
