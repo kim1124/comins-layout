@@ -1,53 +1,57 @@
-# comins-grid-layout Agent Map
+<!-- comins-reference:managed-start contract=v1.2 -->
+# Comins Module AGENTS.md
 
-## Repository Ownership
+## Scope
 
-- SCOPE: `comins-grid-layout` package, `src`, `src/core`, `src/gridstack`, `src/components`, `example`, `test`, `GUIDE.md`.
-- CONTEXT: 이 저장소는 package source, 문서, 테스트, 작업 보고, release 준비의 단일 기준이다.
-- MUST: Comins Contract v1.2를 채택한다. policy, security, public API, release 작업 전에는 `comins-governance`의 `COMINS_CONTRACT.md`를 명시적으로 확인한다.
-- MUST: `comins-grid-layout`, GitHub `kim1124/comins-layout`, `main`을 독립 package 운영 기준으로 사용한다.
-- DO NOT: 다른 저장소의 workspace 명령, 소스 동기화, 변경 복제, 동시 릴리스를 별도 요청 없이 수행한다.
-- DO NOT: `AGENTS.override.md`를 커밋한다. 로컬 임시 예외로만 사용한다.
-- MUST: 하위 규칙은 `src/core/AGENTS.md`, `src/gridstack/AGENTS.md`, `src/components/AGENTS.md`, `test/AGENTS.md`, `example/AGENTS.md`를 따른다.
-- MUST: Project documentation starts at `README.md`, `GUIDE.md`, and `docs/README.md`.
+- This repository is one independent Comins npm frontend module.
+- Read this file and any closer `AGENTS.md`; record the adopted `COMINS_CONTRACT` version and read the governance source explicitly for policy, security, release, or public API work.
+- Do not use KMSF workspace commands, source synchronization, or release flows without a migration-history request; keep `AGENTS.override.md` uncommitted and temporary.
+- Use `gpt-5.6-sol` with `xhigh` reasoning as the default for all Comins work.
+- For vulnerability investigation, runtime memory leaks, retention, out-of-memory failures, or security work, use `gpt-5.6-sol` with at least `xhigh`.
+- For instruction planning, Plan mode, or authoring or updating an implementation plan, use `gpt-5.6-sol` with at least `max`.
 
-## Work Boundaries
+## Change Boundaries
 
-- Review, diagnose, research, and plan requests are read-only unless implementation is explicitly requested.
-- In-scope implementation may edit local files and run non-destructive verification.
-- REQUIRE explicit request before push, publish, external writes, destructive commands, or material scope expansion.
-- MUST: 모든 Comins 작업은 `gpt-5.6-sol`과 `xhigh` reasoning을 기본으로 사용한다.
-- MUST: 취약점 조사, runtime memory leak·retention·out-of-memory, security 작업에는 `gpt-5.6-sol`과 최소 `xhigh`를 사용한다.
-- MUST: 지침 계획, Plan mode, implementation plan 작성·갱신에는 `gpt-5.6-sol`과 최소 `max`를 사용한다.
+- Preserve documented APIs, types, and package-local conventions unless the request explicitly expands them.
+- Namespace CSS and custom properties, avoid global resets, and keep external engines behind module-owned adapters.
+- Do not publish, tag, create a GitHub Release, or push a remote branch without an explicit maintainer command.
 
 ## Sensitive Data
 
+- Adopt Comins Contract v1.2 and the governance `SENSITIVE_DATA_STANDARD.md`.
 - Never track personal names, personal email addresses, local account paths, credentials, tokens, secrets, or value-derived fingerprints.
-- Use only an approved public handle, GitHub noreply identity, service identity, explicit placeholder, or repository-relative path.
-- Run the required Gitleaks hook, security CI, and exact package-artifact gate; redact scanner output and fail closed when a required gate is unavailable.
-- Handle legacy history or provider metadata through a separate audit without enforcement baselines or finding suppressions.
+- Use only an approved public handle, GitHub noreply identity, service identity, explicit placeholder, or repository-relative path; run the required local Gitleaks hook and security CI, and when a package boundary exists run the exact package-artifact gate.
+- Redact detector output, fail closed when a required scanner is unavailable, and handle legacy remediation through a separate audit.
 
-## Product Goals
+## Verification
 
-- MUST: Support create, read, update, move, resize, maximize, minimize, arrange, reset, and serialize widget flows.
-- MUST: Support runtime column count `1..12`, movement/resize toggles, and scheduled resize signals for widget content.
-
-## Implementation Rules
-
-- DO NOT: introduce Next.js-only APIs.
-- MUST: Keep React and React DOM as peer dependencies.
-- MUST: Keep GridStack interaction behind a package-owned adapter boundary.
-- MUST: Store layout state in serializable objects.
-- MUST: Preserve widget IDs across all operations.
-- MUST: Clamp runtime column count to `1..12`.
-- MUST: Treat 100+ widgets and repeated column changes as baseline requirements.
-
-## Verification Commands
-
-- RUN: `npm run verify` for package baseline: sensitive-data gates, lint, Vitest, build.
-- RUN: `npm run verify:full` for package full gate: baseline plus Playwright.
-- MUST: Run `npm run verify:full` for GridStack lifecycle, drag, resize, column-cycle, or browser-visible behavior changes.
+- Define and run the baseline verification command for meaningful changes, plus focused browser verification for interaction, layout, rendering, or keyboard behavior.
+- Classify failures as product behavior, test contract, or execution environment before changing code or repeating broad gates.
 
 ## Reporting
 
-REPORT: behavior, public API, configuration, security, release, 또는 test-contract 변경 시 `reports/YYYY-MM-DD.md`에 timestamp, summary, changed files, commands actually run, pass/fail result, residual risks를 기록한다.
+- For behavior, public API, configuration, security, release, or test-contract changes, update the report with changed files, commands, results, and residual risks; do not create one for inspection-only work without a maintainer request.
+<!-- comins-reference:managed-end -->
+
+## Module Guidance
+
+### Repository and Public Surface
+
+- This repository owns the standalone `comins-grid-layout` React package, GitHub repository `kim1124/comins-layout`, default integration branch `main`, and its source, example, tests, documentation, reports, and release preparation.
+- The public package surface includes `DashboardGrid`, `useDashboardGrid`, layout and state helpers, the option mapper, public types, and `comins-grid-layout/styles.css`.
+- Read `README.md`, `GUIDE.md`, and `docs/README.md`, plus the closer rules in `src/core/AGENTS.md`, `src/gridstack/AGENTS.md`, `src/components/AGENTS.md`, `test/AGENTS.md`, and `example/AGENTS.md`.
+
+### Product and Implementation
+
+- Support create, read, update, move, resize, maximize, minimize, arrange, reset, and serialize widget flows.
+- Support runtime column counts from `1` through `12`, movement and resize toggles, and scheduled resize signals for widget content.
+- Keep React and React DOM as peer dependencies, and do not introduce Next.js-only APIs.
+- Keep direct GridStack interaction inside the package-owned adapter boundary; use serializable layout state and preserve widget IDs across all operations.
+- Treat 100 or more widgets and repeated runtime column changes as baseline performance requirements.
+
+### Module Verification
+
+- Run `npm run verify` for the package baseline: sensitive-data gates, lint, Vitest, and build.
+- Run `npm run verify:full` for the package full gate: the baseline plus Playwright.
+- Run `npm run verify:full` before completion for GridStack lifecycle, drag, resize, column-cycle, or other browser-visible behavior changes.
+- Store required work reports under `reports/YYYY-MM-DD.md` and include a timestamp and summary.
