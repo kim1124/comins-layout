@@ -17,3 +17,7 @@ After bootstrap, register the exact repository, `publish.yml`, and `npm` environ
 ## Disclosure
 
 The maintainer will assess the report, prepare a remediation when applicable, and decide whether to publish a GitHub security advisory or request a CVE after the remediation is available.
+
+## Credential and PII Incidents
+
+Treat a credential/PII incident as a release blocker. Stop the affected release, rotate any exposed credential, preserve non-public evidence, and coordinate remediation without public disclosure of the sensitive value.

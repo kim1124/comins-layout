@@ -10,13 +10,84 @@ permissions:
   contents: read
 
 jobs:
+  security:
+    name: Sensitive data
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: '8.30.1'
+      GITLEAKS_ARCHIVE: gitleaks_8.30.1_linux_x64.tar.gz
+      GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Resolve reviewed commit range
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == 'pull_request' ]]; then
+            base_sha="$PR_BASE_SHA"
+            head_sha="$PR_HEAD_SHA"
+          else
+            base_sha="$PUSH_BASE_SHA"
+            head_sha="$PUSH_HEAD_SHA"
+          fi
+          printf 'BASE_SHA=%s\nHEAD_SHA=%s\n' "$base_sha" "$head_sha" >> "$GITHUB_ENV"
+      - name: Validate public Git identities
+        run: node scripts/check-public-identities.mjs "$BASE_SHA" "$HEAD_SHA"
+      - name: Install pinned Gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive_path=$(mktemp "${RUNNER_TEMP}/comins-gitleaks.XXXXXX.tar.gz")
+          trap 'rm -f "$archive_path"' EXIT
+          curl --fail --silent --show-error --location \
+            --output "$archive_path" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${GITLEAKS_ARCHIVE}"
+          printf '%s  %s\n' "$GITLEAKS_SHA256" "$archive_path" | sha256sum --check --status
+          install -d .local/bin
+          tar -xzf "$archive_path" -C .local/bin gitleaks
+          test "$(.local/bin/gitleaks version)" = "$GITLEAKS_VERSION"
+      - name: Scan reviewed Git range
+        shell: bash
+        run: |
+          set -euo pipefail
+          gitleaks_output=$(mktemp "${RUNNER_TEMP}/comins-gitleaks-output.XXXXXX")
+          trap 'rm -f "$gitleaks_output"' EXIT
+          if ! .local/bin/gitleaks git \
+            --config .gitleaks.toml \
+            --log-opts="$BASE_SHA..$HEAD_SHA" \
+            --redact \
+            --ignore-gitleaks-allow \
+            --no-banner \
+            --no-color \
+            --log-level error \
+            >"$gitleaks_output" 2>&1; then
+            printf '%s\n' 'sensitive-data-check: failed' >&2
+            exit 1
+          fi
+
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: '24'
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 24
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
