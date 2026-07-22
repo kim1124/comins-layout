@@ -85,6 +85,10 @@
     align-items: stretch;
     flex-direction: column;
   }
+
+  .readme-demo .comins-grid-layout-widget__actions button:not(:last-child) {
+    display: none;
+  }
 }
 
 @font-face {

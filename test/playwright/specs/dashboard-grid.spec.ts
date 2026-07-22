@@ -7,6 +7,7 @@ import {
   staysWithinHeapPeak,
   type HeapCounter,
 } from "../resource-stability";
+import { performTouchGesture } from "../touch-gesture";
 
 type WidgetLayout = {
   x: number;
@@ -609,6 +610,50 @@ test("exposes a live GridStack handle and deduplicates explicit layout commits",
   await expect
     .poll(() => page.evaluate(() => window.__retainedCominsGridHandle?.getGridStack()?.getColumn() ?? null))
     .toBeNull();
+});
+
+test("moves a widget with touch after a runtime column change", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chrome", "Touch interaction is verified in the mobile project only.");
+
+  await page.goto("/readme-demo");
+  await page.getByLabel("Columns").selectOption("8");
+  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "8");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(8);
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  const title = widget.locator(".comins-grid-layout-widget__title");
+  await performTouchGesture(page, title, { x: 96, y: 0 }, 3);
+
+  await expect(widget).toHaveAttribute("data-layout-x", "1");
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+  await expect(widget).toHaveAttribute("data-layout-x", "1");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
+});
+
+test("resizes a widget with touch and commits the controlled layout", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chrome", "Touch interaction is verified in the mobile project only.");
+
+  await page.goto("/readme-demo");
+  const widget = page.getByTestId("dashboard-widget-overview");
+  const handle = widget.locator(".ui-resizable-se");
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
+
+  await performTouchGesture(page, handle, { x: 72, y: 104 }, 1);
+
+  await expect(widget).toHaveAttribute("data-layout-w", "3");
+  await expect(widget).toHaveAttribute("data-layout-h", "3");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+  await expect(widget).toHaveAttribute("data-layout-w", "3");
+  await expect(widget).toHaveAttribute("data-layout-h", "3");
 });
 
 test("adds widgets with user-selected size into horizontal free space", async ({ page }) => {
