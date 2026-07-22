@@ -582,6 +582,12 @@ const snapshot = gridRef.current?.commitLayout();
 gridRef.current?.refresh();
 ```
 
+| Handle method | Return type | Purpose |
+| --- | --- | --- |
+| `getGridStack` | `GridStack \| null` | Borrow the live engine instance while the grid is mounted |
+| `refresh` | `void` | Ask GridStack to recalculate its current layout |
+| `commitLayout` | `DashboardLayoutSnapshot \| null` | Commit direct engine geometry changes to the controlled callback contract |
+
 - `getGridStack()` returns `null` before initialization and after unmount.
 - GridStack methods that emit `change` are committed automatically; `commitLayout()` is for direct geometry changes that do not emit it and suppresses identical duplicate commits.
 - Use Comins `addWidget` and `removeWidget` for React content. Raw GridStack CRUD only changes engine/DOM state and may be replaced by the next controlled React render.
