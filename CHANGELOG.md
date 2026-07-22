@@ -1,5 +1,11 @@
 # comins-grid-layout
 
+## 0.1.3
+
+- Restore widgets whose IDs contain selector-significant characters through a CSS-escaped adapter lookup.
+- Adopt Comins Contract v1.2 sensitive-data hooks, required CI enforcement, and exact package-artifact scanning.
+- Preserve the existing public API and dependency set.
+
 ## 0.1.2
 
 - Republished the privacy-safe package after npm maintainer metadata remediation.
