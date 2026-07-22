@@ -9,6 +9,7 @@ import type { DashboardStateSnapshot, DashboardWidget } from "../../src";
 import { Dialog } from "./components/ui/dialog";
 import { Select } from "./components/ui/select";
 import type { SelectOption } from "./components/ui/select";
+import { ReadmeDemoPage } from "./readme-demo";
 import "gridstack/dist/gridstack.min.css";
 import "../../src/styles.css";
 import "./styles.css";
@@ -1680,10 +1681,15 @@ const container = document.getElementById("root") as HTMLElement;
 const root = window.__cominsGridLayoutExampleRoot ?? createRoot(container);
 window.__cominsGridLayoutExampleRoot = root;
 
+function ExampleApp() {
+  const location = useLocation();
+  return location.pathname === "/readme-demo" ? <ReadmeDemoPage /> : <DocsShell />;
+}
+
 root.render(
   <StrictMode>
     <BrowserRouter>
-      <DocsShell />
+      <ExampleApp />
     </BrowserRouter>
   </StrictMode>,
 );

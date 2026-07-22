@@ -584,6 +584,33 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   expect(growsMonotonicallyBeyondTolerance(interactionSteadyStateCounters.map((counter) => counter.heap), 0.02)).toBe(false);
 });
 
+test("exposes a live GridStack handle and deduplicates explicit layout commits", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Advanced handle lifecycle is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  await expect(page.getByRole("heading", { name: "Interactive dashboards for React" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
+  const snapshot = await page.evaluate(() => window.__cominsReadmeDemo?.moveWithGridStack("overview", 2, 0));
+
+  expect(snapshot?.widgets.find((widget) => widget.id === "overview")?.x).toBe(2);
+  await expect(page.getByTestId("dashboard-widget-overview")).toHaveAttribute("data-layout-x", "2");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
+  await page.evaluate(() => window.__cominsReadmeDemo?.refresh());
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
+
+  await page.evaluate(() => {
+    window.__retainedCominsGridHandle = window.__cominsReadmeDemo?.getHandle();
+    history.pushState({}, "", "/api");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByRole("heading", { name: "1. Dashboard 렌더링" })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.__retainedCominsGridHandle?.getGridStack()?.getColumn() ?? null))
+    .toBeNull();
+});
+
 test("adds widgets with user-selected size into horizontal free space", async ({ page }) => {
   await page.goto("/");
 

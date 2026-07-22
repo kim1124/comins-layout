@@ -9,6 +9,84 @@
     url("/fonts/spoqa/SpoqaHanSansNeo-Regular.woff2") format("woff2");
 }
 
+.readme-demo {
+  background: #f4faf8;
+  box-sizing: border-box;
+  color: #172026;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 24px;
+  width: min(960px, 100%);
+}
+
+.readme-demo__hero,
+.readme-demo__toolbar {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.readme-demo__hero p,
+.readme-demo__count {
+  color: #537064;
+  margin: 0 0 6px;
+}
+
+.readme-demo__hero h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.readme-demo__toolbar label {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.readme-demo__toolbar button,
+.readme-demo__toolbar select {
+  border: 1px solid #abd8c9;
+  border-radius: 6px;
+  font: inherit;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
+.readme-demo__toolbar button {
+  background: #08795f;
+  color: #fff;
+  cursor: pointer;
+}
+
+.readme-demo__count {
+  margin-top: 18px;
+}
+
+.readme-demo__metric {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  padding: 16px;
+}
+
+.readme-demo__metric strong {
+  font-size: 24px;
+}
+
+@media (max-width: 640px) {
+  .readme-demo {
+    padding: 12px;
+  }
+
+  .readme-demo__hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 @font-face {
   font-family: "Spoqa Han Sans Neo";
   font-style: normal;
