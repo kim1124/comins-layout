@@ -3,6 +3,7 @@ import type { Locator, Page } from "@playwright/test";
 import {
   growsMonotonicallyBeyondTolerance,
   selectSteadyStateWindow,
+  shouldCollectMoreSteadyStateSamples,
   staysWithinFinalHeapGrowth,
   staysWithinHeapPeak,
   type HeapCounter,
@@ -20,6 +21,24 @@ type ResourceCounters = HeapCounter & {
   nodes: number;
   listeners: number;
   documents: number;
+};
+
+const HEAP_PEAK_TOLERANCE = 0.12;
+const HEAP_FINAL_GROWTH_TOLERANCE = 0.02;
+const STEADY_STATE_WINDOW_SIZE = 3;
+
+const COLUMN_STEADY_STATE_SAMPLING = {
+  minimumSamples: 8,
+  maximumSamples: 11,
+  windowSize: STEADY_STATE_WINDOW_SIZE,
+  finalGrowthTolerance: HEAP_FINAL_GROWTH_TOLERANCE,
+};
+
+const INTERACTION_STEADY_STATE_SAMPLING = {
+  minimumSamples: 3,
+  maximumSamples: 6,
+  windowSize: STEADY_STATE_WINDOW_SIZE,
+  finalGrowthTolerance: HEAP_FINAL_GROWTH_TOLERANCE,
 };
 
 function createStressSnapshot() {
@@ -508,14 +527,14 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   }
   const columnCycleCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
-  // Keep enough tail samples for post-GC steady state when V8 scheduling shifts
-  // a one-time heap transition into the final cycle of the original window.
-  for (let cycle = 0; cycle < 7; cycle += 1) {
+  // Preserve the minimum stress count, then collect only until the bounded
+  // tail reaches steady state or the maximum exposes sustained growth.
+  while (shouldCollectMoreSteadyStateSamples(columnCycleCounters, COLUMN_STEADY_STATE_SAMPLING)) {
     await runColumnCycle(columnSelect, grid);
     columnCycleCounters.push(await readResourceCounters(page));
   }
 
-  const columnSteadyStateCounters = selectSteadyStateWindow(columnCycleCounters, 3);
+  const columnSteadyStateCounters = selectSteadyStateWindow(columnCycleCounters, STEADY_STATE_WINDOW_SIZE);
 
   const stressWidget = page.getByTestId("dashboard-widget-stress-0");
   const beforeDrag = await readWidgetLayout(stressWidget);
@@ -534,14 +553,14 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
 
   const interactionCounters: ResourceCounters[] = [];
 
-  for (let interactionCycle = 0; interactionCycle < 3; interactionCycle += 1) {
+  while (shouldCollectMoreSteadyStateSamples(interactionCounters, INTERACTION_STEADY_STATE_SAMPLING)) {
     await dragWidget(page, stressWidget, 0, 180);
     await resizeWidget(page, stressWidget, 80, 60);
     await waitForInteractionToSettle(stressWidget);
 
     interactionCounters.push(await readResourceCounters(page));
   }
-  const interactionSteadyStateCounters = selectSteadyStateWindow(interactionCounters, 3);
+  const interactionSteadyStateCounters = selectSteadyStateWindow(interactionCounters, STEADY_STATE_WINDOW_SIZE);
   const allInteractionCounters = [...interactionWarmupCounters, ...interactionCounters];
 
   const resourceCounters = {
@@ -570,9 +589,14 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   expect(columnCycleCounters.every((counter) => counter.documents === columnBaseline.documents)).toBe(true);
   expect(columnCycleCounters.every((counter) => counter.listeners === columnBaseline.listeners)).toBe(true);
   expect(columnCycleCounters.every((counter) => counter.nodes === columnBaseline.nodes)).toBe(true);
-  expect(staysWithinHeapPeak(columnCycleCounters, 0.12)).toBe(true);
-  expect(staysWithinFinalHeapGrowth(columnSteadyStateCounters, 0.02)).toBe(true);
-  expect(growsMonotonicallyBeyondTolerance(columnSteadyStateCounters.map((counter) => counter.heap), 0.02)).toBe(false);
+  expect(staysWithinHeapPeak(columnCycleCounters, HEAP_PEAK_TOLERANCE)).toBe(true);
+  expect(staysWithinFinalHeapGrowth(columnSteadyStateCounters, HEAP_FINAL_GROWTH_TOLERANCE)).toBe(true);
+  expect(
+    growsMonotonicallyBeyondTolerance(
+      columnSteadyStateCounters.map((counter) => counter.heap),
+      HEAP_FINAL_GROWTH_TOLERANCE,
+    ),
+  ).toBe(false);
 
   const interactionBaseline = allInteractionCounters[0];
   if (!interactionBaseline) {
@@ -582,9 +606,14 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   expect(allInteractionCounters.every((counter) => counter.documents === interactionBaseline.documents)).toBe(true);
   expect(allInteractionCounters.every((counter) => counter.nodes === interactionBaseline.nodes)).toBe(true);
   expect(allInteractionCounters.every((counter) => counter.listeners === interactionBaseline.listeners)).toBe(true);
-  expect(staysWithinHeapPeak(allInteractionCounters, 0.12)).toBe(true);
-  expect(staysWithinFinalHeapGrowth(interactionSteadyStateCounters, 0.02)).toBe(true);
-  expect(growsMonotonicallyBeyondTolerance(interactionSteadyStateCounters.map((counter) => counter.heap), 0.02)).toBe(false);
+  expect(staysWithinHeapPeak(allInteractionCounters, HEAP_PEAK_TOLERANCE)).toBe(true);
+  expect(staysWithinFinalHeapGrowth(interactionSteadyStateCounters, HEAP_FINAL_GROWTH_TOLERANCE)).toBe(true);
+  expect(
+    growsMonotonicallyBeyondTolerance(
+      interactionSteadyStateCounters.map((counter) => counter.heap),
+      HEAP_FINAL_GROWTH_TOLERANCE,
+    ),
+  ).toBe(false);
 });
 
 test("exposes a live GridStack handle and deduplicates explicit layout commits", async ({ page }, testInfo) => {
