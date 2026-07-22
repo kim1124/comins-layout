@@ -3,10 +3,12 @@ import type { Locator, Page } from "@playwright/test";
 import {
   growsMonotonicallyBeyondTolerance,
   selectSteadyStateWindow,
+  shouldCollectMoreSteadyStateSamples,
   staysWithinFinalHeapGrowth,
   staysWithinHeapPeak,
   type HeapCounter,
 } from "../resource-stability";
+import { performTouchGesture } from "../touch-gesture";
 
 type WidgetLayout = {
   x: number;
@@ -19,6 +21,24 @@ type ResourceCounters = HeapCounter & {
   nodes: number;
   listeners: number;
   documents: number;
+};
+
+const HEAP_PEAK_TOLERANCE = 0.12;
+const HEAP_FINAL_GROWTH_TOLERANCE = 0.02;
+const STEADY_STATE_WINDOW_SIZE = 3;
+
+const COLUMN_STEADY_STATE_SAMPLING = {
+  minimumSamples: 8,
+  maximumSamples: 11,
+  windowSize: STEADY_STATE_WINDOW_SIZE,
+  finalGrowthTolerance: HEAP_FINAL_GROWTH_TOLERANCE,
+};
+
+const INTERACTION_STEADY_STATE_SAMPLING = {
+  minimumSamples: 3,
+  maximumSamples: 6,
+  windowSize: STEADY_STATE_WINDOW_SIZE,
+  finalGrowthTolerance: HEAP_FINAL_GROWTH_TOLERANCE,
 };
 
 function createStressSnapshot() {
@@ -507,12 +527,14 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   }
   const columnCycleCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
-  for (let cycle = 0; cycle < 5; cycle += 1) {
+  // Preserve the minimum stress count, then collect only until the bounded
+  // tail reaches steady state or the maximum exposes sustained growth.
+  while (shouldCollectMoreSteadyStateSamples(columnCycleCounters, COLUMN_STEADY_STATE_SAMPLING)) {
     await runColumnCycle(columnSelect, grid);
     columnCycleCounters.push(await readResourceCounters(page));
   }
 
-  const columnSteadyStateCounters = selectSteadyStateWindow(columnCycleCounters, 3);
+  const columnSteadyStateCounters = selectSteadyStateWindow(columnCycleCounters, STEADY_STATE_WINDOW_SIZE);
 
   const stressWidget = page.getByTestId("dashboard-widget-stress-0");
   const beforeDrag = await readWidgetLayout(stressWidget);
@@ -531,14 +553,14 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
 
   const interactionCounters: ResourceCounters[] = [];
 
-  for (let interactionCycle = 0; interactionCycle < 3; interactionCycle += 1) {
+  while (shouldCollectMoreSteadyStateSamples(interactionCounters, INTERACTION_STEADY_STATE_SAMPLING)) {
     await dragWidget(page, stressWidget, 0, 180);
     await resizeWidget(page, stressWidget, 80, 60);
     await waitForInteractionToSettle(stressWidget);
 
     interactionCounters.push(await readResourceCounters(page));
   }
-  const interactionSteadyStateCounters = selectSteadyStateWindow(interactionCounters, 3);
+  const interactionSteadyStateCounters = selectSteadyStateWindow(interactionCounters, STEADY_STATE_WINDOW_SIZE);
   const allInteractionCounters = [...interactionWarmupCounters, ...interactionCounters];
 
   const resourceCounters = {
@@ -567,9 +589,14 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   expect(columnCycleCounters.every((counter) => counter.documents === columnBaseline.documents)).toBe(true);
   expect(columnCycleCounters.every((counter) => counter.listeners === columnBaseline.listeners)).toBe(true);
   expect(columnCycleCounters.every((counter) => counter.nodes === columnBaseline.nodes)).toBe(true);
-  expect(staysWithinHeapPeak(columnCycleCounters, 0.12)).toBe(true);
-  expect(staysWithinFinalHeapGrowth(columnSteadyStateCounters, 0.02)).toBe(true);
-  expect(growsMonotonicallyBeyondTolerance(columnSteadyStateCounters.map((counter) => counter.heap), 0.02)).toBe(false);
+  expect(staysWithinHeapPeak(columnCycleCounters, HEAP_PEAK_TOLERANCE)).toBe(true);
+  expect(staysWithinFinalHeapGrowth(columnSteadyStateCounters, HEAP_FINAL_GROWTH_TOLERANCE)).toBe(true);
+  expect(
+    growsMonotonicallyBeyondTolerance(
+      columnSteadyStateCounters.map((counter) => counter.heap),
+      HEAP_FINAL_GROWTH_TOLERANCE,
+    ),
+  ).toBe(false);
 
   const interactionBaseline = allInteractionCounters[0];
   if (!interactionBaseline) {
@@ -579,9 +606,85 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   expect(allInteractionCounters.every((counter) => counter.documents === interactionBaseline.documents)).toBe(true);
   expect(allInteractionCounters.every((counter) => counter.nodes === interactionBaseline.nodes)).toBe(true);
   expect(allInteractionCounters.every((counter) => counter.listeners === interactionBaseline.listeners)).toBe(true);
-  expect(staysWithinHeapPeak(allInteractionCounters, 0.12)).toBe(true);
-  expect(staysWithinFinalHeapGrowth(interactionSteadyStateCounters, 0.02)).toBe(true);
-  expect(growsMonotonicallyBeyondTolerance(interactionSteadyStateCounters.map((counter) => counter.heap), 0.02)).toBe(false);
+  expect(staysWithinHeapPeak(allInteractionCounters, HEAP_PEAK_TOLERANCE)).toBe(true);
+  expect(staysWithinFinalHeapGrowth(interactionSteadyStateCounters, HEAP_FINAL_GROWTH_TOLERANCE)).toBe(true);
+  expect(
+    growsMonotonicallyBeyondTolerance(
+      interactionSteadyStateCounters.map((counter) => counter.heap),
+      HEAP_FINAL_GROWTH_TOLERANCE,
+    ),
+  ).toBe(false);
+});
+
+test("exposes a live GridStack handle and deduplicates explicit layout commits", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Advanced handle lifecycle is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  await expect(page.getByRole("heading", { name: "Interactive dashboards for React" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
+  const snapshot = await page.evaluate(() => window.__cominsReadmeDemo?.moveWithGridStack("overview", 2, 0));
+
+  expect(snapshot?.widgets.find((widget) => widget.id === "overview")?.x).toBe(2);
+  await expect(page.getByTestId("dashboard-widget-overview")).toHaveAttribute("data-layout-x", "2");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
+  await page.evaluate(() => window.__cominsReadmeDemo?.refresh());
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
+
+  await page.evaluate(() => {
+    window.__retainedCominsGridHandle = window.__cominsReadmeDemo?.getHandle();
+    history.pushState({}, "", "/api");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  });
+  await expect(page.getByRole("heading", { name: "1. Dashboard 렌더링" })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => window.__retainedCominsGridHandle?.getGridStack()?.getColumn() ?? null))
+    .toBeNull();
+});
+
+test("moves a widget with touch after a runtime column change", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chrome", "Touch interaction is verified in the mobile project only.");
+
+  await page.goto("/readme-demo");
+  await page.getByLabel("Columns").selectOption("8");
+  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "8");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(8);
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  const title = widget.locator(".comins-grid-layout-widget__title");
+  await performTouchGesture(page, title, { x: 96, y: 0 }, 3);
+
+  await expect(widget).toHaveAttribute("data-layout-x", "1");
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+  await expect(widget).toHaveAttribute("data-layout-x", "1");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
+});
+
+test("resizes a widget with touch and commits the controlled layout", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chrome", "Touch interaction is verified in the mobile project only.");
+
+  await page.goto("/readme-demo");
+  const widget = page.getByTestId("dashboard-widget-overview");
+  const handle = widget.locator(".ui-resizable-se");
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
+
+  await performTouchGesture(page, handle, { x: 72, y: 104 }, 1);
+
+  await expect(widget).toHaveAttribute("data-layout-w", "3");
+  await expect(widget).toHaveAttribute("data-layout-h", "3");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
+  await page.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))),
+  );
+  await expect(widget).toHaveAttribute("data-layout-w", "3");
+  await expect(widget).toHaveAttribute("data-layout-h", "3");
 });
 
 test("adds widgets with user-selected size into horizontal free space", async ({ page }) => {

@@ -20,6 +20,7 @@ type DashboardGridProps<TWidgetData = unknown> = {
   onMinimizeWidget?: (id: string) => void;
   onRestoreWidget?: (id: string) => void;
   onRemoveWidget?: (id: string) => void;
+  onWidgetHeaderDoubleClick?: (id: string) => void;
   renderWidget: (widget: DashboardWidget<TWidgetData>) => React.ReactNode;
 };
 ```
@@ -55,7 +56,7 @@ type DashboardGridCommands<TData = unknown> = {
   autoArrangeWidgets: () => void;
   fitWidgetsToColumns: () => void;
   fitWidgetToColumns: (id: string) => void;
-  resetLayout: (snapshot?: DashboardLayoutSnapshot) => void;
+  resetLayout: (snapshot?: DashboardLayoutSnapshot | DashboardStateSnapshotInput<TData>) => void;
   restoreLayout: (snapshot: DashboardStateSnapshotInput<TData>) => void;
   refreshLayout: () => void;
   setColumns: (columns: number) => void;
@@ -63,6 +64,18 @@ type DashboardGridCommands<TData = unknown> = {
   serializeState: () => DashboardStateSnapshot<TData>;
 };
 ```
+
+## DashboardGridHandle
+
+```ts
+interface DashboardGridHandle {
+  getGridStack(): GridStack | null;
+  refresh(): void;
+  commitLayout(): DashboardLayoutSnapshot | null;
+}
+```
+
+The handle is an optional advanced escape hatch. Comins commands remain the primary React state and CRUD API. The returned GridStack instance is borrowed; DashboardGrid owns initialization, listeners, and destruction.
 
 ## Option Semantics
 
@@ -86,4 +99,4 @@ type DashboardGridCommands<TData = unknown> = {
 
 ## Current Export Surface
 
-`DashboardGrid`, `DashboardWidgetShell`, `useDashboardGrid`, core layout helpers, types, resize scheduler, and option mapper are public exports. GridStack adapter creation remains internal to the package boundary.
+`DashboardGrid`, `DashboardGridHandle`, `DashboardWidgetShell`, `useDashboardGrid`, core layout helpers, types, resize scheduler, and option mapper are public exports. GridStack adapter creation remains internal to the package boundary.

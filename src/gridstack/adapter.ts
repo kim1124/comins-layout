@@ -16,13 +16,37 @@ export type DashboardGridAdapter<TData = unknown> = {
   sync: (options: DashboardGridAdapterOptions<TData>) => void;
   refresh: () => void;
   compact: () => void;
+  commit: () => DashboardLayoutSnapshot;
   destroy: () => void;
 };
+
+export interface DashboardGridHandle {
+  getGridStack(): GridStack | null;
+  refresh(): void;
+  commitLayout(): DashboardLayoutSnapshot | null;
+}
 
 type PointerSnapshot = {
   clientX: number;
   clientY: number;
 };
+
+const layoutFields = ["id", "x", "y", "w", "h", "minW", "minH", "maxW", "maxH"] as const;
+
+export function sameDashboardLayoutSnapshot(
+  left: DashboardLayoutSnapshot | undefined,
+  right: DashboardLayoutSnapshot | undefined,
+) {
+  if (!left || !right || left.columns !== right.columns || left.widgets.length !== right.widgets.length) {
+    return false;
+  }
+
+  const rightById = new Map(right.widgets.map((widget) => [widget.id, widget]));
+  return left.widgets.every((widget) => {
+    const candidate = rightById.get(widget.id);
+    return Boolean(candidate && layoutFields.every((field) => widget[field] === candidate[field]));
+  });
+}
 
 export function createDashboardGridAdapter<TData>(
   element: HTMLElement,
@@ -42,10 +66,18 @@ export function createDashboardGridAdapter<TData>(
   let pendingForcedRevealId: string | undefined;
   let interactionGuardsAttached = false;
 
+  let lastCommittedLayout: DashboardLayoutSnapshot | undefined;
+
   const commitLayout = () => {
     const snapshot = readDashboardLayoutSnapshot(grid, currentOptions.columns ?? 12);
+    if (sameDashboardLayoutSnapshot(lastCommittedLayout, snapshot)) {
+      return snapshot;
+    }
+
+    lastCommittedLayout = snapshot;
     snapshot.widgets.forEach((layout) => currentOptions.onWidgetLayoutChange?.(layout.id, layout));
     currentOptions.onLayoutCommit?.(snapshot);
+    return snapshot;
   };
 
   const resizeHandler = (_event: Event, item: GridItemHTMLElement) => {
@@ -313,6 +345,7 @@ export function createDashboardGridAdapter<TData>(
       grid.compact("compact", true);
       commitLayout();
     },
+    commit: commitLayout,
     destroy() {
       detachInteractionGuards();
       pendingForcedRevealItem = undefined;

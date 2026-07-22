@@ -1,25 +1,23 @@
-# Open Questions
+# Resolved Decisions And Support Boundaries
 
-## Engine Decision
+## Resolved Product Decisions
 
-- GridStack을 최종 엔진으로 확정할지, React 전용 `react-grid-layout` 비교 PoC를 먼저 수행할지 결정이 필요하다.
+- GridStack is the browser interaction engine and remains behind the package-owned adapter.
+- `DashboardGrid` is controlled by the `widgets` prop; `useDashboardGrid()` is the provided state helper.
+- Maximize, minimize, restore, auto-arrange, runtime columns, persistence, and widget CRUD use the implemented package commands.
+- `DashboardGridHandle` provides advanced access to the borrowed GridStack instance without replacing controlled React state.
+- Desktop pointer and mobile Chrome touch drag/resize are supported and covered by Playwright.
 
-## Controlled State Model
+## Explicit Support Boundaries
 
-- `DashboardGrid`를 완전 controlled 컴포넌트로 제공할지, 내부 state를 갖는 uncontrolled 모드도 제공할지 결정이 필요하다.
+- Runtime columns are limited to 1 through 12.
+- Keyboard widget movement and resize are not implemented. Normal button controls retain their keyboard behavior.
+- Firefox and Safari are not verified or supported until dedicated browser projects are approved.
+- SSR consumers must render the package inside a client boundary.
+- Raw GridStack add/remove operations do not create or remove React widget content; use Comins CRUD commands.
 
-## Maximize Semantics
+## Operational Decisions
 
-- 최대화 시 다른 위젯을 숨길지, 현재 컬럼 전체 폭으로 확장하고 아래로 밀어낼지 결정이 필요하다.
-
-## Minimize Semantics
-
-- 최소화 시 height를 `1`로 줄일지, 헤더만 남기는 별도 상태를 둘지 결정이 필요하다.
-
-## Auto Arrange Semantics
-
-- 자동 정렬을 GridStack compact 동작으로 볼지, Comins 전용 정렬 규칙을 둘지 결정이 필요하다.
-
-## Accessibility
-
-- 키보드 기반 이동과 크기 조절을 초기 범위에 포함할지 결정이 필요하다.
+- Before 1.0.0, only the latest published version receives security fixes.
+- Exact package-artifact inspection and automatic provenance follow Comins Contract v1.2 governance.
+- Legacy npm versions and public account metadata are provider-side remediation work and are not hidden by current-change gates.

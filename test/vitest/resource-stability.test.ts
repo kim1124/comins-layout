@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   growsMonotonicallyBeyondTolerance,
   selectSteadyStateWindow,
+  shouldCollectMoreSteadyStateSamples,
   staysWithinFinalHeapGrowth,
   staysWithinHeapPeak,
   type HeapCounter,
@@ -38,5 +39,36 @@ describe("resource stability budgets", () => {
 
   it("rejects a transient heap span above the global peak tolerance", () => {
     expect(staysWithinHeapPeak(counters([100, 113, 101]), 0.12)).toBe(false);
+  });
+
+  it("continues sampling when the CI interaction window ends during a one-time heap transition", () => {
+    const observedCiSamples = counters([27_388_056, 29_376_876, 29_387_988]);
+    const convergedCiSamples = counters([27_388_056, 29_376_876, 29_387_988, 29_398_000]);
+    const options = {
+      minimumSamples: 3,
+      maximumSamples: 6,
+      windowSize: 3,
+      finalGrowthTolerance: 0.02,
+    };
+
+    expect(shouldCollectMoreSteadyStateSamples(observedCiSamples, options)).toBe(true);
+    expect(shouldCollectMoreSteadyStateSamples(convergedCiSamples, options)).toBe(false);
+  });
+
+  it("uses the bounded maximum without accepting sustained heap growth", () => {
+    const options = {
+      minimumSamples: 3,
+      maximumSamples: 6,
+      windowSize: 3,
+      finalGrowthTolerance: 0.02,
+    };
+    const beforeMaximum = counters([100, 103, 106, 109, 112]);
+    const atMaximum = counters([100, 103, 106, 109, 112, 115]);
+    const steadyState = selectSteadyStateWindow(atMaximum, 3);
+
+    expect(shouldCollectMoreSteadyStateSamples(beforeMaximum, options)).toBe(true);
+    expect(shouldCollectMoreSteadyStateSamples(atMaximum, options)).toBe(false);
+    expect(staysWithinFinalHeapGrowth(steadyState, 0.02)).toBe(false);
+    expect(growsMonotonicallyBeyondTolerance(steadyState.map((counter) => counter.heap), 0.02)).toBe(true);
   });
 });

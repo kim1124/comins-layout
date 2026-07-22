@@ -2,6 +2,13 @@ export type HeapCounter = {
   heap: number;
 };
 
+export type SteadyStateSamplingOptions = {
+  minimumSamples: number;
+  maximumSamples: number;
+  windowSize: number;
+  finalGrowthTolerance: number;
+};
+
 export function selectSteadyStateWindow<T>(values: readonly T[], size: number): T[] {
   return values.slice(-size);
 }
@@ -36,5 +43,31 @@ export function growsMonotonicallyBeyondTolerance(values: readonly number[], tol
   return (
     final > first * (1 + tolerance) &&
     values.slice(1).every((value, index) => value >= values[index]!)
+  );
+}
+
+export function shouldCollectMoreSteadyStateSamples(
+  counters: readonly HeapCounter[],
+  options: SteadyStateSamplingOptions,
+): boolean {
+  if (counters.length >= options.maximumSamples) {
+    return false;
+  }
+
+  if (counters.length < options.minimumSamples) {
+    return true;
+  }
+
+  const steadyState = selectSteadyStateWindow(counters, options.windowSize);
+  if (steadyState.length < options.windowSize) {
+    return true;
+  }
+
+  return (
+    !staysWithinFinalHeapGrowth(steadyState, options.finalGrowthTolerance) ||
+    growsMonotonicallyBeyondTolerance(
+      steadyState.map((counter) => counter.heap),
+      options.finalGrowthTolerance,
+    )
   );
 }

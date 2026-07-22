@@ -1,211 +1,225 @@
 # comins-grid-layout
 
-`comins-grid-layout`는 React 애플리케이션에서 dashboard widget layout을 구성하기 위한 GridStack 기반 package다. 런타임은 Next.js API에 의존하지 않고 React component와 serializable layout state 중심으로 동작한다.
+[![npm version](https://img.shields.io/npm/v/comins-grid-layout.svg)](https://www.npmjs.com/package/comins-grid-layout)
+![TypeScript types](https://img.shields.io/badge/TypeScript-types%20included-3178C6?logo=typescript&logoColor=white)
+[![Verify](https://github.com/kim1124/comins-layout/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/kim1124/comins-layout/actions/workflows/verify.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/kim1124/comins-layout/blob/main/LICENSE)
 
-이 저장소는 기능 구현, 문서화, 검증, 작업 보고, 릴리스 준비의 단일 기준이다.
+`comins-grid-layout` is a React dashboard layout module powered by GridStack. It combines serializable React state with widget CRUD, drag, resize, responsive columns, maximize/minimize flows, persistence, and an advanced escape hatch to the underlying GridStack API.
 
-## 패키지 상태
+![Widget CRUD, drag, and resize demo](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-demo.gif)
 
-- 현재 `package.json` 기준 독립 npm package metadata를 가진 standalone package다.
-- GitHub 원격 저장소는 [`kim1124/comins-layout`](https://github.com/kim1124/comins-layout)이며, 기본 반영 브랜치는 `main`이다.
-- 로컬 개발 기준 경로는 `<repo-root>`이다.
-- React와 React DOM은 peer dependency로 유지한다.
-- `gridstack`은 runtime dependency이며, consumer는 GridStack CSS와 package CSS를 함께 import해야 한다.
-- npm 배포 전에는 files, dependency, browser verification 상태를 별도 검토해야 한다.
+## Features
 
-## Runtime Boundary
+- Create, render, update, remove, clear, maximize, minimize, restore, arrange, and serialize widgets.
+- Drag and resize with desktop pointer input and mobile touch input.
+- Change the runtime column count from 1 through 12.
+- Keep application data in serializable React state while GridStack owns browser interaction.
+- Schedule resize-frame notifications for charts, tables, canvases, and other responsive widget content.
+- Access the complete GridStack public instance through an optional advanced ref handle.
+- Render 100 or more widgets with repeated runtime column changes covered by the resource gate.
 
-`comins-grid-layout`는 GridStack browser interaction을 사용하므로 SSR 애플리케이션에서는 client boundary 안에서 사용한다. package source는 network request, remote asset load, telemetry, error report를 수행하지 않는다.
+## Support
 
-## 지원 범위
-
-| Surface | Support |
+| Surface | Supported contract |
 | --- | --- |
-| React | `>=18.0.0 <20.0.0` |
-| React DOM | `>=18.0.0 <20.0.0` |
-| Chrome and Edge | 현재 stable Chromium 기반 release |
-| 자동 browser gate | Playwright에 포함된 Chromium |
-| Firefox and Safari | Firefox 및 WebKit project 추가 전까지 지원 계약에서 제외 |
-| SSR | client boundary 필수; server rendering은 현재 미지원 |
+| React / React DOM | `>=18.0.0 <20.0.0` peer dependencies |
+| TypeScript | Declarations and declaration maps included; verified with TypeScript 6 |
+| Desktop browsers | Current Chromium-based Chrome and Edge; automated with Playwright Chromium |
+| Mobile browsers | Current mobile Chrome touch behavior; automated with the Pixel 7 Chromium profile |
+| Firefox / Safari | Not currently verified or supported |
+| SSR frameworks | Import and render inside a client boundary; the package does not use Next.js-only APIs |
+| Runtime network behavior | No package-owned requests, remote assets, telemetry, or error reporting |
 
-## 저장소 운영 기준
+Before `1.0.0`, only the latest published version receives security fixes.
 
-- 패키지명은 `comins-grid-layout`이고, GitHub 저장소명은 `comins-layout`이다.
-- 기능 구현과 이슈 수정은 이 저장소에서만 수행한다. 다른 저장소와의 소스 동기화 또는 동시 릴리스는 명시 요청이 있을 때만 검토한다.
-- 작업 전에는 `README.md`, `GUIDE.md`, `docs/README.md`와 경로별 `AGENTS.md`를 확인한다.
-- substantial 변경은 `reports/YYYY-MM-DD.md`에 작업 내용과 실제 검증 결과를 기록한다.
-
-## 구현된 기능
-
-- `DashboardGrid` React component
-- `useDashboardGrid` state/command hook
-- widget create, update, remove, clear
-- maximize, minimize, restore
-- runtime column count `1..12`
-- auto arrange와 fit-to-columns helper
-- movable/resizable option
-- scheduled widget resize frame callback
-- serializable layout/state snapshot
-- GridStack adapter boundary
-- package stylesheet export
-
-## Public API
-
-| Import | 설명 |
-| --- | --- |
-| `comins-grid-layout` | `DashboardGrid`, `useDashboardGrid`, layout/state helpers, option mapper, public types |
-| `comins-grid-layout/styles.css` | dashboard grid stylesheet |
-| `cominsGridLayoutPackage` | package 식별 상수 |
-
-## 설치
+## Installation
 
 ```bash
 npm install comins-grid-layout react react-dom
 ```
 
-`gridstack` stylesheet을 package stylesheet보다 먼저 import한다.
+Import both stylesheets once in the client bundle:
 
 ```ts
 import "gridstack/dist/gridstack.min.css";
 import "comins-grid-layout/styles.css";
 ```
 
-## 빠른 시작
+## Quick start
 
 ```tsx
 import { DashboardGrid, useDashboardGrid, type DashboardWidget } from "comins-grid-layout";
 import "gridstack/dist/gridstack.min.css";
 import "comins-grid-layout/styles.css";
 
-type MetricData = {
-  description: string;
-  value: string;
-};
+type Metric = { label: string; value: string };
 
-const initialWidgets: DashboardWidget<MetricData>[] = [
+const initialWidgets: DashboardWidget<Metric>[] = [
   {
     id: "sales",
     title: "Sales",
     layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 },
-    data: { value: "$128k", description: "MRR" },
+    data: { label: "Monthly revenue", value: "$128K" },
   },
 ];
 
 export function DashboardPage() {
-  const dashboard = useDashboardGrid<MetricData>({
-    initialColumns: 6,
-    initialWidgets,
-  });
+  const dashboard = useDashboardGrid({ initialColumns: 12, initialWidgets });
 
   return (
     <DashboardGrid
       columns={dashboard.columns}
+      refreshKey={dashboard.refreshVersion}
+      widgets={dashboard.widgets}
+      actionLabels={{ maximize: "Maximize", minimize: "Minimize", restore: "Restore", remove: "Remove" }}
       onMaximizeWidget={dashboard.commands.maximizeWidget}
       onMinimizeWidget={dashboard.commands.minimizeWidget}
       onRemoveWidget={dashboard.commands.removeWidget}
       onRestoreWidget={dashboard.commands.restoreWidget}
       onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
-      refreshKey={dashboard.refreshVersion}
-      renderWidget={(widget) => <strong>{widget.data?.value}</strong>}
-      widgets={dashboard.widgets}
+      renderWidget={(widget) => (
+        <div>
+          <span>{widget.data?.label}</span>
+          <strong>{widget.data?.value}</strong>
+        </div>
+      )}
     />
   );
 }
 ```
 
-## 주요 command
+`widgets` is the React source of truth. Connect `onWidgetLayoutChange` to `updateWidgetLayout` so committed GridStack movement and resize geometry is retained after rerender.
 
-`useDashboardGrid`는 serializable dashboard state와 command helper를 제공한다.
+## Widget model
 
-- `addWidget(widget)`
-- `updateWidget(id, patch)`
-- `updateWidgetLayout(id, patch)`
-- `removeWidget(id)`
-- `clearWidgets()`
-- `maximizeWidget(id)`
-- `minimizeWidget(id)`
-- `restoreWidget(id)`
-- `autoArrangeWidgets()`
-- `fitWidgetsToColumns()`
-- `setColumns(columns)`
-- `resetLayout(snapshot?)`
-- `restoreLayout(snapshot)`
-- `refreshLayout()`
-- `serializeLayout()`
-- `serializeState()`
+```ts
+type DashboardWidget<TData = unknown> = {
+  id: string;
+  title?: string;
+  layout: {
+    id: string;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    minW?: number;
+    minH?: number;
+    maxW?: number;
+    maxH?: number;
+  };
+  data?: TData;
+  minimized?: boolean;
+  maximized?: boolean;
+  locked?: boolean;
+  movable?: boolean;
+  resizable?: boolean;
+};
+```
 
-## Snapshot persistence
+Widget IDs are preserved across CRUD, movement, resize, serialization, restore, maximize, and minimize flows.
 
-- `serializeState()`는 `columns`, 전체 `widgets`, `previousLayouts`를 저장한다. 따라서 최대화 또는 최소화된 widget도 JSON 복원 뒤 `restoreWidget()`으로 원래 geometry를 되돌릴 수 있다.
-- `serializeLayout()`는 `columns`와 widget geometry만 저장한다. pending maximize/minimize restore geometry는 포함하지 않으므로, 해당 상태를 보존해야 하면 `serializeState()`를 사용한다.
-- 이전 저장본처럼 `previousLayouts`가 없는 snapshot은 빈 restore map으로 읽는다. TypeScript consumer는 optional restore map을 갖는 `DashboardStateSnapshotInput`을 `restoreLayout()`에 전달할 수 있다.
+## DashboardGrid props
 
-## Component API 요약
+| Prop | Type | Default | Purpose |
+| --- | --- | --- | --- |
+| `widgets` | `DashboardWidget<TData>[]` | required | Controlled widget models and layout geometry |
+| `renderWidget` | `(widget) => ReactNode` | required | Consumer-owned widget content renderer |
+| `columns` | `DashboardColumnCount` | `12` | Runtime column count from 1 through 12 |
+| `editable` | `boolean` | `true` | Enables both movement and resize when their flags also allow it |
+| `movable` | `boolean` | `true` | Enables grid-wide movement |
+| `resizable` | `boolean` | `true` | Enables grid-wide resize |
+| `className` | `string` | — | Additional class on the grid section |
+| `refreshKey` | `number` | — | Requests an adapter refresh when the value changes |
+| `showControls` | `boolean` | `true` | Shows widget header actions |
+| `actionLabels` | `Partial<DashboardWidgetActionLabels>` | built-in labels | Overrides accessible action labels |
+| `onLayoutCommit` | `(snapshot) => void` | — | Receives a committed layout snapshot |
+| `onWidgetLayoutChange` | `(id, layout) => void` | — | Receives each committed widget geometry update |
+| `onWidgetResizeFrame` | `(event) => void` | — | Receives animation-frame-scheduled content dimensions during resize |
+| `onMaximizeWidget` | `(id) => void` | — | Handles maximize action |
+| `onMinimizeWidget` | `(id) => void` | — | Handles minimize action |
+| `onRestoreWidget` | `(id) => void` | — | Handles restore action |
+| `onRemoveWidget` | `(id) => void` | — | Handles remove action |
+| `onWidgetHeaderDoubleClick` | `(id) => void` | — | Handles a widget header double-click |
 
-| Prop | 설명 |
-| --- | --- |
-| `widgets` | 렌더링할 widget model |
-| `columns` | runtime column count, 기본 `12` |
-| `editable` | 전체 edit interaction 활성/비활성 |
-| `movable` | widget move 활성/비활성 |
-| `resizable` | widget resize 활성/비활성 |
-| `refreshKey` | adapter refresh 요청 |
-| `showControls` | 기본 widget control 표시 |
-| `renderWidget` | consumer-owned widget content 렌더링 |
-| `onLayoutCommit` | committed layout snapshot 수신 |
-| `onWidgetLayoutChange` | widget별 layout 변경 수신 |
-| `onWidgetResizeFrame` | scheduled resize frame event 수신 |
+## useDashboardGrid commands
+
+| Command | Signature | Purpose |
+| --- | --- | --- |
+| `addWidget` | `(widget) => void` | Add a widget while preserving its ID |
+| `updateWidget` | `(id, patch) => void` | Update widget data, title, state, or interaction flags |
+| `updateWidgetLayout` | `(id, patch) => void` | Update serializable geometry |
+| `removeWidget` | `(id) => void` | Remove one widget |
+| `clearWidgets` | `() => void` | Remove every widget |
+| `maximizeWidget` | `(id) => void` | Expand a widget and retain its previous layout |
+| `minimizeWidget` | `(id) => void` | Collapse a widget and retain its previous layout |
+| `restoreWidget` | `(id) => void` | Restore the retained layout |
+| `autoArrangeWidgets` | `() => void` | Compact widgets with the package layout rule |
+| `fitWidgetsToColumns` | `() => void` | Fit every widget into the current columns |
+| `fitWidgetToColumns` | `(id) => void` | Fit one widget to the current columns |
+| `setColumns` | `(columns) => void` | Clamp and apply a runtime column count from 1 through 12 |
+| `resetLayout` | `(snapshot?) => void` | Reset to the initial state or a supplied layout/state snapshot |
+| `restoreLayout` | `(snapshot) => void` | Restore a complete state snapshot |
+| `refreshLayout` | `() => void` | Increment `refreshVersion` for adapter refresh |
+| `serializeLayout` | `() => DashboardLayoutSnapshot` | Serialize columns and geometry only |
+| `serializeState` | `() => DashboardStateSnapshot<TData>` | Serialize columns, widgets, and previous layouts |
+
+## Advanced GridStack access
+
+Use a ref only when the package commands do not cover an engine-level operation:
+
+```tsx
+import { useRef } from "react";
+import { DashboardGrid, type DashboardGridHandle } from "comins-grid-layout";
+
+const gridRef = useRef<DashboardGridHandle>(null);
+
+<DashboardGrid ref={gridRef} widgets={widgets} renderWidget={renderWidget} />;
+
+const grid = gridRef.current?.getGridStack();
+grid?.batchUpdate();
+grid?.float(true);
+grid?.compact();
+grid?.batchUpdate(false);
+
+const snapshot = gridRef.current?.commitLayout();
+gridRef.current?.refresh();
+```
+
+| Handle method | Return type | Purpose |
+| --- | --- | --- |
+| `getGridStack` | `GridStack \| null` | Borrow the live engine instance while the grid is mounted |
+| `refresh` | `void` | Ask GridStack to recalculate its current layout |
+| `commitLayout` | `DashboardLayoutSnapshot \| null` | Commit direct engine geometry changes to the controlled callback contract |
+
+- `getGridStack()` returns `null` before initialization and after unmount.
+- GridStack methods that emit `change` are committed automatically; `commitLayout()` is for direct geometry changes that do not emit it and suppresses identical duplicate commits.
+- Use Comins `addWidget` and `removeWidget` for React content. Raw GridStack CRUD only changes engine/DOM state and may be replaced by the next controlled React render.
+- Do not call `destroy()` or remove package listeners on the borrowed instance; `DashboardGrid` owns the engine lifecycle.
+
+## Persistence
+
+Use `serializeState()` for complete persistence, including the `previousLayouts` required by maximize/minimize restore. Use `serializeLayout()` only when widget data and view state are stored elsewhere.
+
+```ts
+const stored = dashboard.commands.serializeState();
+localStorage.setItem("dashboard", JSON.stringify(stored));
+
+const restored = JSON.parse(localStorage.getItem("dashboard") ?? "null");
+if (restored) dashboard.commands.restoreLayout(restored);
+```
 
 ## Styling
 
-```ts
-import "gridstack/dist/gridstack.min.css";
-import "comins-grid-layout/styles.css";
-```
+Public CSS classes and custom properties are scoped under `.comins-grid-layout`. The package does not apply a global reset or require a Comins design system. Override package variables on a local container when needed.
 
-Comins token과 package-local CSS variable을 override할 수 있다.
+## Verification and security
 
-```css
-:root {
-  --comins-color-accent: #2563eb;
-  --comins-radius-md: 0.5rem;
-}
+- `npm run verify` runs sensitive-data gates, TypeScript, Vitest, and the production build.
+- `npm run verify:full` adds desktop Chromium, mobile Chromium touch behavior, and the isolated 100-widget resource gate.
+- Vulnerabilities must be reported privately through [GitHub Private Vulnerability Reporting](https://github.com/kim1124/comins-layout/security/advisories/new).
+- See the [security policy](https://github.com/kim1124/comins-layout/blob/main/SECURITY.md), [changelog](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md), and [complete example](https://github.com/kim1124/comins-layout/tree/main/example).
 
-.comins-grid-layout {
-  --comins-grid-layout-shadow: none;
-}
-```
+## License
 
-## Playground
-
-루트에서 실행:
-
-```bash
-npm run dev
-```
-
-기본 포트는 `6001`이다. Chromium unsafe port 이슈 때문에 `6000`은 사용하지 않는다.
-
-포트 변경:
-
-```bash
-COMINS_GRID_LAYOUT_PORT=6002 npm run dev
-```
-
-## 검증
-
-```bash
-npm run lint
-npm run test:run
-npm run build
-npm run test:e2e
-npm run test:consumer
-npm run verify
-npm run verify:full
-```
-
-## Publishing note
-
-`comins-grid-layout@0.1.0` bootstrap 배포가 완료되었다. 이후 배포는 `kim1124/comins-layout`, `publish.yml`, `npm` environment에 등록된 trusted publisher를 통해 진행한다.
-
-배포 workflow는 `npm stage publish`만 허용하고 token publishing을 사용하지 않는다. 모든 staged version은 maintainer 승인을 거치며, workflow는 수동 실행만 허용하고 non-`main` ref와 version 불일치를 거부한다.
+[MIT](https://github.com/kim1124/comins-layout/blob/main/LICENSE)

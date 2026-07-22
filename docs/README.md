@@ -12,7 +12,7 @@
 - `02-architecture.md`: React 어댑터, GridStack 엔진 경계, 상태 모델 구조
 - `03-component-api-draft.md`: 컴포넌트와 훅 API 기준
 - `04-verification-strategy.md`: Vitest, Playwright, 빌드 검증 기준
-- `05-open-questions.md`: 후속 합의가 필요한 항목
+- `05-open-questions.md`: resolved product decisions, explicit unsupported behavior, and provider-side boundaries
 - `superpowers/specs/2026-07-14-persistence-performance-stabilization-design.md`: persistence round-trip 및 100+ widget 안정화 설계
 - `superpowers/plans/2026-07-14-persistence-performance-stabilization.md`: persistence 및 Chrome resource counter 구현 계획
 
