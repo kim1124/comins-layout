@@ -508,7 +508,9 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   }
   const columnCycleCounters: ResourceCounters[] = [await readResourceCounters(page)];
 
-  for (let cycle = 0; cycle < 5; cycle += 1) {
+  // Keep enough tail samples for post-GC steady state when V8 scheduling shifts
+  // a one-time heap transition into the final cycle of the original window.
+  for (let cycle = 0; cycle < 7; cycle += 1) {
     await runColumnCycle(columnSelect, grid);
     columnCycleCounters.push(await readResourceCounters(page));
   }
