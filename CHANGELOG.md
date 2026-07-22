@@ -1,5 +1,13 @@
 # comins-grid-layout
 
+## 0.1.4
+
+- Added an advanced `DashboardGridHandle` escape hatch for controlled GridStack access, refresh, and state commits.
+- Added verified mobile touch drag and resize coverage.
+- Reworked the README into an English consumer guide with a real CRUD and drag demonstration.
+- Upgraded immutable GitHub Actions pins to Node.js 24-compatible action releases.
+- Clarified the latest-only support policy for pre-1.0 releases.
+
 ## 0.1.3
 
 - Restore widgets whose IDs contain selector-significant characters through a CSS-escaped adapter lookup.

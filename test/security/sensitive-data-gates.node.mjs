@@ -61,6 +61,12 @@ test('adopts the concise Contract v1.2 module policy', () => {
   assert.match(security, /credential\/PII incident/i);
   assert.match(security, /stop the affected release/i);
   assert.match(security, /without public disclosure/i);
+  assert.match(
+    security,
+    /Before 1\.0\.0, only the latest published version receives security fixes\./,
+  );
+  assert.match(security, /\| 0\.1\.4 \| Yes \|/);
+  assert.match(security, /\| < 0\.1\.4 \| No \|/);
 });
 
 test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
