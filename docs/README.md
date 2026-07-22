@@ -24,4 +24,4 @@
 
 ## 현재 상태
 
-현재 단계는 `DashboardGrid`, `useDashboardGrid`, GridStack adapter boundary, Vitest, Playwright 검증이 존재하는 구현 진행 상태다. 후속 기능 확장 시에도 TDD 절차에 따라 실패 테스트를 먼저 추가한다.
+현재 단계는 `DashboardGrid`, `useDashboardGrid`, GridStack adapter boundary, Vitest, Playwright 검증이 존재하는 구현 진행 상태다. 재현 가능한 결함이나 결정론적 동작 변경은 신뢰도를 높일 수 있을 때 가장 작은 회귀 테스트를 먼저 추가하고, 문서·설정 변경은 유형에 맞는 검증을 사용한다.

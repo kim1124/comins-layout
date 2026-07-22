@@ -3,12 +3,17 @@
 
 ## Scope
 
-- This repository is one independent Comins npm frontend module.
-- Read this file and any closer `AGENTS.md`; record the adopted `COMINS_CONTRACT` version and read the governance source explicitly for policy, security, release, or public API work.
-- Do not use KMSF workspace commands, source synchronization, or release flows without a migration-history request; keep `AGENTS.override.md` uncommitted and temporary.
-- Use `gpt-5.6-sol` with `xhigh` reasoning as the default for all Comins work.
-- For vulnerability investigation, runtime memory leaks, retention, out-of-memory failures, or security work, use `gpt-5.6-sol` with at least `xhigh`.
-- For instruction planning, Plan mode, or authoring or updating an implementation plan, use `gpt-5.6-sol` with at least `max`.
+- This repository is one independent Comins module and Git change boundary.
+- Read this file and only the closer `AGENTS.md` files that apply to the target path. Read Governance policy explicitly only for public API, security, release, licensing, or common-policy work.
+- Do not use KMSF workspace commands, source synchronization, or release flows without a migration-history request. Keep `AGENTS.override.md` temporary and uncommitted.
+
+## Work Routing
+
+- **Inspection or research:** inspect relevant sources and report evidence; do not edit, create a work report, or run product gates by default.
+- **Documentation, guidance, or configuration:** make the scoped change directly; run diff, reference, instruction, and parse checks without product TDD or browser gates.
+- **Clear local behavior:** define acceptance or reproduce the defect, add the smallest regression test first when it materially improves confidence, implement, run focused checks, then run the module baseline once.
+- **Complex or high-risk behavior:** research material unknowns, close decisions, use an approved design or plan when needed, test incrementally, and run the applicable broad gate once after the meaningful change.
+- **Security, release, external, or destructive work:** follow the canonical Governance policy and obtain the approval required for the affected operation.
 
 ## Change Boundaries
 
@@ -25,12 +30,12 @@
 
 ## Verification
 
-- Define and run the baseline verification command for meaningful changes, plus focused browser verification for interaction, layout, rendering, or keyboard behavior.
-- Classify failures as product behavior, test contract, or execution environment before changing code or repeating broad gates.
+- Select checks by change type, report failed or unrun required checks, and run the unchanged broad gate only once unless new evidence or changed state justifies a retry.
+- Classify failures as product behavior, test contract, or execution environment before changing code or repeating a gate.
 
 ## Reporting
 
-- For behavior, public API, configuration, security, release, or test-contract changes, update the report with changed files, commands, results, and residual risks; do not create one for inspection-only work without a maintainer request.
+- Update the repository's work report only for meaningful behavior, public API, configuration, security, release, or test-contract changes when that repository has a report convention.
 <!-- comins-reference:managed-end -->
 
 ## Module Guidance
@@ -39,7 +44,6 @@
 
 - This repository owns the standalone `comins-grid-layout` React package, GitHub repository `kim1124/comins-layout`, default integration branch `main`, and its source, example, tests, documentation, reports, and release preparation.
 - The public package surface includes `DashboardGrid`, `useDashboardGrid`, layout and state helpers, the option mapper, public types, and `comins-grid-layout/styles.css`.
-- Read `README.md`, `GUIDE.md`, and `docs/README.md`, plus the closer rules in `src/core/AGENTS.md`, `src/gridstack/AGENTS.md`, `src/components/AGENTS.md`, `test/AGENTS.md`, and `example/AGENTS.md`.
 
 ### Product and Implementation
 
@@ -51,7 +55,5 @@
 
 ### Module Verification
 
-- Run `npm run verify` for the package baseline: sensitive-data gates, lint, Vitest, and build.
-- Run `npm run verify:full` for the package full gate: the baseline plus Playwright.
-- Run `npm run verify:full` before completion for GridStack lifecycle, drag, resize, column-cycle, or other browser-visible behavior changes.
-- Store required work reports under `reports/YYYY-MM-DD.md` and include a timestamp and summary.
+- Run `npm run verify` as the package baseline. For GridStack lifecycle, drag, resize, column-cycle, or other browser-visible behavior changes, run `npm run verify:full` once after focused checks.
+- Store an applicable work report under `reports/YYYY-MM-DD.md`.

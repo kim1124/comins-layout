@@ -21,4 +21,3 @@ The core layer owns serializable dashboard state, layout reducers, column helper
 ## Verification
 
 - MUST: Vitest for reducer, helper, serialization, and scheduler behavior.
-- RUN: the focused test first, then package baseline verification.
