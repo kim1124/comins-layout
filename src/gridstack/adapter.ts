@@ -20,6 +20,12 @@ export type DashboardGridAdapter<TData = unknown> = {
   destroy: () => void;
 };
 
+export interface DashboardGridHandle {
+  getGridStack(): GridStack | null;
+  refresh(): void;
+  commitLayout(): DashboardLayoutSnapshot | null;
+}
+
 type PointerSnapshot = {
   clientX: number;
   clientY: number;

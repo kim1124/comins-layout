@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
-import type { ReactNode } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import type { ForwardedRef, ReactElement, ReactNode, RefAttributes } from "react";
 import { createDashboardResizeScheduler } from "../core/resize-scheduler";
 import type {
   DashboardColumnCount,
@@ -8,9 +8,11 @@ import type {
   DashboardWidget as DashboardWidgetModel,
   DashboardWidgetResizeFrameEvent,
 } from "../core/types";
-import type { DashboardGridAdapter } from "../gridstack/adapter";
+import type { DashboardGridAdapter, DashboardGridHandle } from "../gridstack/adapter";
 import { DashboardWidgetShell } from "./DashboardWidget";
 import type { DashboardWidgetActionLabels } from "./DashboardWidget";
+
+export type { DashboardGridHandle } from "../gridstack/adapter";
 
 export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & {
   widgets: DashboardWidgetModel<TData>[];
@@ -30,28 +32,41 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   onWidgetHeaderDoubleClick?: (id: string) => void;
 };
 
-export function DashboardGrid<TData = unknown>({
-  widgets,
-  columns = 12,
-  editable = true,
-  movable = true,
-  resizable = true,
-  className,
-  refreshKey,
-  showControls = true,
-  actionLabels,
-  renderWidget,
-  onLayoutCommit,
-  onWidgetLayoutChange,
-  onWidgetResizeFrame,
-  onMaximizeWidget,
-  onMinimizeWidget,
-  onRestoreWidget,
-  onRemoveWidget,
-  onWidgetHeaderDoubleClick,
-}: DashboardGridProps<TData>) {
+function DashboardGridInner<TData = unknown>(
+  props: DashboardGridProps<TData>,
+  ref: ForwardedRef<DashboardGridHandle>,
+): ReactElement {
+  const {
+    widgets,
+    columns = 12,
+    editable = true,
+    movable = true,
+    resizable = true,
+    className,
+    refreshKey,
+    showControls = true,
+    actionLabels,
+    renderWidget,
+    onLayoutCommit,
+    onWidgetLayoutChange,
+    onWidgetResizeFrame,
+    onMaximizeWidget,
+    onMinimizeWidget,
+    onRestoreWidget,
+    onRemoveWidget,
+    onWidgetHeaderDoubleClick,
+  } = props;
   const gridElementRef = useRef<HTMLDivElement>(null);
   const adapterRef = useRef<DashboardGridAdapter<TData> | undefined>(undefined);
+  useImperativeHandle(
+    ref,
+    () => ({
+      getGridStack: () => adapterRef.current?.grid ?? null,
+      refresh: () => adapterRef.current?.refresh(),
+      commitLayout: () => adapterRef.current?.commit() ?? null,
+    }),
+    [],
+  );
   const resizeFrameHandlerRef = useRef(onWidgetResizeFrame);
   const resizeScheduler = useMemo(
     () =>
@@ -109,8 +124,10 @@ export function DashboardGrid<TData = unknown>({
     return () => {
       mounted = false;
       resizeScheduler.cancel();
+      if (adapterRef.current === adapter) {
+        adapterRef.current = undefined;
+      }
       adapter?.destroy();
-      adapterRef.current = undefined;
     };
   }, []);
 
@@ -174,3 +191,10 @@ export function DashboardGrid<TData = unknown>({
     </section>
   );
 }
+
+const ForwardedDashboardGrid = forwardRef(DashboardGridInner);
+ForwardedDashboardGrid.displayName = "DashboardGrid";
+
+export const DashboardGrid = ForwardedDashboardGrid as <TData = unknown>(
+  props: DashboardGridProps<TData> & RefAttributes<DashboardGridHandle>,
+) => ReactElement | null;
