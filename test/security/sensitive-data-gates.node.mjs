@@ -89,9 +89,20 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
   assert.match(prePush, /check-public-identities\.mjs "\$base_sha" "\$local_sha"/);
   assert.match(prePush, /--log-opts="\$base_sha\.\.\$local_sha"/);
 
+  const actionPins = new Map([
+    ['actions/checkout', '3d3c42e5aac5ba805825da76410c181273ba90b1'],
+    ['actions/setup-node', '820762786026740c76f36085b0efc47a31fe5020'],
+    ['actions/upload-artifact', '043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'],
+    ['actions/download-artifact', '3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c'],
+  ]);
+
   for (const workflow of [verify, publish]) {
-    assert.match(workflow, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/);
-    assert.match(workflow, /actions\/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38/);
+    const uses = [...workflow.matchAll(/uses:\s+([^@\s]+)@([^\s#]+)/g)];
+    assert.ok(uses.length > 0);
+    for (const [, action, revision] of uses) {
+      assert.equal(actionPins.get(action), revision);
+      assert.match(revision, /^[0-9a-f]{40}$/);
+    }
     assert.match(workflow, /persist-credentials: false/);
   }
   assert.match(verify, /fetch-depth: 0/);
