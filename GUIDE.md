@@ -14,9 +14,9 @@
 ## Working Agreement
 
 1. 작업 전 루트 `AGENTS.md`와 대상 디렉터리의 `AGENTS.md`를 확인한다.
-2. 변경 범위는 `README.md`, 이 문서, `docs/README.md` 및 대상 기능 문서에서 먼저 확인한다.
+2. 변경 범위와 직접 관련된 public contract 또는 기능 문서만 확인한다.
 3. GridStack 의존 코드는 `src/gridstack` adapter boundary 내부에 유지하고, layout state는 serializable object로 유지한다.
-4. substantial 변경은 `reports/YYYY-MM-DD.md`에 작업 시각, 변경 파일, 실제 실행한 검증, 결과, 잔여 리스크를 기록한다.
+4. 의미 있는 동작, API, 설정, 보안, 릴리스 또는 테스트 계약 변경은 `reports/YYYY-MM-DD.md`에 실제 검증과 잔여 리스크를 기록한다.
 
 ## Verification and Integration
 
