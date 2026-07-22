@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.example.config.ts",
+    "docs:readme-gif": "node scripts/capture-readme-demo.mjs",
     "build": "vite build && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
     "check:security": "node scripts/check-public-identities.mjs",
     "typecheck": "tsc --noEmit",

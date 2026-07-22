@@ -225,6 +225,9 @@ try {
     { x: 300, y: 0 },
   );
 
+  const widgetBox = await widget.boundingBox();
+  if (!widgetBox) throw new Error("readme-gif: resize widget unavailable");
+  await widget.hover({ position: { x: widgetBox.width - 4, y: widgetBox.height - 4 } });
   const handleBox = await widget.locator(".ui-resizable-se").boundingBox();
   if (!handleBox) throw new Error("readme-gif: resize handle unavailable");
   await moveAndCapture(
