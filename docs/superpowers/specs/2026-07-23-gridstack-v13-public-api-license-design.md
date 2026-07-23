@@ -39,5 +39,5 @@ Construction internals, engine/item classes, children, nested grids, removable/d
 ## Verification Contract
 
 - Run focused type, configuration, option mapping, atomic state, handle, responsive, engine-option, and interaction-order tests.
-- Run security, consumer, exact package-artifact, and full browser/resource gates once after the meaningful implementation is complete.
+- Run security and full browser/resource gates once after the meaningful implementation is complete. Create the release package exactly once, then use that same artifact for allow-list inspection, extracted Gitleaks scanning, the React 18 consumer smoke, workflow transfer, and trusted staging.
 - Preserve the 100-widget steady-state contract: fixed DOM counters, 12% transient heap peak, trailing three-sample 2% final growth, and non-monotonic leak detection.

@@ -116,6 +116,13 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
   assert.match(publish, /verify-package-artifact\.mjs/);
   assert.match(publish, /tar -xzf "\$package_file"/);
   assert.match(publish, /gitleaks dir/);
+  const packIndex = publish.indexOf('id: pack');
+  const consumerIndex = publish.indexOf('npm run test:consumer -- "${{ steps.pack.outputs.package-file }}"');
+  const uploadIndex = publish.indexOf('actions/upload-artifact@');
+  assert.ok(packIndex >= 0);
+  assert.ok(consumerIndex > packIndex);
+  assert.ok(uploadIndex > consumerIndex);
+  assert.equal(publish.match(/npm run test:consumer/g)?.length, 1);
   assert.match(publish, /npm stage publish \.\/package-artifact\/\*\.tgz/);
 
   assert.equal(packageJson.scripts['check:security'], 'node scripts/check-public-identities.mjs');
