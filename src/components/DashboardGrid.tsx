@@ -151,6 +151,10 @@ function DashboardGridInner<TData = unknown>(
     ],
   );
   const adapterOptionsRef = useRef(adapterOptions);
+  const adapterReinitializeKey = useMemo(
+    () => JSON.stringify([engineOptions?.rtl ?? null, engineOptions?.sizeToContent ?? null]),
+    [engineOptions?.rtl, engineOptions?.sizeToContent],
+  );
 
   useEffect(() => {
     const gridElement = gridElementRef.current;
@@ -188,7 +192,7 @@ function DashboardGridInner<TData = unknown>(
       }
       adapter?.destroy();
     };
-  }, []);
+  }, [adapterReinitializeKey]);
 
   useEffect(() => {
     adapterOptionsRef.current = adapterOptions;

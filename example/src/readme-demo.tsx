@@ -11,16 +11,23 @@ import {
 type DemoData = { label: string; value: string };
 
 type ReadmeDemoBridge = {
+  addWidgetWithId: (id: string) => void;
+  clearWidgets: () => void;
   getColumn: () => number | null;
   getCommitCount: () => number;
+  getEngineWidgetIds: () => string[];
   getHandle: () => DashboardGridHandle | null;
   getInteractionEvents: () => string[];
+  removeWidget: (id: string) => void;
   resetCommitCount: () => void;
   resetInteractionEvents: () => void;
   refresh: () => void;
   compact: (layout?: Parameters<DashboardGridHandle["compact"]>[0]) => DashboardLayoutSnapshot | null;
   setCustomDragHandle: (enabled: boolean) => void;
+  setDirection: (direction: "ltr" | "rtl") => void;
   setResponsive: (enabled: boolean) => void;
+  setRtl: (rtl: boolean | "auto" | undefined) => void;
+  setSizeToContent: (enabled: boolean | undefined) => void;
   moveWithGridStack: (id: string, x: number, y: number) => DashboardLayoutSnapshot | null;
 };
 
@@ -61,14 +68,36 @@ export function ReadmeDemoPage() {
   const commitCountRef = useRef(0);
   const interactionEventsRef = useRef<string[]>([]);
   const [customDragHandle, setCustomDragHandle] = useState(true);
+  const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
   const [responsiveEnabled, setResponsiveEnabled] = useState(false);
+  const [rtl, setRtl] = useState<boolean | "auto" | undefined>(undefined);
+  const [sizeToContent, setSizeToContent] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
     const bridge: ReadmeDemoBridge = {
+      addWidgetWithId: (id) => {
+        dashboard.commands.addWidget({
+          id,
+          title: id,
+          layout: { id, x: 0, y: 0, w: 2, h: 2 },
+          data: { label: id, value: id },
+        });
+      },
+      clearWidgets: dashboard.commands.clearWidgets,
       getColumn: () => gridRef.current?.getGridStack()?.getColumn() ?? null,
       getCommitCount: () => commitCountRef.current,
+      getEngineWidgetIds: () => {
+        const grid = gridRef.current?.getGridStack();
+        if (!grid) {
+          return [];
+        }
+        return (grid
+          .save(false, false, undefined, grid.getColumn()) as Array<{ id?: string }>)
+          .flatMap((widget) => typeof widget.id === "string" ? [widget.id] : []);
+      },
       getHandle: () => gridRef.current,
       getInteractionEvents: () => [...interactionEventsRef.current],
+      removeWidget: dashboard.commands.removeWidget,
       resetCommitCount: () => {
         commitCountRef.current = 0;
       },
@@ -78,7 +107,10 @@ export function ReadmeDemoPage() {
       refresh: () => gridRef.current?.refresh(),
       compact: (layout) => gridRef.current?.compact(layout) ?? null,
       setCustomDragHandle,
+      setDirection,
       setResponsive: setResponsiveEnabled,
+      setRtl,
+      setSizeToContent,
       moveWithGridStack: (id, x, y) => {
         const grid = gridRef.current?.getGridStack();
         const item = grid?.getGridItems().find((candidate) => candidate.getAttribute("gs-id") === id);
@@ -110,7 +142,7 @@ export function ReadmeDemoPage() {
   };
 
   return (
-    <main className="readme-demo">
+    <main className="readme-demo" dir={direction}>
       <header className="readme-demo__hero">
         <div>
           <p>comins-grid-layout</p>
@@ -140,6 +172,8 @@ export function ReadmeDemoPage() {
         engineOptions={{
           animate: false,
           dragHandle: customDragHandle ? ".comins-grid-layout-widget__title" : undefined,
+          rtl,
+          sizeToContent,
         }}
         refreshKey={dashboard.refreshVersion}
         responsive={responsiveEnabled ? responsiveOptions : undefined}

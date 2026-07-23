@@ -64,10 +64,26 @@ export function createDashboardGridAdapter<TData>(
   element: HTMLElement,
   options: DashboardGridAdapterOptions<TData>,
 ): DashboardGridAdapter<TData> | undefined {
-  const grid = GridStack.init(mapDashboardGridOptions(options), element);
+  const initializationOptions = options.engineOptions?.rtl === "auto"
+    ? {
+        ...options,
+        engineOptions: {
+          ...options.engineOptions,
+          rtl: window.getComputedStyle(element).direction === "rtl",
+        },
+      }
+    : options;
+  const resolvedRtl = initializationOptions.engineOptions?.rtl === true;
+  element.classList.toggle("grid-stack-rtl", resolvedRtl);
+  element.querySelectorAll<HTMLElement>(".grid-stack-item").forEach((item) => {
+    item.style.removeProperty("left");
+    item.style.removeProperty("right");
+  });
+  const grid = GridStack.init(mapDashboardGridOptions(initializationOptions), element);
   if (!grid) {
     return undefined;
   }
+  const registeredItems = new Map<string, GridItemHTMLElement>();
   let currentOptions = options;
   let appliedOptions = options;
   let isInteracting = false;
@@ -189,8 +205,7 @@ export function createDashboardGridAdapter<TData>(
     const dragDropConfigurationChanged =
       previousEngine.dragHandle !== nextEngine.dragHandle
       || previousEngine.resizeHandles !== nextEngine.resizeHandles
-      || previousEngine.alwaysShowResizeHandle !== nextEngine.alwaysShowResizeHandle
-      || previousEngine.rtl !== nextEngine.rtl;
+      || previousEngine.alwaysShowResizeHandle !== nextEngine.alwaysShowResizeHandle;
 
     if (dragDropConfigurationChanged) {
       const draggable = typeof grid.opts.draggable === "object" ? grid.opts.draggable : {};
@@ -198,21 +213,7 @@ export function createDashboardGridAdapter<TData>(
       grid.opts.draggable = { ...draggable, handle: nextEngine.dragHandle ?? ".grid-stack-item-content" };
       grid.opts.resizable = { ...resizableOptions, handles: nextEngine.resizeHandles ?? "se" };
       grid.opts.alwaysShowResizeHandle = resolveMobileResizeHandle(nextEngine.alwaysShowResizeHandle);
-      const rtl = nextEngine.rtl === "auto" || nextEngine.rtl === undefined
-        ? window.getComputedStyle(element).direction === "rtl"
-        : nextEngine.rtl;
-      grid.opts.rtl = rtl;
-      element.classList.toggle("grid-stack-rtl", rtl);
       grid.getGridItems().forEach((item) => grid.prepareDragDrop(item, true).refreshDragHandles(item));
-    }
-
-    if (previousEngine.sizeToContent !== nextEngine.sizeToContent) {
-      if (nextEngine.sizeToContent === undefined) {
-        delete grid.opts.sizeToContent;
-      } else {
-        grid.opts.sizeToContent = nextEngine.sizeToContent;
-      }
-      grid.onResize();
     }
 
     if (!nextOptions.responsive && grid.getColumn() !== clampDashboardColumnCount(nextOptions.columns ?? 12)) {
@@ -240,7 +241,7 @@ export function createDashboardGridAdapter<TData>(
     nextOptions: DashboardGridAdapterOptions<TData>,
   ) => {
     applyRuntimeEngineOptions(previousOptions, nextOptions);
-    syncGridWidgets(grid, element, nextOptions.widgets, nextOptions);
+    syncGridWidgets(grid, element, registeredItems, nextOptions.widgets, nextOptions);
     scheduleColumnsChange();
   };
 
@@ -554,6 +555,7 @@ export function createDashboardGridAdapter<TData>(
       cancelFrame(forceEndFrame);
       cancelFrame(refreshFrame);
       cancelFrame(columnsFrame);
+      registeredItems.clear();
       grid.offAll();
       grid.destroy(false);
     },
@@ -606,14 +608,15 @@ export function findWidgetElementById(element: HTMLElement, widgetId: string) {
 function syncGridWidgets<TData>(
   grid: GridStack,
   element: HTMLElement,
+  registeredItems: Map<string, GridItemHTMLElement>,
   widgets: DashboardWidget<TData>[],
   options: DashboardGridOptionInput,
 ) {
   const nextIds = new Set(widgets.map((widget) => widget.id));
-  grid.getGridItems().forEach((item) => {
-    const id = item.getAttribute("gs-id") ?? item.getAttribute("data-widget-id") ?? item.gridstackNode?.id;
-    if (typeof id === "string" && !nextIds.has(id)) {
+  registeredItems.forEach((item, id) => {
+    if (!nextIds.has(id)) {
       grid.removeWidget(item, false, false);
+      registeredItems.delete(id);
     }
   });
 
@@ -624,12 +627,17 @@ function syncGridWidgets<TData>(
     }
 
     const gridItem = item as GridItemHTMLElement;
+    const registeredItem = registeredItems.get(widget.id);
+    if (registeredItem && registeredItem !== gridItem) {
+      grid.removeWidget(registeredItem, false, false);
+    }
     const gridWidget = toGridStackWidget(widget, options);
     if (gridItem.gridstackNode) {
       grid.update(gridItem, gridWidget);
     } else {
       grid.makeWidget(gridItem, gridWidget);
     }
+    registeredItems.set(widget.id, gridItem);
     grid.movable(gridItem, !(gridWidget.noMove ?? false));
     grid.resizable(gridItem, !(gridWidget.noResize ?? false));
   });

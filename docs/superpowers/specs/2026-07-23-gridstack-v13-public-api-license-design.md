@@ -9,7 +9,7 @@
 
 ## Supported Engine Configuration
 
-`DashboardGrid.engineOptions` supports cell height, margin, float, animation, static mode, RTL, minimum and maximum rows, size-to-content, drag handle, resize handles, always-visible resize handles, and CSP nonce. Only changed runtime-capable options are synchronized. `nonce` is initialization-only and a new value requires remounting.
+`DashboardGrid.engineOptions` supports cell height, margin, float, animation, static mode, RTL, minimum and maximum rows, size-to-content, drag handle, resize handles, always-visible resize handles, and CSP nonce. Changed runtime-capable options are synchronized in place. RTL and size-to-content changes reinitialize the package-owned adapter because GridStack does not fully update those options in place; controlled React state and widget IDs remain authoritative. `nonce` is initialization-only and a new value requires remounting.
 
 Construction internals, engine/item classes, children, nested grids, removable/drop contracts, global callbacks, and lifecycle-destroying options are excluded. Invalid numeric dimensions, row bounds, handles, and responsive definitions throw `DashboardGridConfigurationError` with a constant non-disclosing message.
 

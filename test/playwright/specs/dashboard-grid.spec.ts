@@ -706,6 +706,69 @@ test("updates a supported GridStack engine option without remounting", async ({ 
   await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
 });
 
+test("removes controlled widgets from the engine before clear and same-id re-add", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Controlled CRUD engine reconciliation is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds().sort())).toEqual([
+    "orders",
+    "overview",
+  ]);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.removeWidget("overview"));
+  await expect(page.getByTestId("dashboard-widget-overview")).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds().sort())).toEqual([
+    "orders",
+  ]);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.clearWidgets());
+  await expect(page.getByText("0 widgets")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds())).toEqual([]);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.addWidgetWithId("overview"));
+  await expect(page.getByTestId("dashboard-widget-overview")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds())).toEqual(["overview"]);
+});
+
+test("applies inherited and runtime RTL positioning to existing widgets", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "RTL engine synchronization is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  const orders = page.getByTestId("dashboard-widget-orders");
+  await expect(orders).toHaveCSS("direction", "ltr");
+
+  await page.evaluate(() => {
+    window.__cominsReadmeDemo?.setDirection("rtl");
+    window.__cominsReadmeDemo?.setRtl("auto");
+  });
+  await expect(page.getByTestId("dashboard-grid")).toHaveClass(/grid-stack-rtl/);
+  await expect.poll(() => orders.evaluate((element) => ({
+    left: (element as HTMLElement).style.left,
+    right: (element as HTMLElement).style.right,
+  }))).toEqual({ left: "", right: "calc(4 * var(--gs-column-width))" });
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setRtl(false));
+  await expect(page.getByTestId("dashboard-grid")).not.toHaveClass(/grid-stack-rtl/);
+  await expect.poll(() => orders.evaluate((element) => ({
+    left: (element as HTMLElement).style.left,
+    right: (element as HTMLElement).style.right,
+  }))).toEqual({ left: "calc(4 * var(--gs-column-width))", right: "" });
+});
+
+test("updates size-to-content classes for existing widgets", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Size-to-content synchronization is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  const overview = page.getByTestId("dashboard-widget-overview");
+  await expect(overview).not.toHaveClass(/size-to-content/);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setSizeToContent(true));
+  await expect(overview).toHaveClass(/size-to-content/);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setSizeToContent(false));
+  await expect(overview).not.toHaveClass(/size-to-content/);
+});
+
 test("uses the active responsive column in DOM, snapshots, and atomic React state", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium", "Responsive state ownership is covered once on desktop Chromium.");
 

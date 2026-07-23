@@ -169,7 +169,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 />
 ```
 
-Without `responsive`, `columns` is authoritative. With `responsive`, `columns` is the initial/fallback count and GridStack owns the active count. `nonce` is initialization-only: remount the grid to change it, and never persist it in layout state. Invalid public configuration throws `DashboardGridConfigurationError` without including the rejected value.
+Without `responsive`, `columns` is authoritative. With `responsive`, `columns` is the initial/fallback count and GridStack owns the active count. Runtime-capable engine options are synchronized in place; `rtl` and `sizeToContent` changes safely reinitialize the package-owned adapter while preserving controlled React state. `nonce` is initialization-only: remount the grid to change it, and never persist it in layout state. Invalid public configuration throws `DashboardGridConfigurationError` without including the rejected value.
 
 ## useDashboardGrid commands
 
