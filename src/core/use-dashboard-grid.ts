@@ -1,6 +1,7 @@
 import { useMemo, useReducer } from "react";
 import {
   addDashboardWidget,
+  applyDashboardLayoutSnapshot,
   autoArrangeDashboardWidgets,
   clearDashboardWidgets,
   createDashboardLayoutState,
@@ -40,6 +41,7 @@ type DashboardGridAction<TData> =
   | { type: "fit-columns" }
   | { type: "fit-widget-columns"; id: DashboardWidgetId }
   | { type: "refresh" }
+  | { type: "apply-layout-snapshot"; snapshot: DashboardLayoutSnapshot }
   | { type: "reset"; snapshot: DashboardLayoutSnapshot | DashboardStateSnapshotInput<TData> };
 
 export type UseDashboardGridOptions<TData = unknown> = {
@@ -60,6 +62,7 @@ export type DashboardGridCommands<TData = unknown> = {
   fitWidgetsToColumns: () => void;
   fitWidgetToColumns: (id: DashboardWidgetId) => void;
   setColumns: (columns: number) => void;
+  applyLayoutSnapshot: (snapshot: DashboardLayoutSnapshot) => void;
   resetLayout: (snapshot?: DashboardLayoutSnapshot | DashboardStateSnapshotInput<TData>) => void;
   restoreLayout: (snapshot: DashboardStateSnapshotInput<TData>) => void;
   refreshLayout: () => void;
@@ -101,6 +104,7 @@ export function useDashboardGrid<TData = unknown>(
       fitWidgetsToColumns: () => dispatch({ type: "fit-columns" }),
       fitWidgetToColumns: (id) => dispatch({ type: "fit-widget-columns", id }),
       setColumns: (columns) => dispatch({ type: "columns", columns }),
+      applyLayoutSnapshot: (snapshot) => dispatch({ type: "apply-layout-snapshot", snapshot }),
       resetLayout: (snapshot) => dispatch({ type: "reset", snapshot: snapshot ?? initialSnapshot }),
       restoreLayout: (snapshot) => dispatch({ type: "reset", snapshot }),
       refreshLayout: () => dispatch({ type: "refresh" }),
@@ -150,6 +154,8 @@ function dashboardGridReducer<TData>(
       return setDashboardColumns(state, action.columns);
     case "refresh":
       return { ...state, refreshVersion: state.refreshVersion + 1 };
+    case "apply-layout-snapshot":
+      return applyDashboardLayoutSnapshot(state, action.snapshot);
     case "reset":
       return createDashboardLayoutState(action.snapshot);
     default:

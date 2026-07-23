@@ -586,16 +586,32 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
     throw new Error("Column-cycle resource baseline is unavailable");
   }
 
-  expect(columnCycleCounters.every((counter) => counter.documents === columnBaseline.documents)).toBe(true);
-  expect(columnCycleCounters.every((counter) => counter.listeners === columnBaseline.listeners)).toBe(true);
-  expect(columnCycleCounters.every((counter) => counter.nodes === columnBaseline.nodes)).toBe(true);
-  expect(staysWithinHeapPeak(columnCycleCounters, HEAP_PEAK_TOLERANCE)).toBe(true);
-  expect(staysWithinFinalHeapGrowth(columnSteadyStateCounters, HEAP_FINAL_GROWTH_TOLERANCE)).toBe(true);
+  expect(
+    columnCycleCounters.every((counter) => counter.documents === columnBaseline.documents),
+    "100-widget column cycles changed the CDP Documents counter; inspect 100-widget-resource-counters.json",
+  ).toBe(true);
+  expect(
+    columnCycleCounters.every((counter) => counter.listeners === columnBaseline.listeners),
+    "100-widget column cycles changed the CDP Event Listeners counter; inspect 100-widget-resource-counters.json",
+  ).toBe(true);
+  expect(
+    columnCycleCounters.every((counter) => counter.nodes === columnBaseline.nodes),
+    "100-widget column cycles changed the CDP DOM Nodes counter; inspect 100-widget-resource-counters.json",
+  ).toBe(true);
+  expect(
+    staysWithinHeapPeak(columnCycleCounters, HEAP_PEAK_TOLERANCE),
+    `100-widget column-cycle heap exceeded the ${HEAP_PEAK_TOLERANCE * 100}% transient peak budget; inspect 100-widget-resource-counters.json`,
+  ).toBe(true);
+  expect(
+    staysWithinFinalHeapGrowth(columnSteadyStateCounters, HEAP_FINAL_GROWTH_TOLERANCE),
+    `100-widget column-cycle steady-state heap exceeded the ${HEAP_FINAL_GROWTH_TOLERANCE * 100}% final-growth budget; inspect 100-widget-resource-counters.json`,
+  ).toBe(true);
   expect(
     growsMonotonicallyBeyondTolerance(
       columnSteadyStateCounters.map((counter) => counter.heap),
       HEAP_FINAL_GROWTH_TOLERANCE,
     ),
+    `100-widget column-cycle steady-state heap grew monotonically beyond the ${HEAP_FINAL_GROWTH_TOLERANCE * 100}% budget; inspect 100-widget-resource-counters.json`,
   ).toBe(false);
 
   const interactionBaseline = allInteractionCounters[0];
@@ -603,16 +619,32 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
     throw new Error("Interaction resource baseline is unavailable");
   }
 
-  expect(allInteractionCounters.every((counter) => counter.documents === interactionBaseline.documents)).toBe(true);
-  expect(allInteractionCounters.every((counter) => counter.nodes === interactionBaseline.nodes)).toBe(true);
-  expect(allInteractionCounters.every((counter) => counter.listeners === interactionBaseline.listeners)).toBe(true);
-  expect(staysWithinHeapPeak(allInteractionCounters, HEAP_PEAK_TOLERANCE)).toBe(true);
-  expect(staysWithinFinalHeapGrowth(interactionSteadyStateCounters, HEAP_FINAL_GROWTH_TOLERANCE)).toBe(true);
+  expect(
+    allInteractionCounters.every((counter) => counter.documents === interactionBaseline.documents),
+    "100-widget interactions changed the CDP Documents counter; inspect 100-widget-resource-counters.json",
+  ).toBe(true);
+  expect(
+    allInteractionCounters.every((counter) => counter.nodes === interactionBaseline.nodes),
+    "100-widget interactions changed the CDP DOM Nodes counter; inspect 100-widget-resource-counters.json",
+  ).toBe(true);
+  expect(
+    allInteractionCounters.every((counter) => counter.listeners === interactionBaseline.listeners),
+    "100-widget interactions changed the CDP Event Listeners counter; inspect 100-widget-resource-counters.json",
+  ).toBe(true);
+  expect(
+    staysWithinHeapPeak(allInteractionCounters, HEAP_PEAK_TOLERANCE),
+    `100-widget interaction heap exceeded the ${HEAP_PEAK_TOLERANCE * 100}% transient peak budget; inspect 100-widget-resource-counters.json`,
+  ).toBe(true);
+  expect(
+    staysWithinFinalHeapGrowth(interactionSteadyStateCounters, HEAP_FINAL_GROWTH_TOLERANCE),
+    `100-widget interaction steady-state heap exceeded the ${HEAP_FINAL_GROWTH_TOLERANCE * 100}% final-growth budget; inspect 100-widget-resource-counters.json`,
+  ).toBe(true);
   expect(
     growsMonotonicallyBeyondTolerance(
       interactionSteadyStateCounters.map((counter) => counter.heap),
       HEAP_FINAL_GROWTH_TOLERANCE,
     ),
+    `100-widget interaction steady-state heap grew monotonically beyond the ${HEAP_FINAL_GROWTH_TOLERANCE * 100}% budget; inspect 100-widget-resource-counters.json`,
   ).toBe(false);
 });
 
@@ -631,6 +663,7 @@ test("exposes a live GridStack handle and deduplicates explicit layout commits",
   await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
   await page.evaluate(() => window.__cominsReadmeDemo?.refresh());
   await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
+  await expect(page.getByTestId("dashboard-widget-overview")).toHaveAttribute("data-layout-x", "2");
 
   await page.evaluate(() => {
     window.__retainedCominsGridHandle = window.__cominsReadmeDemo?.getHandle();
@@ -641,6 +674,160 @@ test("exposes a live GridStack handle and deduplicates explicit layout commits",
   await expect
     .poll(() => page.evaluate(() => window.__retainedCominsGridHandle?.getGridStack()?.getColumn() ?? null))
     .toBeNull();
+});
+
+test("compacts only through the explicit handle command and commits once", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Advanced compact behavior is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  await expect(page.getByTestId("dashboard-widget-orders")).toHaveAttribute("data-layout-x", "4");
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
+
+  const snapshot = await page.evaluate(() => window.__cominsReadmeDemo?.compact("compact"));
+
+  expect(snapshot?.widgets.find((widget) => widget.id === "orders")?.x).toBe(2);
+  await expect(page.getByTestId("dashboard-widget-orders")).toHaveAttribute("data-layout-x", "2");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
+});
+
+test("updates a supported GridStack engine option without remounting", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Engine option synchronization is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  const readDragHandle = () => page.evaluate(() => {
+    const draggable = window.__cominsReadmeDemo?.getHandle()?.getGridStack()?.opts.draggable;
+    return typeof draggable === "object" ? draggable.handle ?? null : null;
+  });
+  await expect.poll(readDragHandle).toBe(".comins-grid-layout-widget__title");
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setCustomDragHandle(false));
+
+  await expect.poll(readDragHandle).toBe(".grid-stack-item-content");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
+});
+
+test("removes controlled widgets from the engine before clear and same-id re-add", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Controlled CRUD engine reconciliation is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds().sort())).toEqual([
+    "orders",
+    "overview",
+  ]);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.removeWidget("overview"));
+  await expect(page.getByTestId("dashboard-widget-overview")).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds().sort())).toEqual([
+    "orders",
+  ]);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.clearWidgets());
+  await expect(page.getByText("0 widgets")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds())).toEqual([]);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.addWidgetWithId("overview"));
+  await expect(page.getByTestId("dashboard-widget-overview")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds())).toEqual(["overview"]);
+});
+
+test("applies inherited and runtime RTL positioning to existing widgets", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "RTL engine synchronization is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  const orders = page.getByTestId("dashboard-widget-orders");
+  await expect(orders).toHaveCSS("direction", "ltr");
+
+  await page.evaluate(() => {
+    window.__cominsReadmeDemo?.setDirection("rtl");
+    window.__cominsReadmeDemo?.setRtl("auto");
+  });
+  await expect(page.getByTestId("dashboard-grid")).toHaveClass(/grid-stack-rtl/);
+  await expect.poll(() => orders.evaluate((element) => ({
+    left: (element as HTMLElement).style.left,
+    right: (element as HTMLElement).style.right,
+  }))).toEqual({ left: "", right: "calc(4 * var(--gs-column-width))" });
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setRtl(false));
+  await expect(page.getByTestId("dashboard-grid")).not.toHaveClass(/grid-stack-rtl/);
+  await expect.poll(() => orders.evaluate((element) => ({
+    left: (element as HTMLElement).style.left,
+    right: (element as HTMLElement).style.right,
+  }))).toEqual({ left: "calc(4 * var(--gs-column-width))", right: "" });
+});
+
+test("updates size-to-content classes for existing widgets", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Size-to-content synchronization is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  const overview = page.getByTestId("dashboard-widget-overview");
+  await expect(overview).not.toHaveClass(/size-to-content/);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setSizeToContent(true));
+  await expect(overview).toHaveClass(/size-to-content/);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setSizeToContent(false));
+  await expect(overview).not.toHaveClass(/size-to-content/);
+});
+
+test("uses the active responsive column in DOM, snapshots, and atomic React state", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Responsive state ownership is covered once on desktop Chromium.");
+
+  await page.setViewportSize({ width: 900, height: 800 });
+  await page.goto("/readme-demo");
+  await page.evaluate(() => window.__cominsReadmeDemo?.setResponsive(true));
+
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(4);
+  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "4");
+  const snapshot = await page.evaluate(() => window.__cominsReadmeDemo?.getHandle()?.commitLayout());
+  expect(snapshot?.columns).toBe(4);
+  await expect(page.getByLabel("Columns")).toHaveValue("4");
+
+  await page.setViewportSize({ width: 1300, height: 800 });
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
+  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "6");
+  await expect(page.getByLabel("Columns")).toHaveValue("6");
+});
+
+test("orders drag lifecycle callbacks after the committed layout", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "Interaction callback ordering is covered once on desktop Chromium.");
+
+  await page.goto("/readme-demo");
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
+  const overview = page.getByTestId("dashboard-widget-overview");
+  const title = overview.locator(".comins-grid-layout-widget__title");
+  const titleBox = await title.boundingBox();
+  if (!titleBox) {
+    throw new Error("Custom drag handle bounding box is not available");
+  }
+  await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(titleBox.x + titleBox.width / 2 + 180, titleBox.y + titleBox.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await waitForInteractionToSettle(overview);
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents().at(-1))).toBe("drag-stop:overview");
+
+  const events = await page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents() ?? []);
+  const layoutIndex = events.findIndex((event) => event === "widget-layout:overview");
+  const commitIndex = events.indexOf("layout-commit");
+  const stopIndex = events.indexOf("drag-stop:overview");
+  expect(events[0]).toBe("drag-start:overview");
+  expect(layoutIndex).toBeGreaterThan(0);
+  expect(commitIndex).toBeGreaterThan(layoutIndex);
+  expect(stopIndex).toBeGreaterThan(commitIndex);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
+  await resizeWidget(page, overview, 200, 120);
+  await waitForInteractionToSettle(overview);
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents().at(-1))).toBe("resize-stop:overview");
+
+  const resizeEvents = await page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents() ?? []);
+  const resizeLayoutIndex = resizeEvents.findIndex((event) => event === "widget-layout:overview");
+  const resizeCommitIndex = resizeEvents.indexOf("layout-commit");
+  const resizeStopIndex = resizeEvents.indexOf("resize-stop:overview");
+  expect(resizeEvents[0]).toBe("resize-start:overview");
+  expect(resizeLayoutIndex).toBeGreaterThan(0);
+  expect(resizeCommitIndex).toBeGreaterThan(resizeLayoutIndex);
+  expect(resizeStopIndex).toBeGreaterThan(resizeCommitIndex);
 });
 
 test("moves a widget with touch after a runtime column change", async ({ page }, testInfo) => {

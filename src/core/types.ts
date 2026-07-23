@@ -1,5 +1,37 @@
 export type DashboardColumnCount = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
+export type DashboardColumnLayout = "list" | "compact" | "moveScale" | "move" | "scale" | "none";
+
+export type DashboardResponsiveBreakpoint = {
+  maxWidth: number;
+  columns: DashboardColumnCount;
+  layout?: DashboardColumnLayout;
+};
+
+export type DashboardResponsiveOptions = {
+  columnWidth?: number;
+  columnMax?: DashboardColumnCount;
+  breakpoints?: ReadonlyArray<DashboardResponsiveBreakpoint>;
+  breakpointForWindow?: boolean;
+  layout?: DashboardColumnLayout;
+};
+
+export type DashboardGridEngineOptions = {
+  cellHeight?: number | string;
+  margin?: number | string;
+  float?: boolean;
+  animate?: boolean;
+  staticGrid?: boolean;
+  rtl?: boolean | "auto";
+  minRow?: number;
+  maxRow?: number;
+  sizeToContent?: boolean;
+  dragHandle?: string;
+  resizeHandles?: string;
+  alwaysShowResizeHandle?: boolean | "mobile";
+  nonce?: string;
+};
+
 export type DashboardWidgetId = string;
 
 export type DashboardWidgetLayout = {
@@ -60,6 +92,11 @@ export type DashboardWidgetResizeFrameEvent = {
   id: DashboardWidgetId;
   width: number;
   height: number;
+};
+
+export type DashboardWidgetInteractionEvent = {
+  id: DashboardWidgetId;
+  layout: DashboardWidgetLayout;
 };
 
 export type DashboardResizeScheduler = {

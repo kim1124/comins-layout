@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { basename, isAbsolute } from 'node:path';
 
 const FAILURE = 'package-artifact-check: failed\n';
+const REQUIRED_PATHS = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
 
 function normalize(value) {
   const path = value.replaceAll('\\', '/').replace(/^\.\//, '').replace(/\/$/, '');
@@ -38,6 +39,7 @@ try {
   if (!Array.isArray(files) || files.length === 0) throw new Error('missing artifact files');
   const paths = files.map((entry) => normalize(entry?.path ?? ''));
   if (!paths.every((path) => covered(path, roots))) throw new Error('unexpected artifact file');
+  if (!REQUIRED_PATHS.every((path) => paths.includes(path))) throw new Error('required legal file missing');
   if (!roots.every((root) => paths.some((path) => path === root || path.startsWith(`${root}/`)))) {
     throw new Error('missing allow-list root');
   }

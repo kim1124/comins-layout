@@ -1,11 +1,16 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import type { ForwardedRef, ReactElement, ReactNode, RefAttributes } from "react";
+import { clampDashboardColumnCount } from "../core/columns";
+import { validateDashboardGridConfiguration } from "../core/configuration";
 import { createDashboardResizeScheduler } from "../core/resize-scheduler";
 import type {
   DashboardColumnCount,
+  DashboardGridEngineOptions,
   DashboardInteractionOptions,
   DashboardLayoutSnapshot,
+  DashboardResponsiveOptions,
   DashboardWidget as DashboardWidgetModel,
+  DashboardWidgetInteractionEvent,
   DashboardWidgetResizeFrameEvent,
 } from "../core/types";
 import type { DashboardGridAdapter, DashboardGridHandle } from "../gridstack/adapter";
@@ -17,14 +22,21 @@ export type { DashboardGridHandle } from "../gridstack/adapter";
 export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & {
   widgets: DashboardWidgetModel<TData>[];
   columns?: DashboardColumnCount;
+  engineOptions?: DashboardGridEngineOptions;
+  responsive?: DashboardResponsiveOptions;
   className?: string;
   refreshKey?: number;
   showControls?: boolean;
   actionLabels?: Partial<DashboardWidgetActionLabels>;
   renderWidget: (widget: DashboardWidgetModel<TData>) => ReactNode;
+  onColumnsChange?: (columns: DashboardColumnCount) => void;
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetModel<TData>["layout"]) => void;
   onWidgetResizeFrame?: (event: DashboardWidgetResizeFrameEvent) => void;
+  onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetResizeStop?: (event: DashboardWidgetInteractionEvent) => void;
   onMaximizeWidget?: (id: string) => void;
   onMinimizeWidget?: (id: string) => void;
   onRestoreWidget?: (id: string) => void;
@@ -39,6 +51,8 @@ function DashboardGridInner<TData = unknown>(
   const {
     widgets,
     columns = 12,
+    engineOptions,
+    responsive,
     editable = true,
     movable = true,
     resizable = true,
@@ -47,22 +61,34 @@ function DashboardGridInner<TData = unknown>(
     showControls = true,
     actionLabels,
     renderWidget,
+    onColumnsChange,
     onLayoutCommit,
     onWidgetLayoutChange,
     onWidgetResizeFrame,
+    onWidgetDragStart,
+    onWidgetDragStop,
+    onWidgetResizeStart,
+    onWidgetResizeStop,
     onMaximizeWidget,
     onMinimizeWidget,
     onRestoreWidget,
     onRemoveWidget,
     onWidgetHeaderDoubleClick,
   } = props;
+  validateDashboardGridConfiguration({ engineOptions, responsive });
   const gridElementRef = useRef<HTMLDivElement>(null);
   const adapterRef = useRef<DashboardGridAdapter<TData> | undefined>(undefined);
+  const [activeColumns, setActiveColumns] = useState(() => clampDashboardColumnCount(columns));
+  const handleColumnsChange = useCallback((nextColumns: DashboardColumnCount) => {
+    setActiveColumns(nextColumns);
+    onColumnsChange?.(nextColumns);
+  }, [onColumnsChange]);
   useImperativeHandle(
     ref,
     () => ({
       getGridStack: () => adapterRef.current?.grid ?? null,
       refresh: () => adapterRef.current?.refresh(),
+      compact: (layout, doSort) => adapterRef.current?.compact(layout, doSort) ?? null,
       commitLayout: () => adapterRef.current?.commit() ?? null,
     }),
     [],
@@ -80,22 +106,55 @@ function DashboardGridInner<TData = unknown>(
     resizeFrameHandlerRef.current = onWidgetResizeFrame;
   }, [onWidgetResizeFrame]);
 
+  useEffect(() => {
+    if (!responsive) {
+      setActiveColumns(clampDashboardColumnCount(columns));
+    }
+  }, [columns, responsive]);
+
   const adapterOptions = useMemo(
     () => ({
       columns,
+      engineOptions,
+      responsive,
       editable,
       movable,
       resizable,
       widgets,
+      onColumnsChange: handleColumnsChange,
       onLayoutCommit,
       onWidgetLayoutChange,
+      onWidgetDragStart,
+      onWidgetDragStop,
+      onWidgetResizeStart,
+      onWidgetResizeStop,
       onWidgetResize: (id: string, size: { width: number; height: number }) => {
         resizeScheduler.schedule({ id, width: size.width, height: size.height });
       },
     }),
-    [columns, editable, movable, onLayoutCommit, onWidgetLayoutChange, resizable, resizeScheduler, widgets],
+    [
+      columns,
+      editable,
+      engineOptions,
+      handleColumnsChange,
+      movable,
+      onLayoutCommit,
+      onWidgetDragStart,
+      onWidgetDragStop,
+      onWidgetLayoutChange,
+      onWidgetResizeStart,
+      onWidgetResizeStop,
+      responsive,
+      resizable,
+      resizeScheduler,
+      widgets,
+    ],
   );
   const adapterOptionsRef = useRef(adapterOptions);
+  const adapterReinitializeKey = useMemo(
+    () => JSON.stringify([engineOptions?.rtl ?? null, engineOptions?.sizeToContent ?? null]),
+    [engineOptions?.rtl, engineOptions?.sizeToContent],
+  );
 
   useEffect(() => {
     const gridElement = gridElementRef.current;
@@ -112,12 +171,16 @@ function DashboardGridInner<TData = unknown>(
           return;
         }
         const nextAdapter = createDashboardGridAdapter(gridElement, adapterOptionsRef.current);
+        if (!nextAdapter) {
+          console.error("Failed to initialize comins-grid-layout adapter.");
+          return;
+        }
         adapter = nextAdapter;
         adapterRef.current = nextAdapter;
       })
-      .catch((error: unknown) => {
+      .catch(() => {
         if (mounted) {
-          console.error("Failed to initialize comins-grid-layout adapter.", error);
+          console.error("Failed to initialize comins-grid-layout adapter.");
         }
       });
 
@@ -129,7 +192,7 @@ function DashboardGridInner<TData = unknown>(
       }
       adapter?.destroy();
     };
-  }, []);
+  }, [adapterReinitializeKey]);
 
   useEffect(() => {
     adapterOptionsRef.current = adapterOptions;
@@ -146,7 +209,7 @@ function DashboardGridInner<TData = unknown>(
     <section
       ref={gridElementRef}
       className={["grid-stack", "comins-grid-layout", className].filter(Boolean).join(" ")}
-      data-columns={columns}
+      data-columns={activeColumns}
       data-testid="dashboard-grid"
     >
       {widgets.map((widget) => (

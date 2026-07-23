@@ -1,21 +1,32 @@
 import { GridStack } from "gridstack";
-import type { GridItemHTMLElement, GridStackNode, GridStackWidget } from "gridstack";
+import type { CompactOptions, GridItemHTMLElement, GridStackOptions, GridStackWidget } from "gridstack";
 import { mapDashboardGridOptions, mapDashboardWidgetOptions } from "./option-mapper";
-import type { DashboardGridEngineOptions } from "./option-mapper";
-import type { DashboardLayoutSnapshot, DashboardWidget, DashboardWidgetLayout } from "../core/types";
+import type { DashboardGridOptionInput } from "./option-mapper";
+import { clampDashboardColumnCount } from "../core/columns";
+import type {
+  DashboardLayoutSnapshot,
+  DashboardWidget,
+  DashboardWidgetInteractionEvent,
+  DashboardWidgetLayout,
+} from "../core/types";
 
-export type DashboardGridAdapterOptions<TData = unknown> = DashboardGridEngineOptions & {
+export type DashboardGridAdapterOptions<TData = unknown> = DashboardGridOptionInput & {
   widgets: DashboardWidget<TData>[];
+  onColumnsChange?: (columns: DashboardLayoutSnapshot["columns"]) => void;
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetLayout) => void;
   onWidgetResize?: (id: string, size: { width: number; height: number }) => void;
+  onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetResizeStop?: (event: DashboardWidgetInteractionEvent) => void;
 };
 
 export type DashboardGridAdapter<TData = unknown> = {
   grid: GridStack;
   sync: (options: DashboardGridAdapterOptions<TData>) => void;
   refresh: () => void;
-  compact: () => void;
+  compact: (layout?: CompactOptions, doSort?: boolean) => DashboardLayoutSnapshot;
   commit: () => DashboardLayoutSnapshot;
   destroy: () => void;
 };
@@ -23,6 +34,7 @@ export type DashboardGridAdapter<TData = unknown> = {
 export interface DashboardGridHandle {
   getGridStack(): GridStack | null;
   refresh(): void;
+  compact(layout?: CompactOptions, doSort?: boolean): DashboardLayoutSnapshot | null;
   commitLayout(): DashboardLayoutSnapshot | null;
 }
 
@@ -51,25 +63,49 @@ export function sameDashboardLayoutSnapshot(
 export function createDashboardGridAdapter<TData>(
   element: HTMLElement,
   options: DashboardGridAdapterOptions<TData>,
-): DashboardGridAdapter<TData> {
-  const grid = GridStack.init(mapDashboardGridOptions(options), element);
+): DashboardGridAdapter<TData> | undefined {
+  const initializationOptions = options.engineOptions?.rtl === "auto"
+    ? {
+        ...options,
+        engineOptions: {
+          ...options.engineOptions,
+          rtl: window.getComputedStyle(element).direction === "rtl",
+        },
+      }
+    : options;
+  const resolvedRtl = initializationOptions.engineOptions?.rtl === true;
+  element.classList.toggle("grid-stack-rtl", resolvedRtl);
+  element.querySelectorAll<HTMLElement>(".grid-stack-item").forEach((item) => {
+    item.style.removeProperty("left");
+    item.style.removeProperty("right");
+  });
+  const grid = GridStack.init(mapDashboardGridOptions(initializationOptions), element);
+  if (!grid) {
+    return undefined;
+  }
+  const registeredItems = new Map<string, GridItemHTMLElement>();
   let currentOptions = options;
+  let appliedOptions = options;
   let isInteracting = false;
   let pendingCommit = false;
   let pendingSync = false;
   let finishInteractionFrame: number | undefined;
   let deferredSyncFrame: number | undefined;
   let forceEndFrame: number | undefined;
+  let refreshFrame: number | undefined;
+  let columnsFrame: number | undefined;
   let lastPointer: PointerSnapshot | undefined;
   let activeInteractionItem: GridItemHTMLElement | undefined;
+  let activeInteractionKind: "drag" | "resize" | undefined;
   let pendingForcedRevealItem: GridItemHTMLElement | undefined;
   let pendingForcedRevealId: string | undefined;
   let interactionGuardsAttached = false;
+  let lastObservedColumns = clampDashboardColumnCount(options.columns ?? grid.getColumn());
 
   let lastCommittedLayout: DashboardLayoutSnapshot | undefined;
 
   const commitLayout = () => {
-    const snapshot = readDashboardLayoutSnapshot(grid, currentOptions.columns ?? 12);
+    const snapshot = readDashboardLayoutSnapshot(grid, grid.getColumn());
     if (sameDashboardLayoutSnapshot(lastCommittedLayout, snapshot)) {
       return snapshot;
     }
@@ -78,6 +114,29 @@ export function createDashboardGridAdapter<TData>(
     snapshot.widgets.forEach((layout) => currentOptions.onWidgetLayoutChange?.(layout.id, layout));
     currentOptions.onLayoutCommit?.(snapshot);
     return snapshot;
+  };
+
+  const readInteractionEvent = (item: GridItemHTMLElement | undefined): DashboardWidgetInteractionEvent | undefined => {
+    const node = item?.gridstackNode;
+    const id = item?.getAttribute("gs-id") ?? item?.getAttribute("data-widget-id") ?? node?.id;
+    if (!node || typeof id !== "string") {
+      return undefined;
+    }
+
+    return {
+      id,
+      layout: {
+        id,
+        x: node.x ?? 0,
+        y: node.y ?? 0,
+        w: node.w ?? 1,
+        h: node.h ?? 1,
+        minW: node.minW,
+        minH: node.minH,
+        maxW: node.maxW,
+        maxH: node.maxH,
+      },
+    };
   };
 
   const resizeHandler = (_event: Event, item: GridItemHTMLElement) => {
@@ -89,10 +148,101 @@ export function createDashboardGridAdapter<TData>(
     currentOptions.onWidgetResize?.(id, { width: rect.width, height: rect.height });
   };
 
-  const runSync = (nextOptions: DashboardGridAdapterOptions<TData>) => {
-    grid.updateOptions(mapDashboardGridOptions(nextOptions));
-    grid.column(nextOptions.columns ?? 12, "move");
-    syncGridWidgets(grid, element, nextOptions.widgets, nextOptions);
+  const sameMappedValue = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right);
+
+  const resolveMobileResizeHandle = (value: boolean | "mobile" | undefined) => {
+    if (typeof value === "boolean") {
+      return value;
+    }
+    return window.matchMedia?.("(pointer: coarse)").matches ?? false;
+  };
+
+  const applyRuntimeEngineOptions = (
+    previousOptions: DashboardGridAdapterOptions<TData>,
+    nextOptions: DashboardGridAdapterOptions<TData>,
+  ) => {
+    const previous = mapDashboardGridOptions(previousOptions);
+    const next = mapDashboardGridOptions(nextOptions);
+    const update: GridStackOptions = {};
+
+    if (previous.staticGrid !== next.staticGrid) {
+      grid.setStatic(next.staticGrid ?? false);
+    }
+
+    if (!sameMappedValue(previous.columnOpts, next.columnOpts)) {
+      update.columnOpts = (next.columnOpts ?? null) as GridStackOptions["columnOpts"];
+    }
+    if (previous.disableDrag !== next.disableDrag) {
+      update.disableDrag = next.disableDrag;
+    }
+    if (previous.disableResize !== next.disableResize) {
+      update.disableResize = next.disableResize;
+    }
+    if (previous.minRow !== next.minRow) {
+      update.minRow = next.minRow ?? 0;
+    }
+    if (previous.maxRow !== next.maxRow) {
+      update.maxRow = next.maxRow ?? 0;
+    }
+    if (Object.keys(update).length > 0) {
+      grid.updateOptions(update);
+    }
+
+    if (previous.animate !== next.animate) {
+      grid.setAnimation(next.animate ?? true);
+    }
+    if (previous.cellHeight !== next.cellHeight && next.cellHeight !== undefined) {
+      grid.cellHeight(next.cellHeight);
+    }
+    if (previous.margin !== next.margin && next.margin !== undefined) {
+      grid.margin(next.margin);
+    }
+    if (previous.float !== next.float) {
+      grid.float(next.float ?? false);
+    }
+    const previousEngine = previousOptions.engineOptions ?? {};
+    const nextEngine = nextOptions.engineOptions ?? {};
+    const dragDropConfigurationChanged =
+      previousEngine.dragHandle !== nextEngine.dragHandle
+      || previousEngine.resizeHandles !== nextEngine.resizeHandles
+      || previousEngine.alwaysShowResizeHandle !== nextEngine.alwaysShowResizeHandle;
+
+    if (dragDropConfigurationChanged) {
+      const draggable = typeof grid.opts.draggable === "object" ? grid.opts.draggable : {};
+      const resizableOptions = typeof grid.opts.resizable === "object" ? grid.opts.resizable : {};
+      grid.opts.draggable = { ...draggable, handle: nextEngine.dragHandle ?? ".grid-stack-item-content" };
+      grid.opts.resizable = { ...resizableOptions, handles: nextEngine.resizeHandles ?? "se" };
+      grid.opts.alwaysShowResizeHandle = resolveMobileResizeHandle(nextEngine.alwaysShowResizeHandle);
+      grid.getGridItems().forEach((item) => grid.prepareDragDrop(item, true).refreshDragHandles(item));
+    }
+
+    if (!nextOptions.responsive && grid.getColumn() !== clampDashboardColumnCount(nextOptions.columns ?? 12)) {
+      grid.column(clampDashboardColumnCount(nextOptions.columns ?? 12), "move");
+    }
+  };
+
+  const scheduleColumnsChange = () => {
+    cancelFrame(columnsFrame);
+    columnsFrame = window.requestAnimationFrame(() => {
+      columnsFrame = undefined;
+      const columns = clampDashboardColumnCount(grid.getColumn());
+      element.dataset.columns = String(columns);
+      if (columns === lastObservedColumns) {
+        return;
+      }
+      lastObservedColumns = columns;
+      currentOptions.onColumnsChange?.(columns);
+      commitLayout();
+    });
+  };
+
+  const runSync = (
+    previousOptions: DashboardGridAdapterOptions<TData>,
+    nextOptions: DashboardGridAdapterOptions<TData>,
+  ) => {
+    applyRuntimeEngineOptions(previousOptions, nextOptions);
+    syncGridWidgets(grid, element, registeredItems, nextOptions.widgets, nextOptions);
+    scheduleColumnsChange();
   };
 
   const cancelFrame = (frame: number | undefined) => {
@@ -260,7 +410,8 @@ export function createDashboardGridAdapter<TData>(
         pendingSync = true;
         return;
       }
-      runSync(currentOptions);
+      runSync(appliedOptions, currentOptions);
+      appliedOptions = currentOptions;
       revealPendingForcedItem();
     });
   };
@@ -268,8 +419,11 @@ export function createDashboardGridAdapter<TData>(
   const flushInteraction = () => {
     finishInteractionFrame = undefined;
     detachInteractionGuards();
+    const stoppedKind = activeInteractionKind;
+    const stoppedId = readInteractionEvent(activeInteractionItem)?.id;
     lastPointer = undefined;
     activeInteractionItem = undefined;
+    activeInteractionKind = undefined;
     isInteracting = false;
 
     const shouldCommit = pendingCommit;
@@ -277,8 +431,15 @@ export function createDashboardGridAdapter<TData>(
     pendingCommit = false;
     pendingSync = false;
 
-    if (shouldCommit) {
-      commitLayout();
+    const snapshot = shouldCommit ? commitLayout() : undefined;
+    const stoppedLayout = snapshot?.widgets.find((layout) => layout.id === stoppedId);
+    if (stoppedLayout) {
+      const interactionEvent = { id: stoppedLayout.id, layout: stoppedLayout };
+      if (stoppedKind === "drag") {
+        currentOptions.onWidgetDragStop?.(interactionEvent);
+      } else if (stoppedKind === "resize") {
+        currentOptions.onWidgetResizeStop?.(interactionEvent);
+      }
     }
     if (shouldSync) {
       scheduleDeferredSync();
@@ -287,8 +448,13 @@ export function createDashboardGridAdapter<TData>(
     }
   };
 
-  const startInteraction = (event?: Event, item?: GridItemHTMLElement) => {
+  const startInteraction = (
+    kind: "drag" | "resize",
+    event?: Event,
+    item?: GridItemHTMLElement,
+  ) => {
     isInteracting = true;
+    activeInteractionKind = kind;
     activeInteractionItem =
       item ??
       (event?.target instanceof HTMLElement
@@ -302,6 +468,14 @@ export function createDashboardGridAdapter<TData>(
       captureInteractionPointer(event);
     }
     attachInteractionGuards();
+    const interactionEvent = readInteractionEvent(activeInteractionItem);
+    if (interactionEvent) {
+      if (kind === "drag") {
+        currentOptions.onWidgetDragStart?.(interactionEvent);
+      } else {
+        currentOptions.onWidgetResizeStart?.(interactionEvent);
+      }
+    }
   };
 
   const stopInteraction = () => {
@@ -314,6 +488,7 @@ export function createDashboardGridAdapter<TData>(
   };
 
   const changeHandler = () => {
+    scheduleColumnsChange();
     if (isInteracting) {
       pendingCommit = true;
       return;
@@ -322,11 +497,23 @@ export function createDashboardGridAdapter<TData>(
   };
 
   grid.on("change", changeHandler);
-  grid.on("dragstart", startInteraction);
-  grid.on("resizestart", startInteraction);
+  grid.on("dragstart", (event, item) => startInteraction("drag", event, item));
+  grid.on("resizestart", (event, item) => startInteraction("resize", event, item));
   grid.on("dragstop", stopInteraction);
   grid.on("resizestop", stopInteraction);
   grid.on("resize", resizeHandler);
+
+  const columnsObserver = typeof ResizeObserver === "undefined"
+    ? undefined
+    : new ResizeObserver((entries) => {
+        grid.onResize(entries[0]?.contentRect.width);
+        scheduleColumnsChange();
+      });
+  columnsObserver?.observe(element);
+
+  const notifyWidgetSizes = () => {
+    grid.getGridItems().forEach((item) => resizeHandler(new Event("resize"), item));
+  };
 
   const adapter: DashboardGridAdapter<TData> = {
     grid,
@@ -336,23 +523,39 @@ export function createDashboardGridAdapter<TData>(
         pendingSync = true;
         return;
       }
-      runSync(nextOptions);
+      runSync(appliedOptions, nextOptions);
+      appliedOptions = nextOptions;
     },
     refresh() {
-      grid.compact("compact", true);
+      grid.onResize();
+      grid.getGridItems().forEach((item) => grid.refreshDragHandles(item));
+      cancelFrame(refreshFrame);
+      refreshFrame = window.requestAnimationFrame(() => {
+        refreshFrame = undefined;
+        grid.onResize();
+        if (currentOptions.engineOptions?.sizeToContent) {
+          grid.getGridItems().forEach((item) => grid.resizeToContent(item));
+        }
+        notifyWidgetSizes();
+        scheduleColumnsChange();
+      });
     },
-    compact() {
-      grid.compact("compact", true);
-      commitLayout();
+    compact(layout = "compact", doSort = true) {
+      grid.compact(layout, doSort);
+      return commitLayout();
     },
     commit: commitLayout,
     destroy() {
       detachInteractionGuards();
+      columnsObserver?.disconnect();
       pendingForcedRevealItem = undefined;
       pendingForcedRevealId = undefined;
       cancelFrame(finishInteractionFrame);
       cancelFrame(deferredSyncFrame);
       cancelFrame(forceEndFrame);
+      cancelFrame(refreshFrame);
+      cancelFrame(columnsFrame);
+      registeredItems.clear();
       grid.offAll();
       grid.destroy(false);
     },
@@ -365,7 +568,7 @@ export function createDashboardGridAdapter<TData>(
 
 export function toGridStackWidget<TData>(
   widget: DashboardWidget<TData>,
-  options: DashboardGridEngineOptions,
+  options: DashboardGridOptionInput,
 ): GridStackWidget {
   const widgetOptions = mapDashboardWidgetOptions(widget, options);
 
@@ -377,10 +580,11 @@ export function toGridStackWidget<TData>(
 }
 
 export function readDashboardLayoutSnapshot(grid: GridStack, columns: number): DashboardLayoutSnapshot {
-  const saved = grid.save(false, false, undefined, columns) as GridStackWidget[];
+  const activeColumns = clampDashboardColumnCount(columns);
+  const saved = grid.save(false, false, undefined, activeColumns) as GridStackWidget[];
 
   return {
-    columns: mapDashboardGridOptions({ columns }).column as DashboardLayoutSnapshot["columns"],
+    columns: activeColumns,
     widgets: saved
       .filter((item): item is GridStackWidget & { id: string } => typeof item.id === "string")
       .map((item) => ({
@@ -404,15 +608,15 @@ export function findWidgetElementById(element: HTMLElement, widgetId: string) {
 function syncGridWidgets<TData>(
   grid: GridStack,
   element: HTMLElement,
+  registeredItems: Map<string, GridItemHTMLElement>,
   widgets: DashboardWidget<TData>[],
-  options: DashboardGridEngineOptions,
+  options: DashboardGridOptionInput,
 ) {
   const nextIds = new Set(widgets.map((widget) => widget.id));
-  const nodes = [...grid.engine.nodes] as GridStackNode[];
-
-  nodes.forEach((node) => {
-    if (typeof node.id === "string" && !nextIds.has(node.id) && node.el) {
-      grid.removeWidget(node.el, false, false);
+  registeredItems.forEach((item, id) => {
+    if (!nextIds.has(id)) {
+      grid.removeWidget(item, false, false);
+      registeredItems.delete(id);
     }
   });
 
@@ -423,12 +627,17 @@ function syncGridWidgets<TData>(
     }
 
     const gridItem = item as GridItemHTMLElement;
+    const registeredItem = registeredItems.get(widget.id);
+    if (registeredItem && registeredItem !== gridItem) {
+      grid.removeWidget(registeredItem, false, false);
+    }
     const gridWidget = toGridStackWidget(widget, options);
     if (gridItem.gridstackNode) {
       grid.update(gridItem, gridWidget);
     } else {
       grid.makeWidget(gridItem, gridWidget);
     }
+    registeredItems.set(widget.id, gridItem);
     grid.movable(gridItem, !(gridWidget.noMove ?? false));
     grid.resizable(gridItem, !(gridWidget.noResize ?? false));
   });

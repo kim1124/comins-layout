@@ -1,5 +1,13 @@
 # comins-grid-layout
 
+## 0.1.5
+
+- Upgraded the external GridStack engine to the public version 13 API while retaining the package-owned adapter boundary.
+- Added supported `engineOptions`, responsive breakpoint columns, actual-column callbacks, and atomic layout snapshot application.
+- Added explicit `compact()` and non-reordering `refresh()` handle methods plus drag and resize lifecycle callbacks.
+- Added fail-closed third-party notice, external-bundle, installed-license, and exact package-artifact verification.
+- Clarified GridStack independence, external dependency licenses, raw engine ownership, and controlled React state guidance.
+
 ## 0.1.4
 
 - Added an advanced `DashboardGridHandle` escape hatch for controlled GridStack access, refresh, and state commits.

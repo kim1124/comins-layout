@@ -10,12 +10,13 @@ const root = fileURLToPath(new URL('../..', import.meta.url));
 const checker = join(root, 'scripts', 'verify-package-artifact.mjs');
 const failure = 'package-artifact-check: failed\n';
 
-function fixture(files = ['dist', 'README.md', 'CHANGELOG.md']) {
+function fixture(files = ['dist', 'README.md', 'CHANGELOG.md', 'THIRD_PARTY_NOTICES.md']) {
   const cwd = mkdtempSync(join(tmpdir(), 'comins-grid-package-'));
   mkdirSync(join(cwd, 'dist'));
   writeFileSync(join(cwd, 'dist', 'index.js'), 'export {};\n');
   writeFileSync(join(cwd, 'README.md'), '# Fixture\n');
   writeFileSync(join(cwd, 'CHANGELOG.md'), '# Changes\n');
+  writeFileSync(join(cwd, 'THIRD_PARTY_NOTICES.md'), '# Third-Party Notices\n');
   writeFileSync(join(cwd, 'LICENSE'), 'MIT\n');
   writeFileSync(join(cwd, 'package.json'), JSON.stringify({
     name: 'comins-artifact-fixture',
@@ -53,6 +54,31 @@ test('creates one ignored-script artifact covered by the files allow-list', () =
 test('fails closed without a non-empty package files allow-list', () => {
   const cwd = fixture([]);
   try {
+    const result = run(cwd);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, failure);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('fails closed when the third-party notice is omitted from the artifact', () => {
+  const cwd = fixture(['dist', 'README.md', 'CHANGELOG.md']);
+  try {
+    const result = run(cwd);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, failure);
+  } finally {
+    rmSync(cwd, { recursive: true, force: true });
+  }
+});
+
+test('fails closed when the package license is missing from the artifact', () => {
+  const cwd = fixture();
+  try {
+    rmSync(join(cwd, 'LICENSE'));
     const result = run(cwd);
     assert.equal(result.status, 1);
     assert.equal(result.stdout, '');

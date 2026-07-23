@@ -6,6 +6,8 @@
 type DashboardGridProps<TWidgetData = unknown> = {
   widgets: DashboardWidget<TWidgetData>[];
   columns?: DashboardColumnCount;
+  engineOptions?: DashboardGridEngineOptions;
+  responsive?: DashboardResponsiveOptions;
   editable?: boolean;
   movable?: boolean;
   resizable?: boolean;
@@ -13,9 +15,14 @@ type DashboardGridProps<TWidgetData = unknown> = {
   refreshKey?: number;
   showControls?: boolean;
   actionLabels?: Partial<DashboardWidgetActionLabels>;
+  onColumnsChange?: (columns: DashboardColumnCount) => void;
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetLayout) => void;
   onWidgetResizeFrame?: (event: DashboardWidgetResizeFrameEvent) => void;
+  onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
+  onWidgetResizeStop?: (event: DashboardWidgetInteractionEvent) => void;
   onMaximizeWidget?: (id: string) => void;
   onMinimizeWidget?: (id: string) => void;
   onRestoreWidget?: (id: string) => void;
@@ -56,6 +63,7 @@ type DashboardGridCommands<TData = unknown> = {
   autoArrangeWidgets: () => void;
   fitWidgetsToColumns: () => void;
   fitWidgetToColumns: (id: string) => void;
+  applyLayoutSnapshot: (snapshot: DashboardLayoutSnapshot) => void;
   resetLayout: (snapshot?: DashboardLayoutSnapshot | DashboardStateSnapshotInput<TData>) => void;
   restoreLayout: (snapshot: DashboardStateSnapshotInput<TData>) => void;
   refreshLayout: () => void;
@@ -71,6 +79,7 @@ type DashboardGridCommands<TData = unknown> = {
 interface DashboardGridHandle {
   getGridStack(): GridStack | null;
   refresh(): void;
+  compact(layout?: "compact" | "list", doSort?: boolean): DashboardLayoutSnapshot | null;
   commitLayout(): DashboardLayoutSnapshot | null;
 }
 ```
@@ -84,11 +93,16 @@ The handle is an optional advanced escape hatch. Comins commands remain the prim
 - `resizable=false`: resizing is disabled even when `editable=true`.
 - Widget-level `locked=true`: the widget cannot move or resize.
 - `columns` outside `1..12` are clamped by the core state helper.
+- Without `responsive`, `columns` is authoritative. With `responsive`, it is the initial/fallback count and `grid.getColumn()` is the active source of truth.
+- `engineOptions.nonce` is initialization-only and requires a remount to change.
+- Invalid supported engine or responsive options throw `DashboardGridConfigurationError` during render without echoing values.
 
 ## Event Semantics
 
 - `onLayoutCommit` runs after committed layout changes, not on every pointer move.
 - `onWidgetResizeFrame` can run during resize, but must be animation-frame scheduled.
+- Interaction-stop ordering is `onWidgetLayoutChange`, `onLayoutCommit`, then the corresponding drag/resize stop callback.
+- `onColumnsChange` reports actual engine columns only when the active count changes.
 - CRUD callbacks should preserve widget identity and layout snapshot consistency.
 
 ## Snapshot Persistence
@@ -96,6 +110,7 @@ The handle is an optional advanced escape hatch. Comins commands remain the prim
 - `serializeState()` returns `DashboardStateSnapshot`: `columns`, full `widgets`, and `previousLayouts` restore geometry.
 - `serializeLayout()` returns `DashboardLayoutSnapshot`: `columns` and widget geometry only.
 - `restoreLayout()` accepts `DashboardStateSnapshotInput`. A legacy JSON snapshot without `previousLayouts` is read with an empty restore map, while `serializeState()` always produces the complete `DashboardStateSnapshot` output.
+- `applyLayoutSnapshot()` applies active columns and matching widget geometry in one reducer action while preserving widget data and order.
 
 ## Current Export Surface
 

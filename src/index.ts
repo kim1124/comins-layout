@@ -1,6 +1,7 @@
 export const cominsGridLayoutPackage = "comins-grid-layout";
 
 export * from "./core/columns";
+export * from "./core/configuration";
 export * from "./core/layout-state";
 export * from "./core/resize-scheduler";
 export * from "./core/types";

@@ -198,6 +198,23 @@ export function setDashboardColumns<TData>(
   };
 }
 
+export function applyDashboardLayoutSnapshot<TData>(
+  state: DashboardLayoutState<TData>,
+  snapshot: DashboardLayoutSnapshot,
+): DashboardLayoutState<TData> {
+  const columns = clampDashboardColumnCount(snapshot.columns);
+  const layouts = new Map(snapshot.widgets.map((layout) => [layout.id, layout]));
+
+  return {
+    ...state,
+    columns,
+    widgets: state.widgets.map((widget) => ({
+      ...widget,
+      layout: normalizeLayout(layouts.get(widget.id) ?? widget.layout, columns),
+    })),
+  };
+}
+
 export function autoArrangeDashboardWidgets<TData>(state: DashboardLayoutState<TData>): DashboardLayoutState<TData> {
   let cursorX = 0;
   let cursorY = 0;

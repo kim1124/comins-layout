@@ -1,11 +1,12 @@
 {
   "name": "comins-grid-layout",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.example.config.ts",
     "docs:readme-gif": "node scripts/capture-readme-demo.mjs",
     "build": "vite build && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+    "check:licenses": "node scripts/check-third-party-notices.mjs",
     "check:security": "node scripts/check-public-identities.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
@@ -15,7 +16,7 @@
     "test:run": "vitest run",
     "test:security": "node --test test/security/*.node.mjs",
     "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
-    "verify": "npm run test:security && npm run lint && npm run test:run && npm run build",
+    "verify": "npm run test:security && npm run check:licenses && npm run lint && npm run test:run && npm run build",
     "verify:e2e": "npm run test:e2e",
     "verify:full": "npm run verify && npm run verify:e2e",
     "verify:package-artifact": "node scripts/verify-package-artifact.mjs"
@@ -30,13 +31,14 @@
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "sideEffects": [
     "./dist/styles.css"
   ],
   "dependencies": {
-    "gridstack": "^12.6.0",
+    "gridstack": "^13.0.1",
     "lucide-react": "^1.11.0"
   },
   "devDependencies": {
