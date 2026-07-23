@@ -1,32 +1,76 @@
 import type { GridStackOptions, GridStackWidget } from "gridstack";
 import { clampDashboardColumnCount } from "../core/columns";
-import type { DashboardInteractionOptions, DashboardWidget } from "../core/types";
+import type {
+  DashboardGridEngineOptions,
+  DashboardInteractionOptions,
+  DashboardResponsiveOptions,
+  DashboardWidget,
+} from "../core/types";
 
-export type DashboardGridEngineOptions = DashboardInteractionOptions & {
+export type { DashboardGridEngineOptions } from "../core/types";
+
+export type DashboardGridOptionInput = DashboardInteractionOptions & {
   columns?: number;
+  engineOptions?: DashboardGridEngineOptions;
+  responsive?: DashboardResponsiveOptions;
+  /** @deprecated Use engineOptions.cellHeight. */
   cellHeight?: GridStackOptions["cellHeight"];
+  /** @deprecated Use engineOptions.margin. */
   margin?: GridStackOptions["margin"];
 };
 
-export function mapDashboardGridOptions(options: DashboardGridEngineOptions = {}): GridStackOptions {
+function mapResponsiveOptions(responsive: DashboardResponsiveOptions | undefined): GridStackOptions["columnOpts"] {
+  if (!responsive) {
+    return undefined;
+  }
+
+  return {
+    columnWidth: responsive.columnWidth,
+    columnMax: responsive.columnMax,
+    breakpoints: responsive.breakpoints
+      ? [...responsive.breakpoints]
+          .sort((left, right) => right.maxWidth - left.maxWidth)
+          .map((breakpoint) => ({
+            w: breakpoint.maxWidth,
+            c: breakpoint.columns,
+            layout: breakpoint.layout,
+          }))
+      : undefined,
+    breakpointForWindow: responsive.breakpointForWindow,
+    layout: responsive.layout,
+  };
+}
+
+export function mapDashboardGridOptions(options: DashboardGridOptionInput = {}): GridStackOptions {
   const editable = options.editable ?? true;
   const movable = editable && (options.movable ?? true);
   const resizable = editable && (options.resizable ?? true);
+  const engine = options.engineOptions ?? {};
 
   return {
-    cellHeight: options.cellHeight ?? 96,
+    alwaysShowResizeHandle: engine.alwaysShowResizeHandle,
+    animate: engine.animate,
+    cellHeight: engine.cellHeight ?? options.cellHeight ?? 96,
     column: clampDashboardColumnCount(options.columns ?? 12),
+    columnOpts: mapResponsiveOptions(options.responsive),
     disableDrag: !movable,
     disableResize: !resizable,
-    float: false,
-    margin: options.margin ?? 8,
-    resizable: { handles: "se" },
+    draggable: engine.dragHandle ? { handle: engine.dragHandle } : undefined,
+    float: engine.float ?? false,
+    margin: engine.margin ?? options.margin ?? 8,
+    maxRow: engine.maxRow,
+    minRow: engine.minRow,
+    nonce: engine.nonce,
+    resizable: { handles: engine.resizeHandles ?? "se" },
+    rtl: engine.rtl,
+    sizeToContent: engine.sizeToContent,
+    staticGrid: engine.staticGrid,
   };
 }
 
 export function mapDashboardWidgetOptions<TData>(
   widget: DashboardWidget<TData>,
-  options: DashboardGridEngineOptions,
+  options: DashboardGridOptionInput,
 ): Pick<GridStackWidget, "locked" | "noMove" | "noResize"> {
   const editable = options.editable ?? true;
   const gridMovable = editable && (options.movable ?? true);

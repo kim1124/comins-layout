@@ -1,5 +1,6 @@
 import {
   addDashboardWidget,
+  applyDashboardLayoutSnapshot,
   autoArrangeDashboardWidgets,
   clearDashboardWidgets,
   createDashboardLayoutState,
@@ -36,6 +37,32 @@ describe("dashboard layout state", () => {
     });
     expect(moved.widgets[0]?.title).toBe("Revenue");
     expect(serializeDashboardLayout(removed)).toEqual({ columns: 6, widgets: [] });
+  });
+
+  it("applies an engine layout snapshot atomically while preserving widget data and order", () => {
+    const state = createDashboardLayoutState({
+      columns: 12,
+      widgets: [
+        { id: "sales", title: "Sales", data: { value: 10 }, layout: { id: "sales", x: 0, y: 0, w: 4, h: 2 } },
+        { id: "orders", title: "Orders", data: { value: 20 }, layout: { id: "orders", x: 4, y: 0, w: 4, h: 2 } },
+      ],
+    });
+
+    const applied = applyDashboardLayoutSnapshot(state, {
+      columns: 6,
+      widgets: [
+        { id: "orders", x: 3, y: 1, w: 3, h: 2 },
+        { id: "sales", x: 0, y: 1, w: 3, h: 2 },
+        { id: "unknown", x: 0, y: 5, w: 1, h: 1 },
+      ],
+    });
+
+    expect(applied.columns).toBe(6);
+    expect(applied.widgets.map((widget) => widget.id)).toEqual(["sales", "orders"]);
+    expect(applied.widgets[0]).toMatchObject({ title: "Sales", data: { value: 10 }, layout: { x: 0, y: 1, w: 3 } });
+    expect(applied.widgets[1]).toMatchObject({ title: "Orders", data: { value: 20 }, layout: { x: 3, y: 1, w: 3 } });
+    expect(state.columns).toBe(12);
+    expect(state.widgets[0]?.layout).toMatchObject({ x: 0, y: 0, w: 4 });
   });
 
   it("places a new widget in the first horizontal space that fits its requested size", () => {

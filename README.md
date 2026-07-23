@@ -13,10 +13,10 @@
 
 - Create, render, update, remove, clear, maximize, minimize, restore, arrange, and serialize widgets.
 - Drag and resize with desktop pointer input and mobile touch input.
-- Change the runtime column count from 1 through 12.
+- Change the runtime column count from 1 through 12 manually or through responsive GridStack breakpoints.
 - Keep application data in serializable React state while GridStack owns browser interaction.
 - Schedule resize-frame notifications for charts, tables, canvases, and other responsive widget content.
-- Access the complete GridStack public instance through an optional advanced ref handle.
+- Configure the supported GridStack 13 engine surface and access the complete public instance through an optional advanced ref handle.
 - Render 100 or more widgets with repeated runtime column changes covered by the resource gate.
 
 ## Support
@@ -77,7 +77,7 @@ export function DashboardPage() {
       onMinimizeWidget={dashboard.commands.minimizeWidget}
       onRemoveWidget={dashboard.commands.removeWidget}
       onRestoreWidget={dashboard.commands.restoreWidget}
-      onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
+      onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
       renderWidget={(widget) => (
         <div>
           <span>{widget.data?.label}</span>
@@ -89,7 +89,7 @@ export function DashboardPage() {
 }
 ```
 
-`widgets` is the React source of truth. Connect `onWidgetLayoutChange` to `updateWidgetLayout` so committed GridStack movement and resize geometry is retained after rerender.
+`widgets` is the React source of truth. Connect `onLayoutCommit` to `applyLayoutSnapshot` so columns and every committed widget geometry update are applied in one React reducer action. `onWidgetLayoutChange` remains available for consumers that intentionally persist widgets individually.
 
 ## Widget model
 
@@ -126,6 +126,8 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `widgets` | `DashboardWidget<TData>[]` | required | Controlled widget models and layout geometry |
 | `renderWidget` | `(widget) => ReactNode` | required | Consumer-owned widget content renderer |
 | `columns` | `DashboardColumnCount` | `12` | Runtime column count from 1 through 12 |
+| `responsive` | `DashboardResponsiveOptions` | — | Lets GridStack select the active 1–12 column count from width or explicit breakpoints |
+| `engineOptions` | `DashboardGridEngineOptions` | — | Configures the supported GridStack rendering, rows, handles, direction, and CSP options |
 | `editable` | `boolean` | `true` | Enables both movement and resize when their flags also allow it |
 | `movable` | `boolean` | `true` | Enables grid-wide movement |
 | `resizable` | `boolean` | `true` | Enables grid-wide resize |
@@ -133,14 +135,41 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `refreshKey` | `number` | — | Requests an adapter refresh when the value changes |
 | `showControls` | `boolean` | `true` | Shows widget header actions |
 | `actionLabels` | `Partial<DashboardWidgetActionLabels>` | built-in labels | Overrides accessible action labels |
+| `onColumnsChange` | `(columns) => void` | — | Receives an actual responsive engine column change once per animation frame |
 | `onLayoutCommit` | `(snapshot) => void` | — | Receives a committed layout snapshot |
 | `onWidgetLayoutChange` | `(id, layout) => void` | — | Receives each committed widget geometry update |
 | `onWidgetResizeFrame` | `(event) => void` | — | Receives animation-frame-scheduled content dimensions during resize |
+| `onWidgetDragStart` / `onWidgetDragStop` | `(event) => void` | — | Receives drag lifecycle events with the widget ID and geometry |
+| `onWidgetResizeStart` / `onWidgetResizeStop` | `(event) => void` | — | Receives resize lifecycle events with the widget ID and geometry |
 | `onMaximizeWidget` | `(id) => void` | — | Handles maximize action |
 | `onMinimizeWidget` | `(id) => void` | — | Handles minimize action |
 | `onRestoreWidget` | `(id) => void` | — | Handles restore action |
 | `onRemoveWidget` | `(id) => void` | — | Handles remove action |
 | `onWidgetHeaderDoubleClick` | `(id) => void` | — | Handles a widget header double-click |
+
+## Engine and responsive options
+
+`engineOptions` supports `cellHeight`, `margin`, `float`, `animate`, `staticGrid`, `rtl`, `minRow`, `maxRow`, `sizeToContent`, `dragHandle`, `resizeHandles`, `alwaysShowResizeHandle`, and `nonce`. Unsupported GridStack construction, nested-grid, removable, callback, and lifecycle options stay outside the controlled Comins surface; use `getGridStack()` for one-off public engine commands.
+
+```tsx
+<DashboardGrid
+  columns={dashboard.columns}
+  widgets={dashboard.widgets}
+  engineOptions={{ cellHeight: 88, margin: 8, dragHandle: ".widget-title" }}
+  responsive={{
+    columnMax: 12,
+    breakpointForWindow: true,
+    breakpoints: [
+      { maxWidth: 720, columns: 1, layout: "list" },
+      { maxWidth: 1200, columns: 6, layout: "moveScale" },
+    ],
+  }}
+  onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+  renderWidget={renderWidget}
+/>
+```
+
+Without `responsive`, `columns` is authoritative. With `responsive`, `columns` is the initial/fallback count and GridStack owns the active count. `nonce` is initialization-only: remount the grid to change it, and never persist it in layout state. Invalid public configuration throws `DashboardGridConfigurationError` without including the rejected value.
 
 ## useDashboardGrid commands
 
@@ -158,6 +187,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `fitWidgetsToColumns` | `() => void` | Fit every widget into the current columns |
 | `fitWidgetToColumns` | `(id) => void` | Fit one widget to the current columns |
 | `setColumns` | `(columns) => void` | Clamp and apply a runtime column count from 1 through 12 |
+| `applyLayoutSnapshot` | `(snapshot) => void` | Atomically apply active columns and all matching widget geometry |
 | `resetLayout` | `(snapshot?) => void` | Reset to the initial state or a supplied layout/state snapshot |
 | `restoreLayout` | `(snapshot) => void` | Restore a complete state snapshot |
 | `refreshLayout` | `() => void` | Increment `refreshVersion` for adapter refresh |
@@ -179,21 +209,23 @@ const gridRef = useRef<DashboardGridHandle>(null);
 const grid = gridRef.current?.getGridStack();
 grid?.batchUpdate();
 grid?.float(true);
-grid?.compact();
 grid?.batchUpdate(false);
 
 const snapshot = gridRef.current?.commitLayout();
+const compacted = gridRef.current?.compact("compact", true);
 gridRef.current?.refresh();
 ```
 
 | Handle method | Return type | Purpose |
 | --- | --- | --- |
 | `getGridStack` | `GridStack \| null` | Borrow the live engine instance while the grid is mounted |
-| `refresh` | `void` | Ask GridStack to recalculate its current layout |
+| `refresh` | `void` | Recalculate sizing and dynamic handles without reordering widgets |
+| `compact` | `DashboardLayoutSnapshot \| null` | Run GridStack `compact()` explicitly, commit once, and return the snapshot |
 | `commitLayout` | `DashboardLayoutSnapshot \| null` | Commit direct engine geometry changes to the controlled callback contract |
 
 - `getGridStack()` returns `null` before initialization and after unmount.
-- GridStack methods that emit `change` are committed automatically; `commitLayout()` is for direct geometry changes that do not emit it and suppresses identical duplicate commits.
+- GridStack methods that emit `change` are committed automatically; `commitLayout()` is for commands that do not emit it and suppresses identical duplicate commits. For `batchUpdate()`, call `commitLayout()` after `batchUpdate(false)`.
+- A committed interaction calls `onWidgetLayoutChange`, then `onLayoutCommit`, then the corresponding drag/resize stop callback. High-frequency drag events remain available only on the borrowed GridStack instance.
 - Use Comins `addWidget` and `removeWidget` for React content. Raw GridStack CRUD only changes engine/DOM state and may be replaced by the next controlled React render.
 - Do not call `destroy()` or remove package listeners on the borrowed instance; `DashboardGrid` owns the engine lifecycle.
 
@@ -222,4 +254,4 @@ Public CSS classes and custom properties are scoped under `.comins-grid-layout`.
 
 ## License
 
-[MIT](https://github.com/kim1124/comins-layout/blob/main/LICENSE)
+[MIT](https://github.com/kim1124/comins-layout/blob/main/LICENSE). Runtime and peer dependencies remain external to the package bundle; see [Third-Party Notices](https://github.com/kim1124/comins-layout/blob/main/THIRD_PARTY_NOTICES.md) for their SPDX identifiers and upstream license links. `comins-grid-layout` is independent and is not affiliated with or endorsed by GridStack.

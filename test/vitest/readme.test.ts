@@ -21,6 +21,7 @@ describe("consumer README", () => {
       "## Quick start",
       "## Widget model",
       "## DashboardGrid props",
+      "## Engine and responsive options",
       "## useDashboardGrid commands",
       "## Advanced GridStack access",
       "## Persistence",
@@ -36,13 +37,15 @@ describe("consumer README", () => {
     for (const name of [
       "widgets", "columns", "editable", "movable", "resizable", "className", "refreshKey",
       "showControls", "actionLabels", "renderWidget", "onLayoutCommit", "onWidgetLayoutChange",
-      "onWidgetResizeFrame", "onMaximizeWidget", "onMinimizeWidget", "onRestoreWidget",
+      "engineOptions", "responsive", "onColumnsChange", "onWidgetResizeFrame", "onWidgetDragStart",
+      "onWidgetDragStop", "onWidgetResizeStart", "onWidgetResizeStop",
+      "onMaximizeWidget", "onMinimizeWidget", "onRestoreWidget",
       "onRemoveWidget", "onWidgetHeaderDoubleClick",
       "addWidget", "updateWidget", "updateWidgetLayout", "removeWidget", "clearWidgets",
       "maximizeWidget", "minimizeWidget", "restoreWidget", "autoArrangeWidgets",
-      "fitWidgetsToColumns", "fitWidgetToColumns", "setColumns", "resetLayout", "restoreLayout",
+      "fitWidgetsToColumns", "fitWidgetToColumns", "setColumns", "applyLayoutSnapshot", "resetLayout", "restoreLayout",
       "refreshLayout", "serializeLayout", "serializeState",
-      "getGridStack", "refresh", "commitLayout",
+      "getGridStack", "refresh", "compact", "commitLayout",
     ]) expect(readme).toContain(`\`${name}\``);
   });
 

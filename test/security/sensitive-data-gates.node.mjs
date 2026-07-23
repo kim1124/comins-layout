@@ -65,8 +65,8 @@ test('adopts the concise Contract v1.2 module policy', () => {
     security,
     /Before 1\.0\.0, only the latest published version receives security fixes\./,
   );
-  assert.match(security, /\| 0\.1\.4 \| Yes \|/);
-  assert.match(security, /\| < 0\.1\.4 \| No \|/);
+  assert.match(security, /\| 0\.1\.5 \| Yes \|/);
+  assert.match(security, /\| < 0\.1\.5 \| No \|/);
 });
 
 test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
@@ -119,9 +119,11 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
   assert.match(publish, /npm stage publish \.\/package-artifact\/\*\.tgz/);
 
   assert.equal(packageJson.scripts['check:security'], 'node scripts/check-public-identities.mjs');
+  assert.equal(packageJson.scripts['check:licenses'], 'node scripts/check-third-party-notices.mjs');
   assert.match(packageJson.scripts['test:security'], /node --test/);
   assert.equal(packageJson.scripts['verify:package-artifact'], 'node scripts/verify-package-artifact.mjs');
   assert.doesNotMatch(packageJson.scripts.verify, /check:security/);
+  assert.match(packageJson.scripts.verify, /check:licenses/);
   assert.match(packageJson.scripts.verify, /test:security/);
 });
 

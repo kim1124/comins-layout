@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { externalPackages } from "./package-boundary.mjs";
 
 export default defineConfig({
   plugins: [react()],
@@ -11,7 +12,7 @@ export default defineConfig({
       name: "KmsfGridstack",
     },
     rollupOptions: {
-      external: ["react", "react-dom", "react/jsx-runtime", "gridstack", "lucide-react"],
+      external: externalPackages,
     },
     sourcemap: true,
   },

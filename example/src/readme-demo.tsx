@@ -1,9 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DashboardGrid,
   useDashboardGrid,
   type DashboardGridHandle,
   type DashboardLayoutSnapshot,
+  type DashboardResponsiveOptions,
   type DashboardWidget,
 } from "../../src";
 
@@ -13,8 +14,13 @@ type ReadmeDemoBridge = {
   getColumn: () => number | null;
   getCommitCount: () => number;
   getHandle: () => DashboardGridHandle | null;
+  getInteractionEvents: () => string[];
   resetCommitCount: () => void;
+  resetInteractionEvents: () => void;
   refresh: () => void;
+  compact: (layout?: Parameters<DashboardGridHandle["compact"]>[0]) => DashboardLayoutSnapshot | null;
+  setCustomDragHandle: (enabled: boolean) => void;
+  setResponsive: (enabled: boolean) => void;
   moveWithGridStack: (id: string, x: number, y: number) => DashboardLayoutSnapshot | null;
 };
 
@@ -40,20 +46,39 @@ const initialWidgets: DashboardWidget<DemoData>[] = [
   },
 ];
 
+const responsiveOptions: DashboardResponsiveOptions = {
+  columnMax: 6,
+  breakpointForWindow: true,
+  breakpoints: [
+    { maxWidth: 700, columns: 1, layout: "list" },
+    { maxWidth: 1200, columns: 4, layout: "moveScale" },
+  ],
+};
+
 export function ReadmeDemoPage() {
   const dashboard = useDashboardGrid<DemoData>({ initialColumns: 6, initialWidgets });
   const gridRef = useRef<DashboardGridHandle>(null);
   const commitCountRef = useRef(0);
+  const interactionEventsRef = useRef<string[]>([]);
+  const [customDragHandle, setCustomDragHandle] = useState(true);
+  const [responsiveEnabled, setResponsiveEnabled] = useState(false);
 
   useEffect(() => {
     const bridge: ReadmeDemoBridge = {
       getColumn: () => gridRef.current?.getGridStack()?.getColumn() ?? null,
       getCommitCount: () => commitCountRef.current,
       getHandle: () => gridRef.current,
+      getInteractionEvents: () => [...interactionEventsRef.current],
       resetCommitCount: () => {
         commitCountRef.current = 0;
       },
+      resetInteractionEvents: () => {
+        interactionEventsRef.current = [];
+      },
       refresh: () => gridRef.current?.refresh(),
+      compact: (layout) => gridRef.current?.compact(layout) ?? null,
+      setCustomDragHandle,
+      setResponsive: setResponsiveEnabled,
       moveWithGridStack: (id, x, y) => {
         const grid = gridRef.current?.getGridStack();
         const item = grid?.getGridItems().find((candidate) => candidate.getAttribute("gs-id") === id);
@@ -112,17 +137,28 @@ export function ReadmeDemoPage() {
       <DashboardGrid
         ref={gridRef}
         columns={dashboard.columns}
+        engineOptions={{
+          animate: false,
+          dragHandle: customDragHandle ? ".comins-grid-layout-widget__title" : undefined,
+        }}
         refreshKey={dashboard.refreshVersion}
+        responsive={responsiveEnabled ? responsiveOptions : undefined}
         widgets={dashboard.widgets}
         actionLabels={{ maximize: "Maximize", minimize: "Minimize", restore: "Restore", remove: "Remove" }}
-        onLayoutCommit={() => {
+        onLayoutCommit={(snapshot) => {
           commitCountRef.current += 1;
+          interactionEventsRef.current.push("layout-commit");
+          dashboard.commands.applyLayoutSnapshot(snapshot);
         }}
         onMaximizeWidget={dashboard.commands.maximizeWidget}
         onMinimizeWidget={dashboard.commands.minimizeWidget}
         onRemoveWidget={dashboard.commands.removeWidget}
         onRestoreWidget={dashboard.commands.restoreWidget}
-        onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
+        onWidgetDragStart={(event) => interactionEventsRef.current.push(`drag-start:${event.id}`)}
+        onWidgetDragStop={(event) => interactionEventsRef.current.push(`drag-stop:${event.id}`)}
+        onWidgetLayoutChange={(id) => interactionEventsRef.current.push(`widget-layout:${id}`)}
+        onWidgetResizeStart={(event) => interactionEventsRef.current.push(`resize-start:${event.id}`)}
+        onWidgetResizeStop={(event) => interactionEventsRef.current.push(`resize-stop:${event.id}`)}
         renderWidget={(widget) => (
           <div className="readme-demo__metric">
             <span>{widget.data?.label}</span>
