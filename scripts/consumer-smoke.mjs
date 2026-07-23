@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const scriptsRoot = dirname(fileURLToPath(import.meta.url));
@@ -28,10 +28,20 @@ function runNpm(args, options = {}) {
 }
 
 try {
-  runNpm(["run", "build"]);
-  const packed = JSON.parse(runNpm(["pack", "--json", "--pack-destination", temporaryRoot]));
-  const tarballName = packed[0]?.filename;
-  assert.equal(typeof tarballName, "string", "npm pack did not return a tarball filename");
+  const providedTarball = process.argv[2];
+  let tarballPath;
+
+  if (providedTarball) {
+    tarballPath = resolve(repositoryRoot, providedTarball);
+    assert.match(tarballPath, /\.tgz$/, "provided package artifact must be a .tgz file");
+    await access(tarballPath);
+  } else {
+    runNpm(["run", "build"]);
+    const packed = JSON.parse(runNpm(["pack", "--json", "--pack-destination", temporaryRoot]));
+    const tarballName = packed[0]?.filename;
+    assert.equal(typeof tarballName, "string", "npm pack did not return a tarball filename");
+    tarballPath = join(temporaryRoot, tarballName);
+  }
 
   const consumerRoot = join(temporaryRoot, "consumer");
   await mkdir(consumerRoot);
@@ -42,7 +52,7 @@ try {
 
   execFileSync(
     "npm",
-    ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--no-package-lock", join(temporaryRoot, tarballName), "react@18", "react-dom@18"],
+    ["install", "--ignore-scripts", "--no-audit", "--no-fund", "--no-package-lock", tarballPath, "react@18", "react-dom@18"],
     { cwd: consumerRoot, env: npmEnvironment, stdio: "inherit" },
   );
 

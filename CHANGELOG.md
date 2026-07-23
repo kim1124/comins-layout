@@ -6,6 +6,7 @@
 - Added supported `engineOptions`, responsive breakpoint columns, actual-column callbacks, and atomic layout snapshot application.
 - Added explicit `compact()` and non-reordering `refresh()` handle methods plus drag and resize lifecycle callbacks.
 - Added fail-closed third-party notice, external-bundle, installed-license, and exact package-artifact verification.
+- Reused the exact inspected package artifact for the React 18 consumer smoke and trusted npm staging.
 - Clarified GridStack independence, external dependency licenses, raw engine ownership, and controlled React state guidance.
 
 ## 0.1.4
