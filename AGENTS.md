@@ -36,6 +36,8 @@
 ## Reporting
 
 - Update the repository's work report only for meaningful behavior, public API, configuration, security, release, or test-contract changes when that repository has a report convention.
+- Treat a public release as incomplete until the Governance post-publication closure evidence is recorded.
+- Reconcile local and remote default-branch state and report remaining release branches and worktrees; deletion requires separate maintainer approval.
 <!-- comins-reference:managed-end -->
 
 ## Module Guidance
