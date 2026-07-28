@@ -2,34 +2,21 @@
 
 ## Project Ownership
 
-`comins-grid-layout`는 독립 React package 프로젝트다. 기능 구현, 문서, 테스트, 작업 보고, 릴리스 준비는 이 저장소에서 관리한다.
+`comins-grid-layout`는 독립 React package다.
 
 - Local root: `<repo-root>`
 - GitHub repository: [`kim1124/comins-layout`](https://github.com/kim1124/comins-layout)
 - Integration branch: `main`
 - npm package name: `comins-grid-layout`
 
-이 저장소의 source, 문서, 테스트, report가 현재 동작과 release 준비의 기준이다. 다른 저장소와의 소스 동기화, 변경 복제, 동시 릴리스는 명시 요청이 있을 때만 수행한다.
-
 ## Working Agreement
 
 1. 작업 전 루트 `AGENTS.md`와 대상 디렉터리의 `AGENTS.md`를 확인한다.
 2. 변경 범위와 직접 관련된 public contract 또는 기능 문서만 확인한다.
 3. GridStack 의존 코드는 `src/gridstack` adapter boundary 내부에 유지하고, layout state는 serializable object로 유지한다.
-4. 의미 있는 동작, API, 설정, 보안, 릴리스 또는 테스트 계약 변경은 `reports/YYYY-MM-DD.md`에 실제 검증과 잔여 리스크를 기록한다.
 
 ## Verification and Integration
 
-기본 검증은 다음 명령을 사용한다.
+변경 유형별 명령과 브라우저·resource gate 기준은 루트 `AGENTS.md`와 [Verification Strategy](docs/04-verification-strategy.md)를 따른다.
 
-```bash
-npm run verify
-```
-
-브라우저 상호작용 변경 또는 전체 검증이 필요한 경우 다음 명령을 추가로 실행한다.
-
-```bash
-npm run verify:full
-```
-
-검증 결과와 `git diff --check`를 확인한 뒤, 의도한 파일만 커밋한다. push와 publish는 명시 요청이 있을 때만 수행한다. 검증을 실행하지 못했거나 실패한 항목은 완료 보고의 잔여 리스크로 명시한다.
+커밋은 요청받은 경우에만 수행하며, push와 publish에는 명시 요청이 필요하다.
