@@ -50,14 +50,19 @@ function constantFailure(result) {
   assert.equal(result.stderr, failure);
 }
 
-test('adopts the concise Contract v1.2 module policy', () => {
+test('adopts the canonical Contract v1.4 module policy', () => {
   const agents = read('AGENTS.md');
   const security = read('SECURITY.md');
 
-  assert.match(agents, /Contract v1\.2/);
-  assert.match(agents, /Never track personal names, personal email addresses/);
-  assert.match(agents, /Gitleaks/);
-  assert.match(agents, /fail closed/i);
+  assert.match(
+    agents,
+    /^<!-- comins-reference:managed-start contract=v1\.4 -->$/m,
+  );
+  assert.match(agents, /license compliance; security and sensitive data/);
+  assert.match(agents, /OSS_LICENSE_POLICY\.md/);
+  assert.match(agents, /SENSITIVE_DATA_STANDARD\.md/);
+  assert.match(agents, /Remote writes, publishing, tags, Releases/);
+  assert.match(agents, /Release closure applies only to an actual public release/);
   assert.match(security, /credential\/PII incident/i);
   assert.match(security, /stop the affected release/i);
   assert.match(security, /without public disclosure/i);
@@ -75,6 +80,8 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
   const prePush = read('.githooks/pre-push');
   const verify = read('.github/workflows/verify.yml');
   const publish = read('.github/workflows/publish.yml');
+  const npmIdentity = read('.github/workflows/verify-npm-identity.yml');
+  const npmIdentityChecker = read('scripts/check-npm-registry-identity.mjs');
   const packageJson = JSON.parse(read('package.json'));
 
   assert.match(config, /^minVersion = "v8\.30\.1"$/m);
@@ -102,7 +109,7 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
     ['actions/download-artifact', '3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c'],
   ]);
 
-  for (const workflow of [verify, publish]) {
+  for (const workflow of [verify, publish, npmIdentity]) {
     const uses = [...workflow.matchAll(/uses:\s+([^@\s]+)@([^\s#]+)/g)];
     assert.ok(uses.length > 0);
     for (const [, action, revision] of uses) {
@@ -110,6 +117,18 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
       assert.match(revision, /^[0-9a-f]{40}$/);
     }
     assert.match(workflow, /persist-credentials: false/);
+  }
+  for (const workflow of [publish, npmIdentity]) {
+    assert.match(
+      workflow,
+      /COMINS_NPM_PUBLIC_NAME:\s+\${{ secrets\.COMINS_NPM_PUBLIC_NAME }}/,
+    );
+    assert.match(
+      workflow,
+      /COMINS_NPM_PUBLIC_EMAIL:\s+\${{ secrets\.COMINS_NPM_PUBLIC_EMAIL }}/,
+    );
+    assert.doesNotMatch(workflow, /\${{ vars\.COMINS_NPM_PUBLIC_(?:NAME|EMAIL) }}/);
+    assert.doesNotMatch(workflow, /set -x|printenv|env\s*$/m);
   }
   assert.match(verify, /fetch-depth: 0/);
   assert.match(verify, /--log-opts="\$BASE_SHA\.\.\$HEAD_SHA"/);
@@ -124,14 +143,53 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
   assert.ok(uploadIndex > consumerIndex);
   assert.equal(publish.match(/npm run test:consumer/g)?.length, 1);
   assert.match(publish, /npm stage publish \.\/package-artifact\/\*\.tgz/);
+  assert.equal(
+    publish.match(/check-npm-registry-identity\.mjs/g)?.length,
+    2,
+  );
+  assert.doesNotMatch(publish, /\n\s+if:\s+github\.ref/);
+  const publishBranchGuardIndex = publish.indexOf(
+    'run: test "$GITHUB_REF" = \'refs/heads/main\'',
+  );
+  const publishCheckoutIndex = publish.indexOf('actions/checkout@');
+  assert.ok(publishBranchGuardIndex >= 0);
+  assert.ok(publishCheckoutIndex > publishBranchGuardIndex);
+  assert.match(npmIdentity, /workflow_dispatch:/);
+  assert.match(npmIdentity, /required:\s+false/);
+  assert.match(npmIdentity, /permissions:\n\s+contents: read/);
+  assert.match(npmIdentity, /check-npm-registry-identity\.mjs/);
+  assert.doesNotMatch(npmIdentity, /\n\s+if:\s+github\.ref/);
+  const branchGuardIndex = npmIdentity.indexOf(
+    'run: test "$GITHUB_REF" = \'refs/heads/main\'',
+  );
+  const identityCheckoutIndex = npmIdentity.indexOf('actions/checkout@');
+  assert.ok(branchGuardIndex >= 0);
+  assert.ok(identityCheckoutIndex > branchGuardIndex);
+
+  const stage = publish.slice(publish.indexOf('\n  stage:'));
+  const downloadIndex = stage.indexOf('actions/download-artifact@');
+  const recheckIndex = stage.indexOf('Recheck npm public identity before staging');
+  const stagePublishIndex = stage.indexOf('npm stage publish');
+  assert.ok(downloadIndex >= 0);
+  assert.ok(recheckIndex > downloadIndex);
+  assert.ok(stagePublishIndex > recheckIndex);
 
   assert.equal(packageJson.scripts['check:security'], 'node scripts/check-public-identities.mjs');
   assert.equal(packageJson.scripts['check:licenses'], 'node scripts/check-third-party-notices.mjs');
+  assert.equal(
+    packageJson.scripts['check:npm-identity'],
+    'node scripts/check-npm-registry-identity.mjs',
+  );
   assert.match(packageJson.scripts['test:security'], /node --test/);
   assert.equal(packageJson.scripts['verify:package-artifact'], 'node scripts/verify-package-artifact.mjs');
   assert.doesNotMatch(packageJson.scripts.verify, /check:security/);
+  assert.doesNotMatch(packageJson.scripts.verify, /check:npm-identity/);
   assert.match(packageJson.scripts.verify, /check:licenses/);
   assert.match(packageJson.scripts.verify, /test:security/);
+  assert.doesNotMatch(
+    npmIdentityChecker,
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
+  );
 });
 
 test('accepts a matching public noreply identity', () => {

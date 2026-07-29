@@ -38,9 +38,10 @@ source for the shared definition and release requirements:
   maintainer-controlled account freeze through approval, and an exact-version
   post-publication identity gate.
 - `MODULE_CHECKLIST.md` adds the account and provider-variable prerequisites.
-- Contract v1.2 remains unchanged. The existing managed `AGENTS` block already
-  permits service identities, so this work does not add repeated operational
-  detail to every agent instruction surface.
+- Contract v1.4 remains the governing contract. The module-managed `AGENTS`
+  block is synchronized from Governance before implementation, while detailed
+  npm identity operations remain in canonical Governance policy rather than
+  being repeated in every module instruction surface.
 
 Governance does not own module release code, npm credentials, artifacts, or
 publishing workflows.
@@ -73,8 +74,9 @@ Codex or storing them in a repository:
 4. Change the existing npm account's package-metadata email to the new mailbox
    and complete email verification.
 5. Configure the same intentionally public npm name and email as
-   provider-managed GitHub repository variables in each module when that module
-   adopts the gate.
+   provider-managed GitHub repository secrets in each module when that module
+   adopts the gate. Secrets are used for log masking, not because the values
+   are credentials.
 6. Freeze npm name, email, ownership, and trusted-publisher settings from the
    pre-stage check until post-publication closure.
 
@@ -96,7 +98,9 @@ Grid Layout adds `scripts/check-npm-registry-identity.mjs`.
 - `--version VERSION` validates one exact published version.
 
 The expected identity is intentionally public service metadata but remains
-provider-managed rather than tracked in Git. Missing variables fail closed.
+provider-managed rather than tracked in Git. GitHub configuration variables
+render unmasked by default, so workflows consume repository secrets solely to
+obtain automatic log masking. Missing secrets fail closed.
 
 ### Current-Owner Mode
 
@@ -110,9 +114,18 @@ observed object, string, array-of-object, and array-of-string shapes.
 The script validates all current-owner requirements against the exact version
 and additionally requires:
 
-- `_npmUser` to be the approved trusted-publishing service identity;
+- `_npmUser` to identify GitHub Actions with a public `github.com` service
+  address, a `trustedPublisher.id` of `github`, and a non-empty
+  `oidcConfigId`;
+- `_npmUser.approver` to match the configured Comins service identity;
 - `author` and `contributors` to be absent or empty;
 - the requested version to be an exact valid Semantic Versioning value.
+
+The npm Registry documents `_npmUser` as publication metadata, while trusted
+publishing documents OIDC and provenance but does not guarantee a stable
+provider email literal. The validator therefore checks the observed structured
+trusted-publisher boundary and approver identity without recording or
+fingerprinting the provider-managed values.
 
 Unexpected shapes, additional maintainers, missing fields, network failures,
 npm failures, or mismatches fail closed.
@@ -131,7 +144,7 @@ runtime from reserved domains.
 
 1. The maintainer completes and verifies the Comins mailbox and npm account
    change.
-2. The Grid Layout repository receives the two expected-identity variables
+2. The Grid Layout repository receives the two expected-identity secrets
    through an explicitly approved provider-setting operation.
 3. The publish workflow checks the current npm maintainer identity before the
    expensive package gate.
@@ -152,7 +165,7 @@ replace proof of presence.
 
 ## Failure And Incident Handling
 
-- Missing mailbox verification or provider variables block staging.
+- Missing mailbox verification or provider secrets block staging.
 - Any registry shape or identity mismatch blocks staging or closure with a
   constant failure.
 - A mismatch found after publication is a privacy incident: keep the release
@@ -164,10 +177,19 @@ replace proof of presence.
 
 ## Verification
 
+### Required-Order Classification
+
+- Inspect `OSS_LICENSE_POLICY.md` before the security implementation.
+- The policy/checker implementation adds no dependency, copied or modified
+  third-party source, generated asset, bundled runtime, or package-content
+  change, so its implementation-time license impact is `N/A`.
+- An actual public release still runs the module's applicable license and
+  exact-artifact license gates before publication.
+
 ### Governance
 
 - Focused policy-contract test first, then all Governance Node tests.
-- Managed-block and Contract v1.2 consistency.
+- Contract v1.4, managed-template, and canonical-policy consistency.
 - Markdown/reference checks and `git diff --check`.
 - No independent module product gate.
 
@@ -205,7 +227,8 @@ replace proof of presence.
 ## Acceptance Criteria
 
 - Governance defines one delivery-capable, non-personal npm service identity
-  without recording its value or changing Contract v1.2.
+  without recording its value or duplicating operational policy in the
+  Contract v1.4 managed module block.
 - Grid Layout cannot stage when the configured identity is missing, malformed,
   additional, or different from the current npm maintainer identity.
 - The exact public version cannot close when maintainer, publisher, author, or
@@ -214,7 +237,7 @@ replace proof of presence.
 - Git commit identity, package identity, and provider publishing identity remain
   separate and are validated according to their actual operational roles.
 - No next Grid Layout release is approved until the account change, provider
-  variables, local implementation, focused verification, staged review, and
+  secrets, local implementation, focused verification, staged review, and
   exact-version closure checks are complete.
 
 ## Official References

@@ -11,21 +11,34 @@
 ## Global Constraints
 
 - Follow `docs/superpowers/specs/2026-07-27-comins-npm-service-identity-design.md`.
-- Keep Comins Contract v1.2 unchanged.
+- Apply Comins Contract v1.4 and synchronize the Grid Layout managed guidance
+  block before implementation.
+- Follow the Contract v1.4 order: classify license impact first, then security,
+  common policy, module implementation, affected checks, Git/CI, and release
+  checks only for an actual publication.
+- Record the policy/checker implementation license impact as `N/A`: it adds no
+  dependency, copied or modified third-party source, generated asset, bundled
+  runtime, or package-content change. Do not substitute unrelated license
+  evidence.
 - Keep Governance policy provider-neutral: the operational mailbox may use Google, but policy says only `delivery-capable Comins service identity`.
 - Never record the real service email, recovery email, credentials, tokens, OTPs, recovery codes, or value-derived fingerprints in source, tests, reports, plans, commands, or conversation output.
 - Assemble synthetic email fixtures only at test runtime from reserved domains.
 - Keep Git commit identity, npm maintainer identity, and trusted-publisher identity as separate contracts.
 - Do not add dependencies, a shared runtime package, npm tokens, or a direct `npm publish` path.
 - Do not add the network-dependent npm identity check to the ordinary pull-request `npm run verify` path.
-- Missing provider variables, unavailable npm, malformed metadata, multiple maintainers, or identity mismatch must fail closed with one constant message.
+- Missing provider secrets, unavailable npm, malformed metadata, multiple maintainers, or identity mismatch must fail closed with one constant message.
+- Store the intentionally public expected identity as GitHub repository secrets
+  solely for automatic log masking; never use unmasked GitHub configuration
+  variables for these values.
 - Preserve the existing exact-artifact, Gitleaks, React consumer, GridStack, resource-stability, and staged-publishing gates.
 - Do not modify GridStack behavior, public APIs, CSS, dependencies, package version, or lockfile.
 - Do not run `npm run verify:full` for the policy/checker implementation; the next actual release still runs it once.
 - Keep Governance, Grid Layout, Data Table, and Sortable as independent Git/verification boundaries.
 - Data Table and Sortable adoption require separate plans after the Grid Layout pilot passes.
 - Do not push, open or merge a pull request, mutate GitHub/npm settings, stage, approve, publish, deprecate, unpublish, create a tag/Release, or contact Support without the operation-specific maintainer approval.
-- Before implementation, reconcile the existing dirty Governance and Grid Layout worktrees. Preserve the current guidance/configuration/report changes and do not absorb them into identity-gate commits.
+- Before implementation, reconcile the existing dirty Governance and Grid
+  Layout worktrees. Preserve existing untracked reports and do not absorb them
+  into identity-gate commits. Record new work in an implementation-date report.
 
 ---
 
@@ -39,12 +52,13 @@
 - Modify: `RELEASE_POLICY.md`
 - Modify: `MODULE_CHECKLIST.md`
 - Modify: `CHANGELOG.md`
-- Modify: `reports/2026-07-27.md`
+- Modify: `reports/2026-07-29.md`
 - Inspect unchanged: `COMINS_CONTRACT.md`
 - Inspect unchanged: `templates/module/AGENTS.template.md`
+- Inspect unchanged: `OSS_LICENSE_POLICY.md`
 
 **Interfaces:**
-- Consumes: the existing Contract v1.2 definition of an allowed `service identity`.
+- Consumes: the Contract v1.4 sensitive-data, license, and release boundaries.
 - Produces: one provider-neutral npm account identity contract and pre-stage/post-publication release requirements.
 - Does not produce: module scripts, provider values, credentials, or synchronized module source.
 
@@ -87,7 +101,7 @@ test("requires a delivery-capable npm service identity at release boundaries", (
   assert.match(beforeRelease, /delivery-capable[^.\n]*service identity/i);
   assert.match(afterRelease, /exact-version[^.\n]*identity/i);
 
-  assert.match(contract, /^# Comins Contract v1\.2$/m);
+  assert.match(contract, /^# Comins Contract v1\.4$/m);
   assert.doesNotMatch(moduleAgents, /COMINS_NPM_PUBLIC_(?:NAME|EMAIL)/);
 });
 ```
@@ -104,7 +118,7 @@ node --test test/policy-contract.test.mjs
 
 Expected: FAIL only on the new service-identity and release-boundary assertions.
 
-- [ ] **Step 4: Clarify the common policy without changing Contract v1.2**
+- [ ] **Step 4: Clarify the common policy under Contract v1.4**
 
 Make these exact responsibility changes:
 
@@ -131,10 +145,13 @@ Make these exact responsibility changes:
 - `CHANGELOG.md`:
   - add one `Unreleased` entry describing the clarification and Grid Layout
     pilot;
-  - explicitly state that Contract v1.2 is unchanged.
+  - explicitly state that the clarification does not bump Contract v1.4.
 - `templates/module/AGENTS.template.md`:
   - leave unchanged because its current short `service identity` rule already
     routes release work to canonical Governance policy.
+- `OSS_LICENSE_POLICY.md`:
+  - inspect and leave unchanged because this policy-only clarification adds no
+    dependency or distributed third-party material.
 
 - [ ] **Step 5: Run Governance validation**
 
@@ -155,11 +172,12 @@ Expected:
 
 - [ ] **Step 6: Record and commit the Governance change**
 
-Append a section to `reports/2026-07-27.md` containing:
+Append a section to `reports/2026-07-29.md` containing:
 
 - the policy files changed;
 - exact commands and results;
-- Contract v1.2 unchanged;
+- Contract v1.4 remains current and the managed template is unchanged;
+- license impact classified as `N/A`;
 - Grid Layout selected as the pilot;
 - Data Table and Sortable deferred to separate repository plans;
 - no provider/account/publish operation performed;
@@ -168,7 +186,7 @@ Append a section to `reports/2026-07-27.md` containing:
 Stage only the intended Governance files:
 
 ```bash
-git add SENSITIVE_DATA_STANDARD.md RELEASE_POLICY.md MODULE_CHECKLIST.md CHANGELOG.md test/policy-contract.test.mjs reports/2026-07-27.md
+git add SENSITIVE_DATA_STANDARD.md RELEASE_POLICY.md MODULE_CHECKLIST.md CHANGELOG.md test/policy-contract.test.mjs reports/2026-07-29.md
 git diff --cached --check
 git commit -m "docs: define Comins npm service identity"
 ```
@@ -206,7 +224,7 @@ Run:
 
 ```bash
 git status --short --branch
-git diff -- .codex/config.toml AGENTS.md reports/2026-07-27.md
+git diff -- .codex/config.toml AGENTS.md reports/2026-07-27.md reports/2026-07-29.md
 git log -5 --oneline --decorate
 ```
 
@@ -262,12 +280,11 @@ assert.equal(
 );
 ```
 
-For published metadata, construct the approved provider identity at runtime and
-assert:
+For published metadata, construct provider fixtures at runtime and assert:
 
-- exact maintainer plus approved provider with empty `author` and
-  `contributors` passes;
-- missing or different `_npmUser` fails;
+- exact maintainer plus GitHub trusted-publisher structure, exact service
+  approver, and empty `author` and `contributors` passes;
+- missing or different `_npmUser`, `trustedPublisher`, or approver fails;
 - any non-empty `author` or `contributors` fails;
 - malformed npm JSON, unavailable npm, missing environment variables, unknown
   arguments, non-exact versions, and multiple maintainers fail;
@@ -325,8 +342,10 @@ execFileSync("npm", ["view", packageSpec, "contributors", "--json"], options);
 - exact-version mode invokes all four queries;
 - treat absent `author`/`contributors` as empty, but reject any non-empty
   person metadata;
-- allow only the already verified trusted-publishing provider identity,
-  assembled from constant segments rather than a complete email literal;
+- require `_npmUser.name` to equal `GitHub Actions`, its email to use the
+  public `github.com` service domain, `trustedPublisher.id` to equal `github`,
+  and `trustedPublisher.oidcConfigId` to be a non-empty string;
+- require `_npmUser.approver` to match the configured Comins service identity;
 - catch every parse, process, environment, network, or validation error and
   emit only:
 
@@ -398,7 +417,7 @@ The lockfile must remain unchanged because no dependency or version changes.
 - Modify: `test/security/sensitive-data-gates.node.mjs`
 
 **Interfaces:**
-- Repository variables:
+- Repository secrets used for log masking:
   - `COMINS_NPM_PUBLIC_NAME`
   - `COMINS_NPM_PUBLIC_EMAIL`
 - `publish.yml` validates current owner identity twice before staging.
@@ -412,8 +431,9 @@ Extend `test/security/sensitive-data-gates.node.mjs` to read
 
 ```js
 for (const workflow of [publish, npmIdentity]) {
-  assert.match(workflow, /COMINS_NPM_PUBLIC_NAME:\s+\${{ vars\.COMINS_NPM_PUBLIC_NAME }}/);
-  assert.match(workflow, /COMINS_NPM_PUBLIC_EMAIL:\s+\${{ vars\.COMINS_NPM_PUBLIC_EMAIL }}/);
+  assert.match(workflow, /COMINS_NPM_PUBLIC_NAME:\s+\${{ secrets\.COMINS_NPM_PUBLIC_NAME }}/);
+  assert.match(workflow, /COMINS_NPM_PUBLIC_EMAIL:\s+\${{ secrets\.COMINS_NPM_PUBLIC_EMAIL }}/);
+  assert.doesNotMatch(workflow, /\${{ vars\.COMINS_NPM_PUBLIC_(?:NAME|EMAIL) }}/);
   assert.doesNotMatch(workflow, /set -x|printenv|env\s*$/m);
 }
 
@@ -425,10 +445,14 @@ assert.match(npmIdentity, /workflow_dispatch:/);
 assert.match(npmIdentity, /required:\s+false/);
 assert.match(npmIdentity, /permissions:\n\s+contents: read/);
 assert.match(npmIdentity, /check-npm-registry-identity\.mjs/);
+assert.doesNotMatch(npmIdentity, /\n\s+if:\s+github\.ref/);
 ```
 
 Also require both new workflow checkouts and setup-node actions to use the same
-immutable revisions already approved in the repository.
+immutable revisions already approved in the repository. Assert that both
+manual workflows start with an explicit `GITHUB_REF` main-branch guard that
+fails non-main dispatch, and that stage ordering is
+`download-artifact < identity recheck < npm stage publish`.
 
 - [ ] **Step 2: Confirm RED**
 
@@ -449,12 +473,12 @@ version validation or `npm ci`:
 ```yaml
       - name: Verify current npm public identity
         env:
-          COMINS_NPM_PUBLIC_NAME: ${{ vars.COMINS_NPM_PUBLIC_NAME }}
-          COMINS_NPM_PUBLIC_EMAIL: ${{ vars.COMINS_NPM_PUBLIC_EMAIL }}
+          COMINS_NPM_PUBLIC_NAME: ${{ secrets.COMINS_NPM_PUBLIC_NAME }}
+          COMINS_NPM_PUBLIC_EMAIL: ${{ secrets.COMINS_NPM_PUBLIC_EMAIL }}
         run: node scripts/check-npm-registry-identity.mjs
 ```
 
-The script must fail before the expensive product gate when variables, npm, or
+The script must fail before the expensive product gate when secrets, npm, or
 metadata are unavailable.
 
 - [ ] **Step 4: Recheck immediately before `npm stage publish`**
@@ -467,13 +491,14 @@ Add credential-free checkout to the `stage` job before setup-node:
           persist-credentials: false
 ```
 
-After installing npm `11.15.0` and before downloading/staging the artifact, add:
+After installing npm `11.15.0` and downloading the transferred artifact, add
+this step immediately before `npm stage publish`:
 
 ```yaml
       - name: Recheck npm public identity before staging
         env:
-          COMINS_NPM_PUBLIC_NAME: ${{ vars.COMINS_NPM_PUBLIC_NAME }}
-          COMINS_NPM_PUBLIC_EMAIL: ${{ vars.COMINS_NPM_PUBLIC_EMAIL }}
+          COMINS_NPM_PUBLIC_NAME: ${{ secrets.COMINS_NPM_PUBLIC_NAME }}
+          COMINS_NPM_PUBLIC_EMAIL: ${{ secrets.COMINS_NPM_PUBLIC_EMAIL }}
         run: node scripts/check-npm-registry-identity.mjs
 ```
 
@@ -501,10 +526,11 @@ permissions:
 
 jobs:
   verify:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Require main branch
+        run: test "$GITHUB_REF" = 'refs/heads/main'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
@@ -514,8 +540,8 @@ jobs:
           package-manager-cache: false
       - name: Verify npm public identity
         env:
-          COMINS_NPM_PUBLIC_NAME: ${{ vars.COMINS_NPM_PUBLIC_NAME }}
-          COMINS_NPM_PUBLIC_EMAIL: ${{ vars.COMINS_NPM_PUBLIC_EMAIL }}
+          COMINS_NPM_PUBLIC_NAME: ${{ secrets.COMINS_NPM_PUBLIC_NAME }}
+          COMINS_NPM_PUBLIC_EMAIL: ${{ secrets.COMINS_NPM_PUBLIC_EMAIL }}
           RELEASE_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
@@ -537,7 +563,7 @@ Run:
 
 ```bash
 node --test test/security/sensitive-data-gates.node.mjs
-ruby -e 'require "yaml"; %w[.github/workflows/verify.yml .github/workflows/publish.yml .github/workflows/verify-npm-identity.yml].each { |file| YAML.load_file(file, aliases: true); puts "valid #{file}" }'
+ruby -e 'require "yaml"; %w[.github/workflows/verify.yml .github/workflows/publish.yml .github/workflows/verify-npm-identity.yml].each { |file| YAML.load_file(file); puts "valid #{file}" }'
 npm run test:security
 git diff --check
 ```
@@ -560,12 +586,13 @@ git commit -m "ci: block unsafe npm publisher metadata"
 **External resources:**
 - Google account controlled privately by the maintainer.
 - Existing npm account profile.
-- GitHub repository variables for `kim1124/comins-layout`.
+- GitHub repository secrets for `kim1124/comins-layout`, used only to mask the
+  intentionally public expected identity in workflow logs.
 
 **Interfaces:**
 - npm account email becomes the verified Comins service mailbox.
 - GitHub stores the intentionally public expected npm name and email as
-  repository variables.
+  repository secrets so runner output is automatically masked.
 - No credential, recovery address, OTP, or recovery code is passed to Codex.
 
 - [ ] **Step 1: Complete the private mailbox setup**
@@ -594,23 +621,25 @@ Keep the npm public username unchanged. Clear or reclassify npm `Full name`,
 homepage, and linked-profile fields only if they contain personal values; those
 are separate account mutations and must be reported before action.
 
-- [ ] **Step 3: Pause for GitHub variable mutation approval**
+- [ ] **Step 3: Pause for GitHub secret mutation approval**
 
-Before adding repository variables, report:
+Before adding repository secrets, report:
 
 - local Governance and Grid Layout commits;
 - focused test results;
 - the two variable names only;
 - confirmation that the values are intended public service metadata;
-- confirmation that no secret or token is being stored.
+- confirmation that the values are not credentials and use the secret surface
+  only for automatic log masking;
+- confirmation that no npm token or credential is being stored.
 
 Obtain explicit approval for the GitHub setting mutation.
 
-- [ ] **Step 4: Add the two repository variables without logging values**
+- [ ] **Step 4: Add the two repository secrets without logging values**
 
 Use the GitHub web settings page on the maintainer's authenticated device:
 
-https://github.com/kim1124/comins-layout/settings/variables/actions
+https://github.com/kim1124/comins-layout/settings/secrets/actions
 
 Create exactly:
 
@@ -618,7 +647,7 @@ Create exactly:
 - `COMINS_NPM_PUBLIC_EMAIL`
 
 Do not paste either value into chat, a shell transcript, a plan, a report, or a
-commit. Do not create an npm token or GitHub secret for this check.
+commit. Do not create an npm token or any additional credential secret.
 
 - [ ] **Step 5: Verify current-owner mode through the read-only workflow**
 
@@ -638,7 +667,7 @@ classification, not with the failing value.
 **Repository:** current Grid Layout repository
 
 **Files:**
-- Modify: `reports/2026-07-27.md`
+- Create: `reports/2026-07-29.md`
 
 - [ ] **Step 1: Run the complete applicable local gate once**
 
@@ -647,7 +676,7 @@ Run:
 ```bash
 npm run test:security
 npm run verify
-ruby -e 'require "yaml"; %w[.github/workflows/verify.yml .github/workflows/publish.yml .github/workflows/verify-npm-identity.yml].each { |file| YAML.load_file(file, aliases: true); puts "valid #{file}" }'
+ruby -e 'require "yaml"; %w[.github/workflows/verify.yml .github/workflows/publish.yml .github/workflows/verify-npm-identity.yml].each { |file| YAML.load_file(file); puts "valid #{file}" }'
 git diff --check
 git status --short
 ```
@@ -662,9 +691,9 @@ Expected:
 
 - [ ] **Step 2: Record value-free implementation evidence**
 
-Append a distinct `Comins npm service identity gate` section to
-`reports/2026-07-27.md` without modifying the existing guidance-adoption
-section. Record:
+Create `reports/2026-07-29.md` with a distinct
+`Comins npm service identity gate` section. Do not modify the existing
+untracked `reports/2026-07-27.md`. Record:
 
 - design and plan paths;
 - changed files and commits;
@@ -677,7 +706,7 @@ section. Record:
 - [ ] **Step 3: Commit only the report append**
 
 ```bash
-git add reports/2026-07-27.md
+git add reports/2026-07-29.md
 git diff --cached --check
 git commit -m "docs: record npm identity gate verification"
 ```
@@ -722,7 +751,7 @@ Before version bump, changelog, or staging:
 
 - current-owner `Verify npm identity` workflow on `main` passes;
 - the Comins mailbox remains verified and recovery-capable;
-- repository variables remain configured;
+- repository secrets remain configured;
 - npm account name, email, owners, and trusted publisher are frozen until
   closure.
 
@@ -733,6 +762,7 @@ Any failure blocks the release before the full product gate.
 The separately approved release plan must still run exactly once:
 
 ```bash
+npm run check:licenses
 npm run verify:full
 npm run test:consumer
 npm run verify:package-artifact
@@ -792,7 +822,8 @@ provider write, recheck current policy and obtain explicit maintainer approval.
 
 - [ ] Governance defines the delivery-capable Comins npm service identity,
   pre-stage check, account freeze, and exact-version closure check while
-  Contract v1.2 and the managed module `AGENTS` block remain unchanged.
+  Contract v1.4 remains current and the managed module `AGENTS` block is
+  synchronized from Governance.
 - [ ] Grid Layout's validator accepts supported npm JSON shapes, rejects every
   mismatch or unavailable dependency, and emits only one constant failure.
 - [ ] The ordinary PR baseline remains network-independent.
@@ -801,7 +832,7 @@ provider write, recheck current policy and obtain explicit maintainer approval.
 - [ ] The read-only workflow supports empty-input current-owner validation and
   exact-version post-publication validation from a mobile browser.
 - [ ] The Comins mailbox is privately secured, npm-verified, and represented by
-  provider variables without storing its value in Git.
+  provider secrets without storing its value in Git.
 - [ ] Focused security tests, `npm run verify`, workflow parse checks, and
   `git diff --check` pass.
 - [ ] No release, provider setting, or remote write occurs without its explicit
