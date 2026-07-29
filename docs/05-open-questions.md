@@ -22,5 +22,5 @@
 ## Operational Decisions
 
 - Before 1.0.0, only the latest published version receives security fixes.
-- Exact package-artifact inspection and automatic provenance follow Comins Contract v1.2 governance.
+- Exact package-artifact inspection and automatic provenance follow the current Comins Governance Contract and Release Policy.
 - Legacy npm versions and public account metadata are provider-side remediation work and are not hidden by current-change gates.
