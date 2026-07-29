@@ -246,6 +246,24 @@ test('accepts npm 12 array-wrapped view results in both modes', () => {
   assert.deepEqual(published.errors, []);
 });
 
+test('rejects ambiguous npm 12 result arrays and additional nesting', () => {
+  for (const outputs of [
+    { maintainers: [[[expected]]] },
+    { maintainers: [[expected], [expected]] },
+  ]) {
+    assertConstantFailure(runner({ outputs }));
+  }
+
+  for (const outputs of [
+    { _npmUser: [[provider]] },
+    { _npmUser: [provider, provider] },
+    { author: [[null]] },
+    { contributors: [[[]]] },
+  ]) {
+    assertConstantFailure(runner({ args: ['--version', '1.2.3'], outputs }));
+  }
+});
+
 test('fails closed with one constant message for invalid input and unavailable npm', () => {
   for (const args of [
     ['--unknown'],
