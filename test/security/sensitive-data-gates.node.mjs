@@ -50,14 +50,18 @@ function constantFailure(result) {
   assert.equal(result.stderr, failure);
 }
 
-test('adopts the concise Contract v1.2 module policy', () => {
+test('adopts the lean Contract v1.4 module policy', () => {
   const agents = read('AGENTS.md');
   const security = read('SECURITY.md');
 
-  assert.match(agents, /Contract v1\.2/);
-  assert.match(agents, /Never track personal names, personal email addresses/);
-  assert.match(agents, /Gitleaks/);
-  assert.match(agents, /fail closed/i);
+  assert.match(agents, /managed-start contract=v1\.4/);
+  assert.match(
+    agents,
+    /license compliance; security and sensitive data; Comins common rules;/,
+  );
+  assert.match(agents, /`OSS_LICENSE_POLICY\.md` and `SENSITIVE_DATA_STANDARD\.md`/);
+  assert.match(agents, /module owns its checker commands and CI implementation/);
+  assert.match(agents, /release checks only when publishing/);
   assert.match(security, /credential\/PII incident/i);
   assert.match(security, /stop the affected release/i);
   assert.match(security, /without public disclosure/i);
