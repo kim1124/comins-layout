@@ -1,38 +1,43 @@
-<!-- comins-reference:managed-start contract=v1.2 -->
+<!-- comins-reference:managed-start contract=v1.4 -->
 # Comins Module AGENTS.md
 
 ## Scope
 
-- Treat this as an independent Comins Git boundary. Read only applicable closer `AGENTS.md` files; load [Governance policy](https://github.com/kim1124/comins-governance) only for API, security, release, license, or shared-policy work.
-- Do not use KMSF workflows except for migration-history work; keep `AGENTS.override.md` temporary and uncommitted.
+- Treat this as an independent Comins Git boundary. Read closer `AGENTS.md`;
+  consult [Governance](https://github.com/kim1124/comins-governance) for common
+  scope, security, license, and release policy.
+- Keep KMSF historical; never commit `AGENTS.override.md`.
+
+## Required Order
+
+- Resolve the Git root and applicable instructions first. Then follow Contract
+  v1.4: license compliance; security and sensitive data; Comins common rules;
+  module rules; smallest change and affected checks; Git, pull request, and CI;
+  release checks only when publishing.
 
 ## Work Routing
 
-- **Inspection or research:** report evidence; no edits, reports, or product gates.
-- **Documentation, guidance, or configuration:** edit directly; run applicable diff, reference, instruction, and parse checks only.
-- **Clear local behavior:** define acceptance or reproduce, add a regression test first when it materially improves confidence, implement, run focused checks, then the baseline once.
-- **Complex or high-risk:** close material unknowns/decisions, plan when needed, test incrementally, then run the applicable broad gate once.
-- **Security, release, external, or destructive:** follow Governance and obtain approval.
+- **Inspection or research:** report evidence only.
+- **Documentation or configuration:** edit directly and run matching checks.
+- **Product behavior:** define acceptance, make the smallest change, and run the
+  module's affected checks.
+- **High-risk or ambiguous work:** close decisions and plan only when needed.
 
-## Change Boundaries
+## Common Boundaries
 
-- Preserve public APIs, types, and local conventions unless scope expands; namespace CSS/custom properties, avoid global resets, and isolate external engines behind module adapters.
-- Do not push, publish, tag, or create a GitHub Release without an explicit maintainer command.
-
-## Sensitive Data
-
-- Adopt Comins Contract v1.2 and the governance `SENSITIVE_DATA_STANDARD.md`. Never track personal names, personal email addresses, local account paths, credentials, tokens, secrets, or value-derived fingerprints.
-- Use only an approved public handle, GitHub noreply identity, service identity, explicit placeholder, or repository-relative path; run required Gitleaks/security CI and, when a package boundary exists, the exact package-artifact gate.
-- Redact detector output, fail closed when unavailable, and audit legacy exposure separately.
+- Preserve public APIs and types unless authorized. Keep CSS and external-engine
+  behavior module-scoped.
+- Apply Governance `OSS_LICENSE_POLICY.md` and `SENSITIVE_DATA_STANDARD.md`; the
+  module owns its checker commands and CI implementation.
+- Remote writes, publishing, tags, Releases, policy exceptions, and destructive
+  operations require explicit approval.
 
 ## Verification
 
-- Select checks by change type, report failed/unrun required checks, and classify failures as product, test-contract, or environment before changing code or retrying.
-
-## Reporting
-
-- Update reports only for meaningful behavior, public API, configuration, security, release, or test-contract changes when that convention exists.
-- For a public release only, closure requires Governance post-publication closure evidence, local/remote default-branch reconciliation, and remaining release branches/worktrees; deletion needs separate maintainer approval.
+- Run only checks required by the affected surface. A required failed or
+  unavailable gate blocks that workflow; do not substitute unrelated gates.
+- Report meaningful changes, executed checks, omissions, and unresolved
+  blockers. Release closure applies only to an actual public release.
 <!-- comins-reference:managed-end -->
 
 ## Module Guidance
