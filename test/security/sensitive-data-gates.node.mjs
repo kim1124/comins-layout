@@ -53,6 +53,9 @@ function constantFailure(result) {
 test('adopts the lean Contract v1.4 module policy', () => {
   const agents = read('AGENTS.md');
   const security = read('SECURITY.md');
+  const packageJson = JSON.parse(read('package.json'));
+  const packageLock = JSON.parse(read('package-lock.json'));
+  const changelog = read('CHANGELOG.md');
 
   assert.match(agents, /managed-start contract=v1\.4/);
   assert.match(
@@ -69,8 +72,15 @@ test('adopts the lean Contract v1.4 module policy', () => {
     security,
     /Before 1\.0\.0, only the latest published version receives security fixes\./,
   );
-  assert.match(security, /\| 0\.1\.5 \| Yes \|/);
-  assert.match(security, /\| < 0\.1\.5 \| No \|/);
+  assert.equal(packageJson.version, '0.1.6');
+  assert.equal(packageLock.version, '0.1.6');
+  assert.equal(packageLock.packages[''].version, '0.1.6');
+  assert.match(security, /\| 0\.1\.6 \| Yes \|/);
+  assert.match(security, /\| < 0\.1\.6 \| No \|/);
+  assert.match(changelog, /^## 0\.1\.6$/m);
+  assert.match(changelog, /npm service-identity/i);
+  assert.match(changelog, /development tooling/i);
+  assert.match(changelog, /No runtime or public API changes\./);
 });
 
 test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
