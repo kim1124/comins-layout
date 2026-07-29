@@ -226,6 +226,26 @@ test('queries exact publication metadata in version mode', () => {
   );
 });
 
+test('accepts npm 12 array-wrapped view results in both modes', () => {
+  const current = runner({
+    outputs: { maintainers: [[expected]] },
+  });
+  const published = runner({
+    args: ['--version', '1.2.3'],
+    outputs: {
+      maintainers: [[expected]],
+      _npmUser: [provider],
+      author: [null],
+      contributors: [[]],
+    },
+  });
+
+  assert.equal(current.code, 0);
+  assert.deepEqual(current.errors, []);
+  assert.equal(published.code, 0);
+  assert.deepEqual(published.errors, []);
+});
+
 test('fails closed with one constant message for invalid input and unavailable npm', () => {
   for (const args of [
     ['--unknown'],

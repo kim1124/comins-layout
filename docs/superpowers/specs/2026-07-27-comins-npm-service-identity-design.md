@@ -107,7 +107,9 @@ obtain automatic log masking. Missing secrets fail closed.
 The script invokes npm through `execFileSync` with argument arrays and reads the
 package's current `maintainers` JSON. It accepts exactly one maintainer whose
 name and email exactly match the two configured values. It handles npm's
-observed object, string, array-of-object, and array-of-string shapes.
+observed object, string, array-of-object, and array-of-string shapes. It also
+normalizes npm 12's single outer result array while retaining fail-closed
+behavior for multiple results or additional nesting.
 
 ### Published-Version Mode
 
@@ -128,7 +130,8 @@ trusted-publisher boundary and approver identity without recording or
 fingerprinting the provider-managed values.
 
 Unexpected shapes, additional maintainers, missing fields, network failures,
-npm failures, or mismatches fail closed.
+npm failures, or mismatches fail closed. npm 11 direct field results and npm 12
+single-array-wrapped field results are both covered by focused tests.
 
 ### Output
 
@@ -246,6 +249,8 @@ replace proof of presence.
   https://docs.npmjs.com/managing-your-profile-settings/
 - npm package maintainer metadata:
   https://docs.npmjs.com/files/package.json/
+- npm CLI v12 JSON output change:
+  https://github.com/npm/cli/releases/tag/v12.0.0-pre.0.0
 - npm privacy and working-email requirements:
   https://docs.npmjs.com/policies/privacy/
 - npm staged publishing:
