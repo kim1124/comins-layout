@@ -9,6 +9,7 @@
 - GridStack 13 remains an external runtime dependency behind the package adapter; third-party notices and package-boundary gates verify the license and non-bundling contract.
 - Supported engine options and responsive columns are additive public APIs. Breakpoint-specific layout persistence is deferred to 0.2.0; 0.1.5 persists the active layout only.
 - Desktop pointer and mobile Chrome touch drag/resize are supported and covered by Playwright.
+- `0.2.0` implements `externalDropTargets` and the typed, non-destructive `onWidgetExternalDrop` callback for same-document light DOM targets. Consumers retain deletion ownership through `removeWidget`; raw GridStack `removable` remains unsupported.
 
 ## Explicit Support Boundaries
 
@@ -17,6 +18,7 @@
 - Firefox and Safari are not verified or supported until dedicated browser projects are approved.
 - SSR consumers must render the package inside a client boundary.
 - Raw GridStack add/remove operations do not create or remove React widget content; use Comins CRUD commands.
+- GridStack `removable` and DOM `CustomEvent` dispatch are outside the controlled Comins surface; use the typed external-drop callback instead.
 - `refresh()` never compacts; use the explicit handle `compact()` method or `autoArrangeWidgets()` depending on whether GridStack or Comins layout semantics are intended.
 
 ## Operational Decisions

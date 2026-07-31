@@ -16,6 +16,7 @@
 - Change the runtime column count from 1 through 12 manually or through responsive GridStack breakpoints.
 - Keep application data in serializable React state while GridStack owns browser interaction.
 - Schedule resize-frame notifications for charts, tables, canvases, and other responsive widget content.
+- Report typed drops on consumer-owned HTML targets without mutating controlled widget state.
 - Configure the supported GridStack 13 engine surface and access the complete public instance through an optional advanced ref handle.
 - Render 100 or more widgets with repeated runtime column changes covered by the resource gate.
 
@@ -128,6 +129,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `columns` | `DashboardColumnCount` | `12` | Runtime column count from 1 through 12 |
 | `responsive` | `DashboardResponsiveOptions` | — | Lets GridStack select the active 1–12 column count from width or explicit breakpoints |
 | `engineOptions` | `DashboardGridEngineOptions` | — | Configures the supported GridStack rendering, rows, handles, direction, and CSP options |
+| `externalDropTargets` | `ReadonlyArray<DashboardExternalDropTarget>` | — | Maps target IDs to same-document CSS selectors |
 | `editable` | `boolean` | `true` | Enables both movement and resize when their flags also allow it |
 | `movable` | `boolean` | `true` | Enables grid-wide movement |
 | `resizable` | `boolean` | `true` | Enables grid-wide resize |
@@ -139,6 +141,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `onLayoutCommit` | `(snapshot) => void` | — | Receives a committed layout snapshot |
 | `onWidgetLayoutChange` | `(id, layout) => void` | — | Receives each committed widget geometry update |
 | `onWidgetResizeFrame` | `(event) => void` | — | Receives animation-frame-scheduled content dimensions during resize |
+| `onWidgetExternalDrop` | `(event: DashboardWidgetExternalDropEvent) => void` | — | Reports a final pointer or touch release inside a configured target |
 | `onWidgetDragStart` / `onWidgetDragStop` | `(event) => void` | — | Receives drag lifecycle events with the widget ID and geometry |
 | `onWidgetResizeStart` / `onWidgetResizeStop` | `(event) => void` | — | Receives resize lifecycle events with the widget ID and geometry |
 | `onMaximizeWidget` | `(id) => void` | — | Handles maximize action |
@@ -146,6 +149,30 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `onRestoreWidget` | `(id) => void` | — | Handles restore action |
 | `onRemoveWidget` | `(id) => void` | — | Handles remove action |
 | `onWidgetHeaderDoubleClick` | `(id) => void` | — | Handles a widget header double-click |
+
+## External drop targets
+
+Targets are ordinary consumer-owned HTML, not GridStack widgets or Comins wrappers. The package emits a typed, non-destructive `onWidgetExternalDrop` callback; it does not remove widget DOM or mutate controlled React state. For a deletion target, the consumer decides to call its existing `removeWidget` command:
+
+```tsx
+<DashboardGrid
+  externalDropTargets={[
+    { id: "trash", selector: "#widget-trash" },
+  ]}
+  onWidgetExternalDrop={({ widgetId, targetId }) => {
+    if (targetId === "trash") {
+      dashboard.commands.removeWidget(widgetId);
+    }
+  }}
+  {...dashboardProps}
+/>
+
+<div id="widget-trash" style={{ width: 300, height: 300 }}>
+  Drop here to delete
+</div>
+```
+
+Selectors resolve at release time, so a target may mount after grid initialization. When targets overlap, the first configured target wins. Only same-document light DOM targets are supported; cross-frame targets and targets inside a shadow root are outside this contract. `onWidgetExternalDrop` is the package event surface and no DOM `CustomEvent` is dispatched. GridStack `removable` remains outside the controlled Comins engine options.
 
 ## Engine and responsive options
 

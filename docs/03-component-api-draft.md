@@ -8,6 +8,7 @@ type DashboardGridProps<TWidgetData = unknown> = {
   columns?: DashboardColumnCount;
   engineOptions?: DashboardGridEngineOptions;
   responsive?: DashboardResponsiveOptions;
+  externalDropTargets?: ReadonlyArray<DashboardExternalDropTarget>;
   editable?: boolean;
   movable?: boolean;
   resizable?: boolean;
@@ -19,6 +20,7 @@ type DashboardGridProps<TWidgetData = unknown> = {
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetLayout) => void;
   onWidgetResizeFrame?: (event: DashboardWidgetResizeFrameEvent) => void;
+  onWidgetExternalDrop?: (event: DashboardWidgetExternalDropEvent) => void;
   onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
@@ -29,6 +31,26 @@ type DashboardGridProps<TWidgetData = unknown> = {
   onRemoveWidget?: (id: string) => void;
   onWidgetHeaderDoubleClick?: (id: string) => void;
   renderWidget: (widget: DashboardWidget<TWidgetData>) => React.ReactNode;
+};
+```
+
+## DashboardExternalDropTarget
+
+```ts
+type DashboardExternalDropTarget = {
+  id: string;
+  selector: string;
+};
+```
+
+## DashboardWidgetExternalDropEvent
+
+```ts
+type DashboardWidgetExternalDropEvent = {
+  widgetId: DashboardWidgetId;
+  targetId: string;
+  columns: DashboardColumnCount;
+  layout: DashboardWidgetLayout;
 };
 ```
 
@@ -101,6 +123,7 @@ The handle is an optional advanced escape hatch. Comins commands remain the prim
 
 - `onLayoutCommit` runs after committed layout changes, not on every pointer move.
 - `onWidgetResizeFrame` can run during resize, but must be animation-frame scheduled.
+- `onWidgetExternalDrop` reports a final pointer or touch release in a configured same-document light DOM target. It is non-destructive: consumers choose whether to call `removeWidget(widgetId)`, and no DOM `CustomEvent` is dispatched.
 - Interaction-stop ordering is `onWidgetLayoutChange`, `onLayoutCommit`, then the corresponding drag/resize stop callback.
 - `onColumnsChange` reports actual engine columns only when the active count changes.
 - CRUD callbacks should preserve widget identity and layout snapshot consistency.
