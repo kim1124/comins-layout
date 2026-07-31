@@ -76,6 +76,20 @@
   font-size: 24px;
 }
 
+.readme-demo__trash {
+  align-items: center;
+  background: #fff1f2;
+  border: 2px dashed #e11d48;
+  border-radius: 12px;
+  color: #9f1239;
+  display: flex;
+  height: 300px;
+  justify-content: center;
+  margin-top: 24px;
+  text-align: center;
+  width: 300px;
+}
+
 @media (max-width: 640px) {
   .readme-demo {
     padding: 12px;

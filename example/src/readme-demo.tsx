@@ -25,9 +25,12 @@ type ReadmeDemoBridge = {
   compact: (layout?: Parameters<DashboardGridHandle["compact"]>[0]) => DashboardLayoutSnapshot | null;
   setCustomDragHandle: (enabled: boolean) => void;
   setDirection: (direction: "ltr" | "rtl") => void;
+  setOverviewLocked: (locked: boolean) => void;
+  setOverviewMovable: (movable: boolean) => void;
   setResponsive: (enabled: boolean) => void;
   setRtl: (rtl: boolean | "auto" | undefined) => void;
   setSizeToContent: (enabled: boolean | undefined) => void;
+  setTrashVisible: (visible: boolean) => void;
   moveWithGridStack: (id: string, x: number, y: number) => DashboardLayoutSnapshot | null;
 };
 
@@ -62,6 +65,10 @@ const responsiveOptions: DashboardResponsiveOptions = {
   ],
 };
 
+const externalDropTargets = [
+  { id: "trash", selector: "#readme-widget-trash" },
+] as const;
+
 export function ReadmeDemoPage() {
   const dashboard = useDashboardGrid<DemoData>({ initialColumns: 6, initialWidgets });
   const gridRef = useRef<DashboardGridHandle>(null);
@@ -72,6 +79,7 @@ export function ReadmeDemoPage() {
   const [responsiveEnabled, setResponsiveEnabled] = useState(false);
   const [rtl, setRtl] = useState<boolean | "auto" | undefined>(undefined);
   const [sizeToContent, setSizeToContent] = useState<boolean | undefined>(undefined);
+  const [trashVisible, setTrashVisible] = useState(true);
 
   useEffect(() => {
     const bridge: ReadmeDemoBridge = {
@@ -108,9 +116,12 @@ export function ReadmeDemoPage() {
       compact: (layout) => gridRef.current?.compact(layout) ?? null,
       setCustomDragHandle,
       setDirection,
+      setOverviewLocked: (locked) => dashboard.commands.updateWidget("overview", { locked }),
+      setOverviewMovable: (movable) => dashboard.commands.updateWidget("overview", { movable }),
       setResponsive: setResponsiveEnabled,
       setRtl,
       setSizeToContent,
+      setTrashVisible,
       moveWithGridStack: (id, x, y) => {
         const grid = gridRef.current?.getGridStack();
         const item = grid?.getGridItems().find((candidate) => candidate.getAttribute("gs-id") === id);
@@ -177,12 +188,21 @@ export function ReadmeDemoPage() {
         }}
         refreshKey={dashboard.refreshVersion}
         responsive={responsiveEnabled ? responsiveOptions : undefined}
+        externalDropTargets={externalDropTargets}
         widgets={dashboard.widgets}
         actionLabels={{ maximize: "Maximize", minimize: "Minimize", restore: "Restore", remove: "Remove" }}
         onLayoutCommit={(snapshot) => {
           commitCountRef.current += 1;
           interactionEventsRef.current.push("layout-commit");
           dashboard.commands.applyLayoutSnapshot(snapshot);
+        }}
+        onWidgetExternalDrop={(event) => {
+          interactionEventsRef.current.push(
+            `external-drop:${event.targetId}:${event.widgetId}`,
+          );
+          if (event.targetId === "trash") {
+            dashboard.commands.removeWidget(event.widgetId);
+          }
         }}
         onMaximizeWidget={dashboard.commands.maximizeWidget}
         onMinimizeWidget={dashboard.commands.minimizeWidget}
@@ -200,6 +220,15 @@ export function ReadmeDemoPage() {
           </div>
         )}
       />
+      {trashVisible ? (
+        <div
+          id="readme-widget-trash"
+          className="readme-demo__trash"
+          data-testid="external-drop-trash"
+        >
+          <span data-testid="external-drop-trash-child">Drop widget here to delete</span>
+        </div>
+      ) : null}
     </main>
   );
 }

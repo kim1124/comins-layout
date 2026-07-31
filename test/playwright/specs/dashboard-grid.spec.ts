@@ -212,6 +212,29 @@ async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: n
   await page.mouse.up();
 }
 
+async function dragWidgetToTarget(page: Page, widget: Locator, target: Locator) {
+  const title = widget.locator(".comins-grid-layout-widget__title");
+  const [titleBox, targetBox] = await Promise.all([
+    title.boundingBox(),
+    target.boundingBox(),
+  ]);
+  if (!titleBox || !targetBox) {
+    throw new Error("External drop geometry is unavailable");
+  }
+
+  await page.mouse.move(
+    titleBox.x + titleBox.width / 2,
+    titleBox.y + titleBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    targetBox.x + targetBox.width / 2,
+    targetBox.y + targetBox.height / 2,
+    { steps: 16 },
+  );
+  await page.mouse.up();
+}
+
 async function startWidgetDrag(page: Page, widget: Locator) {
   await widget.scrollIntoViewIfNeeded();
   const box = await widget.boundingBox();
@@ -828,6 +851,181 @@ test("orders drag lifecycle callbacks after the committed layout", async ({ page
   expect(resizeLayoutIndex).toBeGreaterThan(0);
   expect(resizeCommitIndex).toBeGreaterThan(resizeLayoutIndex);
   expect(resizeStopIndex).toBeGreaterThan(resizeCommitIndex);
+});
+
+test("emits one external drop event and removes controlled state through the consumer", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.goto("/readme-demo");
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  const target = page.getByTestId("external-drop-trash-child");
+  await dragWidgetToTarget(page, widget, target);
+
+  await expect(widget).toBeHidden();
+  await expect.poll(
+    () => page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents()),
+  ).toContain("external-drop:trash:overview");
+  await expect.poll(
+    () => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds()),
+  ).not.toContain("overview");
+  expect(await page.evaluate(
+    () => window.__cominsReadmeDemo
+      ?.getInteractionEvents()
+      .filter((event) => event.startsWith("external-drop:")),
+  )).toEqual(["external-drop:trash:overview"]);
+});
+
+test("does not emit an external drop event when dropping outside the target", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.goto("/readme-demo");
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  await dragWidget(page, widget, 180, 0);
+  await waitForInteractionToSettle(widget);
+
+  await expect(widget).toBeVisible();
+  expect(await page.evaluate(
+    () => window.__cominsReadmeDemo
+      ?.getInteractionEvents()
+      .filter((event) => event.startsWith("external-drop:")),
+  )).toEqual([]);
+});
+
+test("resolves an external drop target remounted after grid initialization", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.goto("/readme-demo");
+  await page.evaluate(() => window.__cominsReadmeDemo?.setTrashVisible(false));
+  await expect(page.getByTestId("external-drop-trash")).toBeHidden();
+  await page.evaluate(() => window.__cominsReadmeDemo?.setTrashVisible(true));
+  const target = page.getByTestId("external-drop-trash-child");
+  await expect(target).toBeVisible();
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  await dragWidgetToTarget(page, widget, target);
+
+  await expect(widget).toBeHidden();
+  await expect.poll(
+    () => page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents()),
+  ).toContain("external-drop:trash:overview");
+});
+
+test("does not emit an external drop event for a non-movable widget", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.goto("/readme-demo");
+  await page.evaluate(() => {
+    window.__cominsReadmeDemo?.setOverviewMovable(false);
+    window.__cominsReadmeDemo?.resetInteractionEvents();
+  });
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  await expect.poll(() => widget.evaluate((element) => element.classList.contains("ui-draggable-disabled"))).toBe(true);
+  await dragWidgetToTarget(page, widget, page.getByTestId("external-drop-trash-child"));
+
+  await expect(widget).toBeVisible();
+  expect(await page.evaluate(
+    () => window.__cominsReadmeDemo
+      ?.getInteractionEvents()
+      .filter((event) => event.startsWith("external-drop:")),
+  )).toEqual([]);
+});
+
+test("does not emit an external drop event for a locked widget", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.goto("/readme-demo");
+  await page.evaluate(() => {
+    window.__cominsReadmeDemo?.setOverviewLocked(true);
+    window.__cominsReadmeDemo?.resetInteractionEvents();
+  });
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  await expect.poll(() => widget.evaluate((element) => element.classList.contains("ui-draggable-disabled"))).toBe(true);
+  await dragWidgetToTarget(page, widget, page.getByTestId("external-drop-trash-child"));
+
+  await expect(widget).toBeVisible();
+  expect(await page.evaluate(
+    () => window.__cominsReadmeDemo
+      ?.getInteractionEvents()
+      .filter((event) => event.startsWith("external-drop:")),
+  )).toEqual([]);
+});
+
+test("does not emit an external drop event while resizing", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.goto("/readme-demo");
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  await resizeWidget(page, widget, 120, 80);
+  await waitForInteractionToSettle(widget);
+
+  await expect(widget).toBeVisible();
+  expect(await page.evaluate(
+    () => window.__cominsReadmeDemo
+      ?.getInteractionEvents()
+      .filter((event) => event.startsWith("external-drop:")),
+  )).toEqual([]);
+});
+
+test("orders the external drop callback after layout commit and before drag stop", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  await page.setViewportSize({ width: 1280, height: 1400 });
+  await page.goto("/readme-demo");
+  await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
+
+  await dragWidgetToTarget(
+    page,
+    page.getByTestId("dashboard-widget-overview"),
+    page.getByTestId("external-drop-trash-child"),
+  );
+  await expect.poll(
+    () => page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents()),
+  ).toContain("drag-stop:overview");
+
+  const events = await page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents() ?? []);
+  const layoutCommitIndex = events.indexOf("layout-commit");
+  const externalDropIndex = events.indexOf("external-drop:trash:overview");
+  const dragStopIndex = events.indexOf("drag-stop:overview");
+  if (layoutCommitIndex >= 0) {
+    expect(externalDropIndex).toBeGreaterThan(layoutCommitIndex);
+  }
+  expect(externalDropIndex).toBeGreaterThanOrEqual(0);
+  expect(dragStopIndex).toBeGreaterThan(externalDropIndex);
+});
+
+test("drops a widget on a plain div with mobile touch", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "mobile-chrome", "Touch external drop is covered in mobile Chrome.");
+  await page.setViewportSize({ width: 412, height: 1400 });
+  await page.goto("/readme-demo");
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  const title = widget.locator(".comins-grid-layout-widget__title");
+  const target = page.getByTestId("external-drop-trash-child");
+  const [titleBox, targetBox] = await Promise.all([
+    title.boundingBox(),
+    target.boundingBox(),
+  ]);
+  if (!titleBox || !targetBox) {
+    throw new Error("Touch external drop geometry is unavailable");
+  }
+
+  await performTouchGesture(page, title, {
+    x: targetBox.x + targetBox.width / 2 - (titleBox.x + titleBox.width / 2),
+    y: targetBox.y + targetBox.height / 2 - (titleBox.y + titleBox.height / 2),
+  }, 12);
+
+  await expect(widget).toBeHidden();
+  await expect.poll(
+    () => page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents()),
+  ).toContain("external-drop:trash:overview");
 });
 
 test("moves a widget with touch after a runtime column change", async ({ page }, testInfo) => {
