@@ -878,6 +878,24 @@ test("emits one external drop event and removes controlled state through the con
       ?.getInteractionEvents()
       .filter((event) => event.startsWith("external-drop:")),
   )).toEqual(["external-drop:trash:overview"]);
+
+  const payload = await page.evaluate(() => ({
+    committed: window.__cominsReadmeDemo?.getLastCommittedLayout() ?? null,
+    event: window.__cominsReadmeDemo?.getLastExternalDropEvent() ?? null,
+    liveColumns: window.__cominsReadmeDemo?.getColumn() ?? null,
+  }));
+  expect(payload.event).not.toBeNull();
+  expect(payload.committed).not.toBeNull();
+  if (!payload.event || !payload.committed) {
+    throw new Error("External drop payload snapshots are unavailable");
+  }
+  expect(payload.event.widgetId).toBe("overview");
+  expect(payload.event.targetId).toBe("trash");
+  expect(payload.event.columns).toBe(payload.liveColumns);
+  expect(payload.committed.columns).toBe(payload.liveColumns);
+  expect(payload.event.layout).toEqual(
+    payload.committed.widgets.find((layout) => layout.id === "overview"),
+  );
 });
 
 test("does not emit an external drop event when dropping outside the target", async ({ page }, testInfo) => {

@@ -4,6 +4,7 @@ import {
   DashboardGrid,
   type DashboardGridHandle,
   type DashboardWidget,
+  type DashboardWidgetExternalDropEvent,
 } from "../../src";
 
 type MetricData = { value: number };
@@ -18,16 +19,14 @@ const widgets: DashboardWidget<MetricData>[] = [
 ];
 
 describe("DashboardGridHandle", () => {
-  it("accepts typed external drop targets without losing widget data inference", () => {
+  it("type-checks external drop events without losing widget data inference", () => {
     const element = (
       <DashboardGrid<MetricData>
         widgets={widgets}
         externalDropTargets={[{ id: "trash", selector: "#trash" }]}
         onWidgetExternalDrop={(event) => {
-          const widgetId: string = event.widgetId;
-          const columns: number = event.columns;
-          expect(widgetId).toBe("metric");
-          expect(columns).toBeGreaterThan(0);
+          const typedEvent: DashboardWidgetExternalDropEvent = event;
+          void typedEvent;
         }}
         renderWidget={(widget) => <span>{widget.data?.value}</span>}
       />
