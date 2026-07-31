@@ -4,6 +4,7 @@ import {
   DashboardGrid,
   type DashboardGridHandle,
   type DashboardWidget,
+  type DashboardWidgetExternalDropEvent,
 } from "../../src";
 
 type MetricData = { value: number };
@@ -18,6 +19,21 @@ const widgets: DashboardWidget<MetricData>[] = [
 ];
 
 describe("DashboardGridHandle", () => {
+  it("type-checks external drop events without losing widget data inference", () => {
+    const element = (
+      <DashboardGrid<MetricData>
+        widgets={widgets}
+        externalDropTargets={[{ id: "trash", selector: "#trash" }]}
+        onWidgetExternalDrop={(event) => {
+          const typedEvent: DashboardWidgetExternalDropEvent = event;
+          void typedEvent;
+        }}
+        renderWidget={(widget) => <span>{widget.data?.value}</span>}
+      />
+    );
+    expect(element.type).toBe(DashboardGrid);
+  });
+
   it("preserves generic widget inference while accepting a public ref", () => {
     const ref = createRef<DashboardGridHandle>();
     const element = (

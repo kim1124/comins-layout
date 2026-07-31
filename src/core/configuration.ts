@@ -1,6 +1,7 @@
 import type {
   DashboardColumnCount,
   DashboardColumnLayout,
+  DashboardExternalDropTarget,
   DashboardGridEngineOptions,
   DashboardResponsiveOptions,
 } from "./types";
@@ -20,6 +21,7 @@ export class DashboardGridConfigurationError extends Error {
 export type DashboardGridConfiguration = {
   engineOptions?: DashboardGridEngineOptions;
   responsive?: DashboardResponsiveOptions;
+  externalDropTargets?: ReadonlyArray<DashboardExternalDropTarget>;
 };
 
 function fail(): never {
@@ -57,6 +59,16 @@ function isLayout(value: unknown): value is DashboardColumnLayout {
 }
 
 export function validateDashboardGridConfiguration(configuration: DashboardGridConfiguration): void {
+  const targetIds = new Set<string>();
+  for (const target of configuration.externalDropTargets ?? []) {
+    const id = target.id.trim();
+    const selector = target.selector.trim();
+    if (!id || !selector || targetIds.has(id)) {
+      fail();
+    }
+    targetIds.add(id);
+  }
+
   const engine = configuration.engineOptions;
   if (engine) {
     if (!isDimension(engine.cellHeight, CELL_HEIGHT_KEYWORDS) || !isDimension(engine.margin)) {

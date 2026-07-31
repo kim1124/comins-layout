@@ -5,7 +5,13 @@ import { BrowserRouter, Navigate, NavLink, Route, Routes, useLocation, useNaviga
 import { Highlight, themes } from "prism-react-renderer";
 import { Boxes, Columns3, Lock, Move, PanelLeft, Plus, RotateCcw, Save, Search, Settings2, Trash2, Unlock } from "lucide-react";
 import { DASHBOARD_COLUMN_COUNTS, DashboardGrid, useDashboardGrid } from "../../src";
-import type { DashboardStateSnapshot, DashboardWidget } from "../../src";
+import type {
+  DashboardExternalDropTarget,
+  DashboardGridProps,
+  DashboardStateSnapshot,
+  DashboardWidget,
+  DashboardWidgetExternalDropEvent,
+} from "../../src";
 import { Dialog } from "./components/ui/dialog";
 import { Select } from "./components/ui/select";
 import type { SelectOption } from "./components/ui/select";
@@ -100,6 +106,10 @@ const heightOptions: SelectOption[] = [1, 2, 3, 4].map((height) => ({
   label: String(height),
   value: String(height),
 }));
+
+const completeExternalDropTargets = [
+  { id: "trash", selector: "#complete-widget-trash" },
+] as const satisfies ReadonlyArray<DashboardExternalDropTarget>;
 
 const installSample = `npm install comins-grid-layout react react-dom`;
 
@@ -1334,6 +1344,9 @@ function CompleteExample() {
   const [resizable, setResizable] = useState(true);
   const [layoutJson, setLayoutJson] = useState("");
   const [layoutStatus, setLayoutStatus] = useState("저장된 레이아웃이 없습니다.");
+  const [externalDropStatus, setExternalDropStatus] = useState(
+    "위젯을 삭제 영역으로 드래그해 보세요.",
+  );
   const [locked, setLocked] = useState(false);
 
   const saveLayout = () => {
@@ -1349,6 +1362,17 @@ function CompleteExample() {
     } catch {
       setLayoutStatus("JSON 형식을 확인해 주세요.");
     }
+  };
+
+  const handleWidgetExternalDrop = (
+    event: DashboardWidgetExternalDropEvent,
+  ) => {
+    if (event.targetId !== "trash") {
+      return;
+    }
+
+    dashboard.commands.removeWidget(event.widgetId);
+    setExternalDropStatus(`${event.widgetId} 위젯을 삭제했습니다.`);
   };
 
   return (
@@ -1402,7 +1426,39 @@ function CompleteExample() {
         </button>
       </section>
       <LayoutJson value={layoutJson} status={layoutStatus} onChange={setLayoutJson} id="complete-layout-json" />
-      <DashboardPreview dashboard={dashboard} movable={movable && !locked} resizable={resizable && !locked} />
+      <div className="example-complete-workspace">
+        <section
+          aria-label="외부 드롭 삭제 예제"
+          className="example-external-drop"
+        >
+          <div
+            aria-describedby="complete-external-drop-status"
+            aria-label="위젯을 여기에 놓으면 삭제됩니다"
+            className="example-external-drop__target"
+            id="complete-widget-trash"
+          >
+            <Trash2 aria-hidden="true" size={28} />
+            <strong>위젯 삭제 영역</strong>
+            <span>드래그한 위젯을 여기에 놓으세요.</span>
+          </div>
+          <p
+            aria-label="외부 드롭 처리 상태"
+            id="complete-external-drop-status"
+            role="status"
+          >
+            {externalDropStatus}
+          </p>
+        </section>
+        <div className="example-complete-workspace__dashboard">
+          <DashboardPreview
+            dashboard={dashboard}
+            externalDropTargets={completeExternalDropTargets}
+            movable={movable && !locked}
+            resizable={resizable && !locked}
+            onWidgetExternalDrop={handleWidgetExternalDrop}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -1599,12 +1655,16 @@ function ExampleToolbar({ kicker, title }: { kicker: string; title: string }) {
 
 function DashboardPreview({
   dashboard,
+  externalDropTargets,
   movable = true,
+  onWidgetExternalDrop,
   resizable = true,
   showControls = true,
 }: {
   dashboard: DashboardRuntime;
+  externalDropTargets?: DashboardGridProps<ExampleWidgetData>["externalDropTargets"];
   movable?: boolean;
+  onWidgetExternalDrop?: DashboardGridProps<ExampleWidgetData>["onWidgetExternalDrop"];
   resizable?: boolean;
   showControls?: boolean;
 }) {
@@ -1613,6 +1673,7 @@ function DashboardPreview({
       <p className="example-widget-count">위젯 {dashboard.widgets.length}개</p>
       <DashboardGrid
         columns={dashboard.columns}
+        externalDropTargets={externalDropTargets}
         movable={movable}
         refreshKey={dashboard.refreshVersion}
         resizable={resizable}
@@ -1622,6 +1683,7 @@ function DashboardPreview({
         onMinimizeWidget={dashboard.commands.minimizeWidget}
         onRemoveWidget={dashboard.commands.removeWidget}
         onRestoreWidget={dashboard.commands.restoreWidget}
+        onWidgetExternalDrop={onWidgetExternalDrop}
         onWidgetHeaderDoubleClick={dashboard.commands.fitWidgetToColumns}
         onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
         renderWidget={(widget) => (

@@ -5,15 +5,18 @@ import { validateDashboardGridConfiguration } from "../core/configuration";
 import { createDashboardResizeScheduler } from "../core/resize-scheduler";
 import type {
   DashboardColumnCount,
+  DashboardExternalDropTarget,
   DashboardGridEngineOptions,
   DashboardInteractionOptions,
   DashboardLayoutSnapshot,
   DashboardResponsiveOptions,
   DashboardWidget as DashboardWidgetModel,
+  DashboardWidgetExternalDropEvent,
   DashboardWidgetInteractionEvent,
   DashboardWidgetResizeFrameEvent,
 } from "../core/types";
 import type { DashboardGridAdapter, DashboardGridHandle } from "../gridstack/adapter";
+import { validateDashboardExternalDropTargetSelectors } from "../gridstack/external-drop-target";
 import { DashboardWidgetShell } from "./DashboardWidget";
 import type { DashboardWidgetActionLabels } from "./DashboardWidget";
 
@@ -24,6 +27,7 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   columns?: DashboardColumnCount;
   engineOptions?: DashboardGridEngineOptions;
   responsive?: DashboardResponsiveOptions;
+  externalDropTargets?: ReadonlyArray<DashboardExternalDropTarget>;
   className?: string;
   refreshKey?: number;
   showControls?: boolean;
@@ -33,6 +37,7 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetModel<TData>["layout"]) => void;
   onWidgetResizeFrame?: (event: DashboardWidgetResizeFrameEvent) => void;
+  onWidgetExternalDrop?: (event: DashboardWidgetExternalDropEvent) => void;
   onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
@@ -53,6 +58,7 @@ function DashboardGridInner<TData = unknown>(
     columns = 12,
     engineOptions,
     responsive,
+    externalDropTargets,
     editable = true,
     movable = true,
     resizable = true,
@@ -65,6 +71,7 @@ function DashboardGridInner<TData = unknown>(
     onLayoutCommit,
     onWidgetLayoutChange,
     onWidgetResizeFrame,
+    onWidgetExternalDrop,
     onWidgetDragStart,
     onWidgetDragStop,
     onWidgetResizeStart,
@@ -75,7 +82,10 @@ function DashboardGridInner<TData = unknown>(
     onRemoveWidget,
     onWidgetHeaderDoubleClick,
   } = props;
-  validateDashboardGridConfiguration({ engineOptions, responsive });
+  validateDashboardGridConfiguration({ engineOptions, responsive, externalDropTargets });
+  if (typeof document !== "undefined") {
+    validateDashboardExternalDropTargetSelectors(document, externalDropTargets);
+  }
   const gridElementRef = useRef<HTMLDivElement>(null);
   const adapterRef = useRef<DashboardGridAdapter<TData> | undefined>(undefined);
   const [activeColumns, setActiveColumns] = useState(() => clampDashboardColumnCount(columns));
@@ -121,9 +131,11 @@ function DashboardGridInner<TData = unknown>(
       movable,
       resizable,
       widgets,
+      externalDropTargets,
       onColumnsChange: handleColumnsChange,
       onLayoutCommit,
       onWidgetLayoutChange,
+      onWidgetExternalDrop,
       onWidgetDragStart,
       onWidgetDragStop,
       onWidgetResizeStart,
@@ -136,9 +148,11 @@ function DashboardGridInner<TData = unknown>(
       columns,
       editable,
       engineOptions,
+      externalDropTargets,
       handleColumnsChange,
       movable,
       onLayoutCommit,
+      onWidgetExternalDrop,
       onWidgetDragStart,
       onWidgetDragStop,
       onWidgetLayoutChange,

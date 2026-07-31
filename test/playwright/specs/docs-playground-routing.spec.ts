@@ -16,6 +16,37 @@ function collectBrowserDiagnostics(page: Page) {
   return diagnostics;
 }
 
+async function dragWidgetToTarget(
+  page: Page,
+  widgetId: string,
+  targetLabel: string,
+) {
+  const title = page
+    .getByTestId(`dashboard-widget-${widgetId}`)
+    .locator(".comins-grid-layout-widget__title");
+  const target = page.getByLabel(targetLabel);
+  const [titleBox, targetBox] = await Promise.all([
+    title.boundingBox(),
+    target.boundingBox(),
+  ]);
+
+  if (!titleBox || !targetBox) {
+    throw new Error("Playground external drop geometry is unavailable");
+  }
+
+  await page.mouse.move(
+    titleBox.x + titleBox.width / 2,
+    titleBox.y + titleBox.height / 2,
+  );
+  await page.mouse.down();
+  await page.mouse.move(
+    targetBox.x + targetBox.width / 2,
+    targetBox.y + targetBox.height / 2,
+    { steps: 16 },
+  );
+  await page.mouse.up();
+}
+
 test.describe("gridstack docs playground routing", () => {
   test("loads the getting started docs example as the single basic entry", async ({ page }) => {
     const diagnostics = collectBrowserDiagnostics(page);
@@ -146,6 +177,28 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page).toHaveURL(/\/api$/);
     await expect(page.getByRole("heading", { name: "1. Dashboard 렌더링" })).toBeVisible();
     await expect(page.getByRole("main")).toContainText("DashboardWidget");
+  });
+
+  test("deletes a widget through the complete playground external drop target", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "chromium", "The Playground external drop is covered once on desktop Chromium.");
+    const diagnostics = collectBrowserDiagnostics(page);
+    await page.setViewportSize({ width: 1440, height: 1200 });
+    await page.goto("/examples/complete");
+
+    const targetLabel = "위젯을 여기에 놓으면 삭제됩니다";
+    const target = page.getByLabel(targetLabel);
+    await expect(target).toBeVisible();
+    await expect(target).toHaveJSProperty("tagName", "DIV");
+    await expect(target).toHaveCSS("width", "300px");
+    await expect(target).toHaveCSS("height", "300px");
+    await expect(page.getByText("위젯 4개")).toBeVisible();
+
+    await dragWidgetToTarget(page, "sales", targetLabel);
+
+    await expect(page.getByTestId("dashboard-widget-sales")).toBeHidden();
+    await expect(page.getByText("위젯 3개")).toBeVisible();
+    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toHaveText("sales 위젯을 삭제했습니다.");
+    expect(diagnostics).toEqual([]);
   });
 
   test("documents the gridstack API by feature with props methods and examples", async ({ page }) => {

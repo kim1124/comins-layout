@@ -5,6 +5,15 @@ import {
 } from "../../src";
 
 describe("dashboard grid configuration", () => {
+  it("accepts ordinary external drop target definitions", () => {
+    expect(() => validateDashboardGridConfiguration({
+      externalDropTargets: [
+        { id: "trash", selector: "#widget-trash" },
+        { id: "archive", selector: "[data-dashboard-drop-target='archive']" },
+      ],
+    })).not.toThrow();
+  });
+
   it("accepts supported engine and responsive options", () => {
     expect(() => validateDashboardGridConfiguration({
       engineOptions: {
@@ -37,6 +46,14 @@ describe("dashboard grid configuration", () => {
     { responsive: { columnWidth: 240, columnMax: 13 } },
     { responsive: { breakpoints: [{ maxWidth: 800, columns: 0 }] } },
     { responsive: { breakpoints: [{ maxWidth: 800, columns: 4 }, { maxWidth: 800, columns: 6 }] } },
+    { externalDropTargets: [{ id: "", selector: "#trash" }] },
+    { externalDropTargets: [{ id: "trash", selector: " " }] },
+    {
+      externalDropTargets: [
+        { id: "trash", selector: "#trash-a" },
+        { id: "trash", selector: "#trash-b" },
+      ],
+    },
   ])("rejects an invalid public configuration without echoing values", (configuration) => {
     const invalidConfiguration = configuration as unknown as DashboardGridConfiguration;
     expect(() => validateDashboardGridConfiguration(invalidConfiguration)).toThrow(DashboardGridConfigurationError);

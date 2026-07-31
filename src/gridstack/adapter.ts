@@ -4,18 +4,27 @@ import { mapDashboardGridOptions, mapDashboardWidgetOptions } from "./option-map
 import type { DashboardGridOptionInput } from "./option-mapper";
 import { clampDashboardColumnCount } from "../core/columns";
 import type {
+  DashboardExternalDropTarget,
   DashboardLayoutSnapshot,
   DashboardWidget,
+  DashboardWidgetExternalDropEvent,
   DashboardWidgetInteractionEvent,
   DashboardWidgetLayout,
 } from "../core/types";
+import {
+  readDashboardClientPoint,
+  resolveDashboardExternalDropTarget,
+  type DashboardClientPoint,
+} from "./external-drop-target";
 
 export type DashboardGridAdapterOptions<TData = unknown> = DashboardGridOptionInput & {
   widgets: DashboardWidget<TData>[];
+  externalDropTargets?: ReadonlyArray<DashboardExternalDropTarget>;
   onColumnsChange?: (columns: DashboardLayoutSnapshot["columns"]) => void;
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetLayout) => void;
   onWidgetResize?: (id: string, size: { width: number; height: number }) => void;
+  onWidgetExternalDrop?: (event: DashboardWidgetExternalDropEvent) => void;
   onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
@@ -37,11 +46,6 @@ export interface DashboardGridHandle {
   compact(layout?: CompactOptions, doSort?: boolean): DashboardLayoutSnapshot | null;
   commitLayout(): DashboardLayoutSnapshot | null;
 }
-
-type PointerSnapshot = {
-  clientX: number;
-  clientY: number;
-};
 
 const layoutFields = ["id", "x", "y", "w", "h", "minW", "minH", "maxW", "maxH"] as const;
 
@@ -94,12 +98,14 @@ export function createDashboardGridAdapter<TData>(
   let forceEndFrame: number | undefined;
   let refreshFrame: number | undefined;
   let columnsFrame: number | undefined;
-  let lastPointer: PointerSnapshot | undefined;
+  let lastPointer: DashboardClientPoint | undefined;
   let activeInteractionItem: GridItemHTMLElement | undefined;
   let activeInteractionKind: "drag" | "resize" | undefined;
+  let pendingExternalDropTarget: DashboardExternalDropTarget | undefined;
   let pendingForcedRevealItem: GridItemHTMLElement | undefined;
   let pendingForcedRevealId: string | undefined;
   let interactionGuardsAttached = false;
+  let touchPointerActive = false;
   let lastObservedColumns = clampDashboardColumnCount(options.columns ?? grid.getColumn());
 
   let lastCommittedLayout: DashboardLayoutSnapshot | undefined;
@@ -265,11 +271,11 @@ export function createDashboardGridAdapter<TData>(
     grid.resizable(item, !(gridWidget?.noResize ?? false));
   };
 
-  const captureInteractionPointer = (event: MouseEvent) => {
+  const captureInteractionPoint = (event: Event) => {
     if (!isInteracting) {
       return;
     }
-    lastPointer = { clientX: event.clientX, clientY: event.clientY };
+    lastPointer = readDashboardClientPoint(event) ?? lastPointer;
   };
 
   const findActiveInteractionItem = () =>
@@ -279,13 +285,13 @@ export function createDashboardGridAdapter<TData>(
   const hasActiveInteractionClass = (item: GridItemHTMLElement | undefined) =>
     Boolean(item?.classList.contains("ui-resizable-resizing") || item?.classList.contains("ui-draggable-dragging"));
 
-  const scheduleInteractionFallback = (event?: MouseEvent) => {
+  const scheduleInteractionFallback = (event?: Event) => {
     if (!isInteracting || forceEndFrame !== undefined) {
       return;
     }
 
     if (event) {
-      captureInteractionPointer(event);
+      captureInteractionPoint(event);
     }
     if (!lastPointer) {
       return;
@@ -335,14 +341,19 @@ export function createDashboardGridAdapter<TData>(
   };
 
   const handleDocumentMouseMove = (event: MouseEvent) => {
-    captureInteractionPointer(event);
-    if (event.buttons === 0) {
+    captureInteractionPoint(event);
+    if (event.buttons === 0 && !touchPointerActive) {
       scheduleInteractionFallback(event);
     }
   };
 
+  const handleDocumentPointerMove = (event: PointerEvent) => {
+    touchPointerActive = event.pointerType === "touch";
+    captureInteractionPoint(event);
+  };
+
   const handleDocumentMouseLeave = (event: MouseEvent) => {
-    captureInteractionPointer(event);
+    captureInteractionPoint(event);
     if (event.relatedTarget !== null) {
       return;
     }
@@ -361,6 +372,7 @@ export function createDashboardGridAdapter<TData>(
     }
     interactionGuardsAttached = true;
     document.addEventListener("mousemove", handleDocumentMouseMove, true);
+    document.addEventListener("pointermove", handleDocumentPointerMove, true);
     document.documentElement.addEventListener("mouseleave", handleDocumentMouseLeave, true);
     window.addEventListener("mouseup", handleInteractionRelease, true);
     window.addEventListener("pointerup", handleInteractionRelease, true);
@@ -372,6 +384,7 @@ export function createDashboardGridAdapter<TData>(
     }
     interactionGuardsAttached = false;
     document.removeEventListener("mousemove", handleDocumentMouseMove, true);
+    document.removeEventListener("pointermove", handleDocumentPointerMove, true);
     document.documentElement.removeEventListener("mouseleave", handleDocumentMouseLeave, true);
     window.removeEventListener("mouseup", handleInteractionRelease, true);
     window.removeEventListener("pointerup", handleInteractionRelease, true);
@@ -420,10 +433,13 @@ export function createDashboardGridAdapter<TData>(
     finishInteractionFrame = undefined;
     detachInteractionGuards();
     const stoppedKind = activeInteractionKind;
-    const stoppedId = readInteractionEvent(activeInteractionItem)?.id;
+    const stoppedInteraction = readInteractionEvent(activeInteractionItem);
+    const externalTarget = pendingExternalDropTarget;
+    pendingExternalDropTarget = undefined;
     lastPointer = undefined;
     activeInteractionItem = undefined;
     activeInteractionKind = undefined;
+    touchPointerActive = false;
     isInteracting = false;
 
     const shouldCommit = pendingCommit;
@@ -432,10 +448,20 @@ export function createDashboardGridAdapter<TData>(
     pendingSync = false;
 
     const snapshot = shouldCommit ? commitLayout() : undefined;
-    const stoppedLayout = snapshot?.widgets.find((layout) => layout.id === stoppedId);
+    const stoppedLayout =
+      snapshot?.widgets.find((layout) => layout.id === stoppedInteraction?.id)
+      ?? stoppedInteraction?.layout;
     if (stoppedLayout) {
       const interactionEvent = { id: stoppedLayout.id, layout: stoppedLayout };
       if (stoppedKind === "drag") {
+        if (externalTarget) {
+          currentOptions.onWidgetExternalDrop?.({
+            widgetId: stoppedLayout.id,
+            targetId: externalTarget.id,
+            columns: snapshot?.columns ?? clampDashboardColumnCount(grid.getColumn()),
+            layout: stoppedLayout,
+          });
+        }
         currentOptions.onWidgetDragStop?.(interactionEvent);
       } else if (stoppedKind === "resize") {
         currentOptions.onWidgetResizeStop?.(interactionEvent);
@@ -454,6 +480,9 @@ export function createDashboardGridAdapter<TData>(
     item?: GridItemHTMLElement,
   ) => {
     isInteracting = true;
+    lastPointer = undefined;
+    pendingExternalDropTarget = undefined;
+    touchPointerActive = false;
     activeInteractionKind = kind;
     activeInteractionItem =
       item ??
@@ -464,8 +493,8 @@ export function createDashboardGridAdapter<TData>(
     cancelFrame(forceEndFrame);
     finishInteractionFrame = undefined;
     forceEndFrame = undefined;
-    if (event instanceof MouseEvent) {
-      captureInteractionPointer(event);
+    if (event) {
+      captureInteractionPoint(event);
     }
     attachInteractionGuards();
     const interactionEvent = readInteractionEvent(activeInteractionItem);
@@ -478,7 +507,21 @@ export function createDashboardGridAdapter<TData>(
     }
   };
 
-  const stopInteraction = () => {
+  const stopInteraction = (event?: Event, item?: GridItemHTMLElement) => {
+    if (event) {
+      captureInteractionPoint(event);
+    }
+    if (item) {
+      activeInteractionItem = item;
+    }
+    pendingExternalDropTarget = activeInteractionKind === "drag"
+      ? resolveDashboardExternalDropTarget(
+          element.ownerDocument,
+          element,
+          currentOptions.externalDropTargets,
+          lastPointer,
+        )
+      : undefined;
     pendingCommit = true;
     detachInteractionGuards();
     cancelFrame(forceEndFrame);
@@ -499,8 +542,9 @@ export function createDashboardGridAdapter<TData>(
   grid.on("change", changeHandler);
   grid.on("dragstart", (event, item) => startInteraction("drag", event, item));
   grid.on("resizestart", (event, item) => startInteraction("resize", event, item));
-  grid.on("dragstop", stopInteraction);
-  grid.on("resizestop", stopInteraction);
+  grid.on("drag", (event) => captureInteractionPoint(event));
+  grid.on("dragstop", (event, item) => stopInteraction(event, item));
+  grid.on("resizestop", (event, item) => stopInteraction(event, item));
   grid.on("resize", resizeHandler);
 
   const columnsObserver = typeof ResizeObserver === "undefined"
@@ -550,6 +594,9 @@ export function createDashboardGridAdapter<TData>(
       columnsObserver?.disconnect();
       pendingForcedRevealItem = undefined;
       pendingForcedRevealId = undefined;
+      pendingExternalDropTarget = undefined;
+      lastPointer = undefined;
+      touchPointerActive = false;
       cancelFrame(finishInteractionFrame);
       cancelFrame(deferredSyncFrame);
       cancelFrame(forceEndFrame);

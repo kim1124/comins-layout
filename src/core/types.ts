@@ -16,6 +16,11 @@ export type DashboardResponsiveOptions = {
   layout?: DashboardColumnLayout;
 };
 
+export type DashboardExternalDropTarget = {
+  id: string;
+  selector: string;
+};
+
 export type DashboardGridEngineOptions = {
   cellHeight?: number | string;
   margin?: number | string;
@@ -96,6 +101,13 @@ export type DashboardWidgetResizeFrameEvent = {
 
 export type DashboardWidgetInteractionEvent = {
   id: DashboardWidgetId;
+  layout: DashboardWidgetLayout;
+};
+
+export type DashboardWidgetExternalDropEvent = {
+  widgetId: DashboardWidgetId;
+  targetId: string;
+  columns: DashboardColumnCount;
   layout: DashboardWidgetLayout;
 };
 

@@ -6,6 +6,7 @@ import {
   type DashboardLayoutSnapshot,
   type DashboardResponsiveOptions,
   type DashboardWidget,
+  type DashboardWidgetExternalDropEvent,
 } from "../../src";
 
 type DemoData = { label: string; value: string };
@@ -18,6 +19,8 @@ type ReadmeDemoBridge = {
   getEngineWidgetIds: () => string[];
   getHandle: () => DashboardGridHandle | null;
   getInteractionEvents: () => string[];
+  getLastCommittedLayout: () => DashboardLayoutSnapshot | null;
+  getLastExternalDropEvent: () => DashboardWidgetExternalDropEvent | null;
   removeWidget: (id: string) => void;
   resetCommitCount: () => void;
   resetInteractionEvents: () => void;
@@ -25,9 +28,12 @@ type ReadmeDemoBridge = {
   compact: (layout?: Parameters<DashboardGridHandle["compact"]>[0]) => DashboardLayoutSnapshot | null;
   setCustomDragHandle: (enabled: boolean) => void;
   setDirection: (direction: "ltr" | "rtl") => void;
+  setOverviewLocked: (locked: boolean) => void;
+  setOverviewMovable: (movable: boolean) => void;
   setResponsive: (enabled: boolean) => void;
   setRtl: (rtl: boolean | "auto" | undefined) => void;
   setSizeToContent: (enabled: boolean | undefined) => void;
+  setTrashVisible: (visible: boolean) => void;
   moveWithGridStack: (id: string, x: number, y: number) => DashboardLayoutSnapshot | null;
 };
 
@@ -62,16 +68,39 @@ const responsiveOptions: DashboardResponsiveOptions = {
   ],
 };
 
+const externalDropTargets = [
+  { id: "trash", selector: "#readme-widget-trash" },
+] as const;
+
+function cloneLayoutSnapshot(snapshot: DashboardLayoutSnapshot): DashboardLayoutSnapshot {
+  return {
+    columns: snapshot.columns,
+    widgets: snapshot.widgets.map((layout) => ({ ...layout })),
+  };
+}
+
+function cloneExternalDropEvent(
+  event: DashboardWidgetExternalDropEvent,
+): DashboardWidgetExternalDropEvent {
+  return {
+    ...event,
+    layout: { ...event.layout },
+  };
+}
+
 export function ReadmeDemoPage() {
   const dashboard = useDashboardGrid<DemoData>({ initialColumns: 6, initialWidgets });
   const gridRef = useRef<DashboardGridHandle>(null);
   const commitCountRef = useRef(0);
   const interactionEventsRef = useRef<string[]>([]);
+  const lastCommittedLayoutRef = useRef<DashboardLayoutSnapshot | null>(null);
+  const lastExternalDropEventRef = useRef<DashboardWidgetExternalDropEvent | null>(null);
   const [customDragHandle, setCustomDragHandle] = useState(true);
   const [direction, setDirection] = useState<"ltr" | "rtl">("ltr");
   const [responsiveEnabled, setResponsiveEnabled] = useState(false);
   const [rtl, setRtl] = useState<boolean | "auto" | undefined>(undefined);
   const [sizeToContent, setSizeToContent] = useState<boolean | undefined>(undefined);
+  const [trashVisible, setTrashVisible] = useState(true);
 
   useEffect(() => {
     const bridge: ReadmeDemoBridge = {
@@ -97,20 +126,31 @@ export function ReadmeDemoPage() {
       },
       getHandle: () => gridRef.current,
       getInteractionEvents: () => [...interactionEventsRef.current],
+      getLastCommittedLayout: () => lastCommittedLayoutRef.current
+        ? cloneLayoutSnapshot(lastCommittedLayoutRef.current)
+        : null,
+      getLastExternalDropEvent: () => lastExternalDropEventRef.current
+        ? cloneExternalDropEvent(lastExternalDropEventRef.current)
+        : null,
       removeWidget: dashboard.commands.removeWidget,
       resetCommitCount: () => {
         commitCountRef.current = 0;
       },
       resetInteractionEvents: () => {
         interactionEventsRef.current = [];
+        lastCommittedLayoutRef.current = null;
+        lastExternalDropEventRef.current = null;
       },
       refresh: () => gridRef.current?.refresh(),
       compact: (layout) => gridRef.current?.compact(layout) ?? null,
       setCustomDragHandle,
       setDirection,
+      setOverviewLocked: (locked) => dashboard.commands.updateWidget("overview", { locked }),
+      setOverviewMovable: (movable) => dashboard.commands.updateWidget("overview", { movable }),
       setResponsive: setResponsiveEnabled,
       setRtl,
       setSizeToContent,
+      setTrashVisible,
       moveWithGridStack: (id, x, y) => {
         const grid = gridRef.current?.getGridStack();
         const item = grid?.getGridItems().find((candidate) => candidate.getAttribute("gs-id") === id);
@@ -177,12 +217,23 @@ export function ReadmeDemoPage() {
         }}
         refreshKey={dashboard.refreshVersion}
         responsive={responsiveEnabled ? responsiveOptions : undefined}
+        externalDropTargets={externalDropTargets}
         widgets={dashboard.widgets}
         actionLabels={{ maximize: "Maximize", minimize: "Minimize", restore: "Restore", remove: "Remove" }}
         onLayoutCommit={(snapshot) => {
+          lastCommittedLayoutRef.current = cloneLayoutSnapshot(snapshot);
           commitCountRef.current += 1;
           interactionEventsRef.current.push("layout-commit");
           dashboard.commands.applyLayoutSnapshot(snapshot);
+        }}
+        onWidgetExternalDrop={(event) => {
+          lastExternalDropEventRef.current = cloneExternalDropEvent(event);
+          interactionEventsRef.current.push(
+            `external-drop:${event.targetId}:${event.widgetId}`,
+          );
+          if (event.targetId === "trash") {
+            dashboard.commands.removeWidget(event.widgetId);
+          }
         }}
         onMaximizeWidget={dashboard.commands.maximizeWidget}
         onMinimizeWidget={dashboard.commands.minimizeWidget}
@@ -200,6 +251,15 @@ export function ReadmeDemoPage() {
           </div>
         )}
       />
+      {trashVisible ? (
+        <div
+          id="readme-widget-trash"
+          className="readme-demo__trash"
+          data-testid="external-drop-trash"
+        >
+          <span data-testid="external-drop-trash-child">Drop widget here to delete</span>
+        </div>
+      ) : null}
     </main>
   );
 }
