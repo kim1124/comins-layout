@@ -226,6 +226,44 @@ test('queries exact publication metadata in version mode', () => {
   );
 });
 
+test('accepts npm 12 array-wrapped view results in both modes', () => {
+  const current = runner({
+    outputs: { maintainers: [[expected]] },
+  });
+  const published = runner({
+    args: ['--version', '1.2.3'],
+    outputs: {
+      maintainers: [[expected]],
+      _npmUser: [provider],
+      author: [null],
+      contributors: [[]],
+    },
+  });
+
+  assert.equal(current.code, 0);
+  assert.deepEqual(current.errors, []);
+  assert.equal(published.code, 0);
+  assert.deepEqual(published.errors, []);
+});
+
+test('rejects ambiguous npm 12 result arrays and additional nesting', () => {
+  for (const outputs of [
+    { maintainers: [[[expected]]] },
+    { maintainers: [[expected], [expected]] },
+  ]) {
+    assertConstantFailure(runner({ outputs }));
+  }
+
+  for (const outputs of [
+    { _npmUser: [[provider]] },
+    { _npmUser: [provider, provider] },
+    { author: [[null]] },
+    { contributors: [[[]]] },
+  ]) {
+    assertConstantFailure(runner({ args: ['--version', '1.2.3'], outputs }));
+  }
+});
+
 test('fails closed with one constant message for invalid input and unavailable npm', () => {
   for (const args of [
     ['--unknown'],

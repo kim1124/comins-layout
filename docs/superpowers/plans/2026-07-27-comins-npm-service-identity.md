@@ -321,6 +321,8 @@ Implementation requirements:
   and the executable entry point assigns that result to `process.exitCode`;
 - accept npm maintainer object, string, array-of-object, and array-of-string
   shapes;
+- accept npm 11 direct field results and unwrap exactly one npm 12 outer result
+  array without accepting multiple results or additional nesting;
 - trim comparison input but never print it;
 - require exactly one normalized maintainer;
 - require exact case-sensitive npm name equality and case-insensitive email
@@ -775,7 +777,7 @@ pause for maintainer review and 2FA approval.
 - [ ] **Step 3: Recheck the account immediately before staging**
 
 Require both identity checks embedded in `publish.yml` to pass for the exact
-merged `main` SHA. A missing repository variable, npm lookup failure, or
+merged `main` SHA. A missing repository secret, npm lookup failure, or
 mismatch prevents `npm stage publish`.
 
 - [ ] **Step 4: Complete maintainer-controlled stage review**
@@ -824,8 +826,9 @@ provider write, recheck current policy and obtain explicit maintainer approval.
   pre-stage check, account freeze, and exact-version closure check while
   Contract v1.4 remains current and the managed module `AGENTS` block is
   synchronized from Governance.
-- [ ] Grid Layout's validator accepts supported npm JSON shapes, rejects every
-  mismatch or unavailable dependency, and emits only one constant failure.
+- [ ] Grid Layout's validator accepts supported npm 11 and npm 12 JSON shapes,
+  rejects every mismatch or unavailable dependency, and emits only one
+  constant failure.
 - [ ] The ordinary PR baseline remains network-independent.
 - [ ] Trusted staging checks current npm identity twice without rebuilding the
   exact artifact.

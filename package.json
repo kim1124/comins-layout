@@ -1,6 +1,6 @@
 {
   "name": "comins-grid-layout",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.example.config.ts",
@@ -51,7 +51,7 @@
     "prism-react-renderer": "^2.4.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-router": "^7.17.0",
+    "react-router": "^8.3.0",
     "typescript": "^6.0.3",
     "vite": "^8.1.4",
     "vitest": "^4.1.10"

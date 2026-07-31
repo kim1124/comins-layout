@@ -71,9 +71,16 @@ function loadPackageJson() {
   return JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8'));
 }
 
-function parseNpmJson(value) {
+function parseNpmJson(value, field) {
   const text = Buffer.isBuffer(value) ? value.toString('utf8') : String(value);
-  return text.trim() === '' ? null : JSON.parse(text);
+  if (text.trim() === '') return null;
+  const parsed = JSON.parse(text);
+  if (!Array.isArray(parsed)) return parsed;
+  // npm 12 wraps each `npm view --json` field result in one outer array.
+  if (field === 'maintainers' || field === 'contributors') {
+    return parsed.length === 1 && Array.isArray(parsed[0]) ? parsed[0] : parsed;
+  }
+  return parsed.length === 1 ? parsed[0] : parsed;
 }
 
 function defaultExecNpm(args, options) {
@@ -154,7 +161,7 @@ export function run(options = {}) {
     const query = (field) => parseNpmJson(execNpm(
       ['view', packageSpec, field, '--json'],
       { stdio: ['ignore', 'pipe', 'pipe'] },
-    ));
+    ), field);
 
     const maintainers = query('maintainers');
     const valid = version === null

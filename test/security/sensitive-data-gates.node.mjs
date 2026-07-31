@@ -50,19 +50,21 @@ function constantFailure(result) {
   assert.equal(result.stderr, failure);
 }
 
-test('adopts the canonical Contract v1.4 module policy', () => {
+test('adopts the lean Contract v1.4 module policy', () => {
   const agents = read('AGENTS.md');
   const security = read('SECURITY.md');
+  const packageJson = JSON.parse(read('package.json'));
+  const packageLock = JSON.parse(read('package-lock.json'));
+  const changelog = read('CHANGELOG.md');
 
+  assert.match(agents, /managed-start contract=v1\.4/);
   assert.match(
     agents,
-    /^<!-- comins-reference:managed-start contract=v1\.4 -->$/m,
+    /license compliance; security and sensitive data; Comins common rules;/,
   );
-  assert.match(agents, /license compliance; security and sensitive data/);
-  assert.match(agents, /OSS_LICENSE_POLICY\.md/);
-  assert.match(agents, /SENSITIVE_DATA_STANDARD\.md/);
-  assert.match(agents, /Remote writes, publishing, tags, Releases/);
-  assert.match(agents, /Release closure applies only to an actual public release/);
+  assert.match(agents, /`OSS_LICENSE_POLICY\.md` and `SENSITIVE_DATA_STANDARD\.md`/);
+  assert.match(agents, /module owns its checker commands and CI implementation/);
+  assert.match(agents, /release checks only when publishing/);
   assert.match(security, /credential\/PII incident/i);
   assert.match(security, /stop the affected release/i);
   assert.match(security, /without public disclosure/i);
@@ -70,8 +72,15 @@ test('adopts the canonical Contract v1.4 module policy', () => {
     security,
     /Before 1\.0\.0, only the latest published version receives security fixes\./,
   );
-  assert.match(security, /\| 0\.1\.5 \| Yes \|/);
-  assert.match(security, /\| < 0\.1\.5 \| No \|/);
+  assert.equal(packageJson.version, '0.1.6');
+  assert.equal(packageLock.version, '0.1.6');
+  assert.equal(packageLock.packages[''].version, '0.1.6');
+  assert.match(security, /\| 0\.1\.6 \| Yes \|/);
+  assert.match(security, /\| < 0\.1\.6 \| No \|/);
+  assert.match(changelog, /^## 0\.1\.6$/m);
+  assert.match(changelog, /npm service-identity/i);
+  assert.match(changelog, /development tooling/i);
+  assert.match(changelog, /No runtime or public API changes\./);
 });
 
 test('pins shared Gitleaks, hooks, scripts, and workflows', () => {

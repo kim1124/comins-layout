@@ -1,5 +1,12 @@
 # comins-grid-layout
 
+## 0.1.6
+
+- Added a fail-closed npm service-identity gate before trusted staging and for exact-version release closure.
+- Updated development tooling to React Router 8.3.0 and PostCSS 8.5.24.
+- Adopted Comins Contract v1.4 release and sensitive-data guidance.
+- No runtime or public API changes.
+
 ## 0.1.5
 
 - Upgraded the external GridStack engine to the public version 13 API while retaining the package-owned adapter boundary.
