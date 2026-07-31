@@ -97,6 +97,23 @@ describe("external drop target resolution", () => {
     )).toThrow(DashboardGridConfigurationError);
   });
 
+  it("converts selector failures discovered during resolution into a configuration error", () => {
+    const document = {
+      elementsFromPoint: () => [],
+      querySelectorAll: vi.fn(() => {
+        throw new DOMException("invalid", "SyntaxError");
+      }),
+    } as unknown as Document;
+    const grid = { contains: () => false } as unknown as HTMLElement;
+
+    expect(() => resolveDashboardExternalDropTarget(
+      document,
+      grid,
+      [{ id: "trash", selector: "[" }],
+      { clientX: 150, clientY: 150 },
+    )).toThrow(DashboardGridConfigurationError);
+  });
+
   it("returns the first configured target when several targets match", () => {
     const { document, grid } = createRenderedTargetHarness();
     expect(resolveDashboardExternalDropTarget(
