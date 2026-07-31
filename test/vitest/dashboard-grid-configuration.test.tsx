@@ -2,6 +2,19 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { DashboardGrid, DashboardGridConfigurationError } from "../../src";
 
 describe("DashboardGrid configuration", () => {
+  it("rejects duplicate external drop target definitions during render", () => {
+    expect(() => renderToStaticMarkup(
+      <DashboardGrid
+        widgets={[]}
+        externalDropTargets={[
+          { id: "trash", selector: "#trash-a" },
+          { id: "trash", selector: "#trash-b" },
+        ]}
+        renderWidget={() => null}
+      />,
+    )).toThrow(DashboardGridConfigurationError);
+  });
+
   it("fails during render with a non-disclosing public error", () => {
     expect(() => renderToStaticMarkup(
       <DashboardGrid

@@ -5,6 +5,7 @@ import { validateDashboardGridConfiguration } from "../core/configuration";
 import { createDashboardResizeScheduler } from "../core/resize-scheduler";
 import type {
   DashboardColumnCount,
+  DashboardExternalDropTarget,
   DashboardGridEngineOptions,
   DashboardInteractionOptions,
   DashboardLayoutSnapshot,
@@ -24,6 +25,7 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   columns?: DashboardColumnCount;
   engineOptions?: DashboardGridEngineOptions;
   responsive?: DashboardResponsiveOptions;
+  externalDropTargets?: ReadonlyArray<DashboardExternalDropTarget>;
   className?: string;
   refreshKey?: number;
   showControls?: boolean;
@@ -53,6 +55,7 @@ function DashboardGridInner<TData = unknown>(
     columns = 12,
     engineOptions,
     responsive,
+    externalDropTargets,
     editable = true,
     movable = true,
     resizable = true,
@@ -75,7 +78,7 @@ function DashboardGridInner<TData = unknown>(
     onRemoveWidget,
     onWidgetHeaderDoubleClick,
   } = props;
-  validateDashboardGridConfiguration({ engineOptions, responsive });
+  validateDashboardGridConfiguration({ engineOptions, responsive, externalDropTargets });
   const gridElementRef = useRef<HTMLDivElement>(null);
   const adapterRef = useRef<DashboardGridAdapter<TData> | undefined>(undefined);
   const [activeColumns, setActiveColumns] = useState(() => clampDashboardColumnCount(columns));
