@@ -745,6 +745,44 @@ button {
   margin: 0 0 12px;
 }
 
+.example-complete-workspace {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.example-external-drop {
+  display: grid;
+  gap: 8px;
+}
+
+.example-external-drop__target {
+  align-items: center;
+  background: #fff5f5;
+  border: 2px dashed #dc2626;
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: #991b1b;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 300px;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  width: 300px;
+}
+
+.example-external-drop__target span,
+.example-external-drop p {
+  color: #7f1d1d;
+  font-size: 13px;
+}
+
+.example-external-drop p {
+  margin: 0;
+}
+
 .example-layout-json {
   display: grid;
   gap: 8px;
@@ -901,5 +939,9 @@ button {
   .example-toolbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .example-external-drop__target {
+    max-width: 100%;
   }
 }
