@@ -124,7 +124,8 @@ The handle is an optional advanced escape hatch. Comins commands remain the prim
 - `onLayoutCommit` runs after committed layout changes, not on every pointer move.
 - `onWidgetResizeFrame` can run during resize, but must be animation-frame scheduled.
 - `onWidgetExternalDrop` reports a final pointer or touch release in a configured same-document light DOM target. It is non-destructive: consumers choose whether to call `removeWidget(widgetId)`, and no DOM `CustomEvent` is dispatched.
-- Interaction-stop ordering is `onWidgetLayoutChange`, `onLayoutCommit`, then the corresponding drag/resize stop callback.
+- Drag interaction-stop ordering is `onWidgetLayoutChange` -> `onLayoutCommit` -> optional `onWidgetExternalDrop` -> `onWidgetDragStop`.
+- Resize interaction-stop ordering is `onWidgetLayoutChange` -> `onLayoutCommit` -> `onWidgetResizeStop`.
 - `onColumnsChange` reports actual engine columns only when the active count changes.
 - CRUD callbacks should preserve widget identity and layout snapshot consistency.
 
