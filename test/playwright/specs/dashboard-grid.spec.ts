@@ -704,6 +704,9 @@ test("compacts only through the explicit handle command and commits once", async
 
   await page.goto("/readme-demo");
   await expect(page.getByTestId("dashboard-widget-orders")).toHaveAttribute("data-layout-x", "4");
+  await expect.poll(() => page.evaluate(
+    () => window.__cominsReadmeDemo?.getHandle()?.getGridStack() ?? null,
+  )).not.toBeNull();
   await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
 
   const snapshot = await page.evaluate(() => window.__cominsReadmeDemo?.compact("compact"));
