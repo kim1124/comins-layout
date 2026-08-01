@@ -26,9 +26,9 @@
 | --- | --- |
 | React / React DOM | `>=18.0.0 <20.0.0` peer dependencies |
 | TypeScript | Declarations and declaration maps included; verified with TypeScript 6 |
-| Desktop browsers | Current Chromium-based Chrome and Edge; automated with Playwright Chromium |
+| Desktop browsers | Current Chromium-based Chrome and Edge plus Firefox; automated with Playwright Chromium and Firefox |
 | Mobile browsers | Current mobile Chrome touch behavior; automated with the Pixel 7 Chromium profile |
-| Firefox / Safari | Not currently verified or supported |
+| WebKit / Safari | Desktop engine compatibility is automated with Playwright WebKit; branded Safari on macOS and iOS is not directly verified |
 | SSR frameworks | Import and render inside a client boundary; the package does not use Next.js-only APIs |
 | Runtime network behavior | No package-owned requests, remote assets, telemetry, or error reporting |
 
@@ -275,7 +275,7 @@ Public CSS classes and custom properties are scoped under `.comins-grid-layout`.
 ## Verification and security
 
 - `npm run verify` runs sensitive-data gates, TypeScript, Vitest, and the production build.
-- `npm run verify:full` adds desktop Chromium, mobile Chromium touch behavior, and the isolated 100-widget resource gate.
+- `npm run verify:full` adds desktop Chromium, Firefox, Playwright WebKit, mobile Chromium touch behavior, and the isolated 100-widget Chromium resource gate.
 - Vulnerabilities must be reported privately through [GitHub Private Vulnerability Reporting](https://github.com/kim1124/comins-layout/security/advisories/new).
 - See the [security policy](https://github.com/kim1124/comins-layout/blob/main/SECURITY.md), [changelog](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md), and [complete example](https://github.com/kim1124/comins-layout/tree/main/example).
 

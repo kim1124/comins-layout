@@ -8,6 +8,7 @@ import {
   staysWithinHeapPeak,
   type HeapCounter,
 } from "../resource-stability";
+import { isDesktopBrowserProject } from "../project-policy";
 import { performTouchGesture } from "../touch-gesture";
 
 type WidgetLayout = {
@@ -672,7 +673,7 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
 });
 
 test("exposes a live GridStack handle and deduplicates explicit layout commits", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Advanced handle lifecycle is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Advanced handle lifecycle is covered on supported desktop browsers.");
 
   await page.goto("/readme-demo");
   await expect(page.getByRole("heading", { name: "Interactive dashboards for React" })).toBeVisible();
@@ -700,7 +701,7 @@ test("exposes a live GridStack handle and deduplicates explicit layout commits",
 });
 
 test("compacts only through the explicit handle command and commits once", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Advanced compact behavior is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Advanced compact behavior is covered on supported desktop browsers.");
 
   await page.goto("/readme-demo");
   await expect(page.getByTestId("dashboard-widget-orders")).toHaveAttribute("data-layout-x", "4");
@@ -717,7 +718,7 @@ test("compacts only through the explicit handle command and commits once", async
 });
 
 test("updates a supported GridStack engine option without remounting", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Engine option synchronization is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Engine option synchronization is covered on supported desktop browsers.");
 
   await page.goto("/readme-demo");
   const readDragHandle = () => page.evaluate(() => {
@@ -733,7 +734,7 @@ test("updates a supported GridStack engine option without remounting", async ({ 
 });
 
 test("removes controlled widgets from the engine before clear and same-id re-add", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Controlled CRUD engine reconciliation is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Controlled CRUD engine reconciliation is covered on supported desktop browsers.");
 
   await page.goto("/readme-demo");
   await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getEngineWidgetIds().sort())).toEqual([
@@ -757,7 +758,7 @@ test("removes controlled widgets from the engine before clear and same-id re-add
 });
 
 test("applies inherited and runtime RTL positioning to existing widgets", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "RTL engine synchronization is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "RTL engine synchronization is covered on supported desktop browsers.");
 
   await page.goto("/readme-demo");
   const orders = page.getByTestId("dashboard-widget-orders");
@@ -782,7 +783,7 @@ test("applies inherited and runtime RTL positioning to existing widgets", async 
 });
 
 test("updates size-to-content classes for existing widgets", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Size-to-content synchronization is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Size-to-content synchronization is covered on supported desktop browsers.");
 
   await page.goto("/readme-demo");
   const overview = page.getByTestId("dashboard-widget-overview");
@@ -796,7 +797,7 @@ test("updates size-to-content classes for existing widgets", async ({ page }, te
 });
 
 test("uses the active responsive column in DOM, snapshots, and atomic React state", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Responsive state ownership is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Responsive state ownership is covered on supported desktop browsers.");
 
   await page.setViewportSize({ width: 900, height: 800 });
   await page.goto("/readme-demo");
@@ -815,7 +816,7 @@ test("uses the active responsive column in DOM, snapshots, and atomic React stat
 });
 
 test("orders drag lifecycle callbacks after the committed layout", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Interaction callback ordering is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Interaction callback ordering is covered on supported desktop browsers.");
 
   await page.goto("/readme-demo");
   await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
@@ -857,7 +858,7 @@ test("orders drag lifecycle callbacks after the committed layout", async ({ page
 });
 
 test("emits one external drop event and removes controlled state through the consumer", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
   await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
@@ -899,7 +900,7 @@ test("emits one external drop event and removes controlled state through the con
 });
 
 test("does not emit an external drop event when dropping outside the target", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
   await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
@@ -917,7 +918,7 @@ test("does not emit an external drop event when dropping outside the target", as
 });
 
 test("resolves an external drop target remounted after grid initialization", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
   await page.evaluate(() => window.__cominsReadmeDemo?.setTrashVisible(false));
@@ -937,7 +938,7 @@ test("resolves an external drop target remounted after grid initialization", asy
 });
 
 test("does not emit an external drop event for a non-movable widget", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
   await page.evaluate(() => {
@@ -958,7 +959,7 @@ test("does not emit an external drop event for a non-movable widget", async ({ p
 });
 
 test("does not emit an external drop event for a locked widget", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
   await page.evaluate(() => {
@@ -979,7 +980,7 @@ test("does not emit an external drop event for a locked widget", async ({ page }
 });
 
 test("does not emit an external drop event while resizing", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
   await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
@@ -997,7 +998,7 @@ test("does not emit an external drop event while resizing", async ({ page }, tes
 });
 
 test("orders the external drop callback after layout commit and before drag stop", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "External drop is covered once on desktop Chromium.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
   await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
@@ -1187,7 +1188,7 @@ test("renders widget actions as icon-only buttons", async ({ page }) => {
 });
 
 test("expands only the selected widget when its header is double-clicked", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Header double-click behavior is verified on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Header double-click behavior is verified on supported desktop browsers.");
 
   await page.goto("/");
 
@@ -1210,7 +1211,7 @@ test("expands only the selected widget when its header is double-clicked", async
 });
 
 test("does not fill empty row space when a widget action button is double-clicked", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Header double-click behavior is verified on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Header double-click behavior is verified on supported desktop browsers.");
 
   await page.goto("/");
 
@@ -1228,7 +1229,7 @@ test("does not fill empty row space when a widget action button is double-clicke
 });
 
 test("does not resize row widgets on header double-click when the row has no empty space", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Header double-click behavior is verified on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Header double-click behavior is verified on supported desktop browsers.");
 
   await page.goto("/");
 
@@ -1281,7 +1282,7 @@ test("does not resize row widgets on header double-click when the row has no emp
 });
 
 test("defers grid sync while a widget is actively resizing", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction regression runs on supported desktop browsers.");
 
   const diagnostics = collectBrowserDiagnostics(page);
 
@@ -1318,7 +1319,7 @@ test("defers grid sync while a widget is actively resizing", async ({ page }, te
 });
 
 test("finalizes widget resize when the pointer leaves the browser boundary", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction regression runs on supported desktop browsers.");
 
   const diagnostics = collectBrowserDiagnostics(page);
 
@@ -1373,7 +1374,7 @@ test("finalizes widget resize when the pointer leaves the browser boundary", asy
 });
 
 test("finalizes widget drag when the pointer leaves the browser boundary", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction regression runs on supported desktop browsers.");
 
   const diagnostics = collectBrowserDiagnostics(page);
 
@@ -1416,7 +1417,7 @@ test("finalizes widget drag when the pointer leaves the browser boundary", async
 });
 
 test("finishes widget resize after leaving the grid area", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction regression runs on supported desktop browsers.");
 
   const diagnostics = collectBrowserDiagnostics(page);
 
@@ -1434,7 +1435,7 @@ test("finishes widget resize after leaving the grid area", async ({ page }, test
   const { startX, startY } = await startWidgetResize(page, sales);
 
   await page.mouse.move(startX + 180, startY + 120, { steps: 8 });
-  await page.mouse.move(gridBox.x + gridBox.width + 80, startY + 120, { steps: 8 });
+  await page.mouse.move(gridBox.x + gridBox.width + 16, startY + 120, { steps: 8 });
   await page.mouse.up();
 
   await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(false);
@@ -1446,7 +1447,7 @@ test("finishes widget resize after leaving the grid area", async ({ page }, test
 });
 
 test("finishes widget drag after leaving the grid area", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Pointer interaction regression runs on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction regression runs on supported desktop browsers.");
 
   const diagnostics = collectBrowserDiagnostics(page);
 
@@ -1464,7 +1465,7 @@ test("finishes widget drag after leaving the grid area", async ({ page }, testIn
   const { startX, startY } = await startWidgetDrag(page, sales);
 
   await page.mouse.move(startX + 120, startY + 120, { steps: 8 });
-  await page.mouse.move(gridBox.x + gridBox.width + 80, startY + 120, { steps: 8 });
+  await page.mouse.move(gridBox.x + gridBox.width + 16, startY + 120, { steps: 8 });
   await page.mouse.up();
 
   await expect.poll(async () => (await readWidgetInteractionState(sales)).isDragging).toBe(false);
@@ -1476,7 +1477,7 @@ test("finishes widget drag after leaving the grid area", async ({ page }, testIn
 });
 
 test("executes the complete dashboard feature set in development mode", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== "chromium", "Pointer interaction smoke test runs on the desktop project only.");
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction smoke test runs on supported desktop browsers.");
 
   await page.goto("/");
 

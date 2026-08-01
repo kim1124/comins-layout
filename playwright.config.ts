@@ -21,6 +21,18 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
+      name: "firefox",
+      grepInvert: resourceStabilityTest,
+      workers: isCI ? 1 : undefined,
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "webkit",
+      grepInvert: resourceStabilityTest,
+      workers: isCI ? 1 : undefined,
+      use: { ...devices["Desktop Safari"] },
+    },
+    {
       name: "mobile-chrome",
       grepInvert: resourceStabilityTest,
       use: { ...devices["Pixel 7"] },

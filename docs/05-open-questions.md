@@ -8,14 +8,14 @@
 - `DashboardGridHandle` provides advanced access to the borrowed GridStack instance without replacing controlled React state.
 - GridStack 13 remains an external runtime dependency behind the package adapter; third-party notices and package-boundary gates verify the license and non-bundling contract.
 - Supported engine options and responsive columns are additive public APIs. Breakpoint-specific layout persistence is deferred to 0.2.0; 0.1.5 persists the active layout only.
-- Desktop pointer and mobile Chrome touch drag/resize are supported and covered by Playwright.
+- Desktop Chromium, Firefox, and Playwright WebKit pointer drag/resize are supported and covered by Playwright. Mobile touch coverage remains on the Pixel 7 Chromium profile.
 - `0.2.0` implements `externalDropTargets` and the typed, non-destructive `onWidgetExternalDrop` callback for same-document light DOM targets. Consumers retain deletion ownership through `removeWidget`; raw GridStack `removable` remains unsupported.
 
 ## Explicit Support Boundaries
 
 - Runtime columns are limited to 1 through 12.
 - Keyboard widget movement and resize are not implemented. Normal button controls retain their keyboard behavior.
-- Firefox and Safari are not verified or supported until dedicated browser projects are approved.
+- Branded Safari on macOS and iOS is not directly verified. The Playwright WebKit project is an engine-compatibility signal, not a Safari device certification.
 - SSR consumers must render the package inside a client boundary.
 - Raw GridStack add/remove operations do not create or remove React widget content; use Comins CRUD commands.
 - GridStack `removable` and DOM `CustomEvent` dispatch are outside the controlled Comins surface; use the typed external-drop callback instead.
