@@ -1,5 +1,7 @@
 import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
 
+import { isDesktopBrowserProject } from "../project-policy";
+
 function collectBrowserDiagnostics(page: Page) {
   const diagnostics: Array<{ text: string; type: ReturnType<ConsoleMessage["type"]> | "pageerror" }> = [];
 
@@ -180,7 +182,7 @@ test.describe("gridstack docs playground routing", () => {
   });
 
   test("deletes a widget through the complete playground external drop target", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "chromium", "The Playground external drop is covered once on desktop Chromium.");
+    test.skip(!isDesktopBrowserProject(testInfo.project.name), "The Playground external drop is covered on supported desktop browsers.");
     const diagnostics = collectBrowserDiagnostics(page);
     await page.setViewportSize({ width: 1440, height: 1200 });
     await page.goto("/examples/complete");
@@ -248,7 +250,7 @@ test.describe("gridstack docs playground routing", () => {
   });
 
   test("documents the previousLayouts persistence contract", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "chromium", "Persistence contract rendering is checked on the desktop project only.");
+    test.skip(!isDesktopBrowserProject(testInfo.project.name), "Persistence contract rendering is checked on supported desktop browsers.");
 
     await page.goto("/api");
 
