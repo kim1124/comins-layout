@@ -941,6 +941,9 @@ test("does not emit an external drop event for a non-movable widget", async ({ p
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
+  await expect.poll(() => page.evaluate(
+    () => window.__cominsReadmeDemo?.getHandle()?.getGridStack() ?? null,
+  )).not.toBeNull();
   await page.evaluate(() => {
     window.__cominsReadmeDemo?.setOverviewMovable(false);
     window.__cominsReadmeDemo?.resetInteractionEvents();
@@ -962,6 +965,9 @@ test("does not emit an external drop event for a locked widget", async ({ page }
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
+  await expect.poll(() => page.evaluate(
+    () => window.__cominsReadmeDemo?.getHandle()?.getGridStack() ?? null,
+  )).not.toBeNull();
   await page.evaluate(() => {
     window.__cominsReadmeDemo?.setOverviewLocked(true);
     window.__cominsReadmeDemo?.resetInteractionEvents();
