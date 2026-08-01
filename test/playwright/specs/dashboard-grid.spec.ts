@@ -9,7 +9,7 @@ import {
   type HeapCounter,
 } from "../resource-stability";
 import { isDesktopBrowserProject } from "../project-policy";
-import { performTouchGesture } from "../touch-gesture";
+import { performTouchGesture, performTouchGestureToTarget } from "../touch-gesture";
 
 type WidgetLayout = {
   x: number;
@@ -137,6 +137,13 @@ async function readGridEngineColumn(grid: Locator): Promise<number> {
   });
 }
 
+async function waitForWidgetGridEngine(widget: Locator) {
+  await expect.poll(() => widget.evaluate((element) => {
+    const grid = element.closest<HTMLElement>(".grid-stack") as (HTMLElement & { gridstack?: unknown }) | null;
+    return Boolean(grid?.gridstack);
+  })).toBe(true);
+}
+
 async function readWidgetInteractionState(widget: Locator) {
   return widget.evaluate((element) => ({
     isResizing: element.classList.contains("ui-resizable-resizing"),
@@ -201,6 +208,7 @@ async function dispatchReleaseLikeMoveAndReadState(widget: Locator, clientX: num
 }
 
 async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
+  await waitForWidgetGridEngine(widget);
   await widget.scrollIntoViewIfNeeded();
   const box = await widget.boundingBox();
   if (!box) {
@@ -214,6 +222,7 @@ async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: n
 }
 
 async function dragWidgetToTarget(page: Page, widget: Locator, target: Locator) {
+  await waitForWidgetGridEngine(widget);
   const title = widget.locator(".comins-grid-layout-widget__title");
   const [titleBox, targetBox] = await Promise.all([
     title.boundingBox(),
@@ -237,6 +246,7 @@ async function dragWidgetToTarget(page: Page, widget: Locator, target: Locator) 
 }
 
 async function startWidgetDrag(page: Page, widget: Locator) {
+  await waitForWidgetGridEngine(widget);
   await widget.scrollIntoViewIfNeeded();
   const box = await widget.boundingBox();
   if (!box) {
@@ -253,6 +263,7 @@ async function startWidgetDrag(page: Page, widget: Locator) {
 }
 
 async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
+  await waitForWidgetGridEngine(widget);
   await widget.scrollIntoViewIfNeeded();
   const widgetBox = await widget.boundingBox();
   if (!widgetBox) {
@@ -272,6 +283,7 @@ async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY:
 }
 
 async function resizeWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY: number) {
+  await waitForWidgetGridEngine(widget);
   await widget.evaluate(
     (element, delta) => {
       const handle = element.querySelector<HTMLElement>(".ui-resizable-se");
@@ -318,6 +330,7 @@ async function resizeWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY
 }
 
 async function dragWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY: number) {
+  await waitForWidgetGridEngine(widget);
   return widget.evaluate(
     (element, delta) => {
       const dragTarget = element.querySelector<HTMLElement>(".grid-stack-item-content") ?? element;
@@ -371,6 +384,7 @@ async function dragWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY: 
 }
 
 async function startWidgetResize(page: Page, widget: Locator) {
+  await waitForWidgetGridEngine(widget);
   await widget.scrollIntoViewIfNeeded();
   const widgetBox = await widget.boundingBox();
   if (!widgetBox) {
@@ -1037,18 +1051,8 @@ test("drops a widget on a plain div with mobile touch", async ({ page }, testInf
   const widget = page.getByTestId("dashboard-widget-overview");
   const title = widget.locator(".comins-grid-layout-widget__title");
   const target = page.getByTestId("external-drop-trash-child");
-  const [titleBox, targetBox] = await Promise.all([
-    title.boundingBox(),
-    target.boundingBox(),
-  ]);
-  if (!titleBox || !targetBox) {
-    throw new Error("Touch external drop geometry is unavailable");
-  }
-
-  await performTouchGesture(page, title, {
-    x: targetBox.x + targetBox.width / 2 - (titleBox.x + titleBox.width / 2),
-    y: targetBox.y + targetBox.height / 2 - (titleBox.y + titleBox.height / 2),
-  }, 12);
+  await waitForWidgetGridEngine(widget);
+  await performTouchGestureToTarget(page, title, target, 12);
 
   await expect(widget).toBeHidden();
   await expect.poll(
@@ -1070,6 +1074,7 @@ test("moves a widget with touch after a runtime column change", async ({ page },
 
   const widget = page.getByTestId("dashboard-widget-overview");
   const title = widget.locator(".comins-grid-layout-widget__title");
+  await waitForWidgetGridEngine(widget);
   await performTouchGesture(page, title, { x: 96, y: 0 }, 3);
 
   await expect(widget).toHaveAttribute("data-layout-x", "1");
@@ -1088,6 +1093,7 @@ test("resizes a widget with touch and commits the controlled layout", async ({ p
   const handle = widget.locator(".ui-resizable-se");
   await page.evaluate(() => window.__cominsReadmeDemo?.resetCommitCount());
 
+  await waitForWidgetGridEngine(widget);
   await performTouchGesture(page, handle, { x: 72, y: 104 }, 1);
 
   await expect(widget).toHaveAttribute("data-layout-w", "3");
