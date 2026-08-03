@@ -910,6 +910,83 @@ button {
   justify-content: flex-end;
 }
 
+.playground-shell {
+  min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
+}
+
+.playground-nav {
+  align-items: center;
+  background: var(--comins-color-surface);
+  border-bottom: 1px solid var(--comins-color-border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-height: 52px;
+  padding: 10px 24px;
+}
+
+.playground-nav a {
+  border-radius: var(--comins-radius-md);
+  color: #334155;
+  font-weight: 700;
+  padding: 8px 12px;
+}
+
+.playground-nav a:hover,
+.playground-nav a[aria-current="page"] {
+  background: #e8f8f2;
+  color: #065f46;
+}
+
+.playground-main,
+.playground-workspace,
+.playground-grid-region {
+  min-width: 0;
+  width: 100%;
+}
+
+.playground-workspace {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.playground-header {
+  display: grid;
+  gap: 4px;
+  padding: 24px 24px 0;
+}
+
+.playground-header h1 {
+  font-size: 28px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.playground-controls {
+  display: grid;
+  gap: 12px;
+  padding: 0 24px;
+}
+
+.playground-controls .example-actions {
+  margin: 0;
+}
+
+.playground-grid-region {
+  display: block;
+}
+
+.playground-grid-region > .example-widget-count {
+  margin: 0 24px 12px;
+}
+
+.playground-grid-region .grid-stack {
+  width: 100%;
+}
+
 @media (max-width: 860px) {
   .docs-topnav {
     grid-template-columns: 1fr;
@@ -943,5 +1020,48 @@ button {
 
   .example-external-drop__target {
     max-width: 100%;
+  }
+
+  .playground-nav {
+    padding: 8px 12px;
+  }
+
+  .playground-header {
+    padding: 18px 12px 0;
+  }
+
+  .playground-controls {
+    padding: 0 12px;
+  }
+
+  .playground-controls .example-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .playground-controls .example-actions > button,
+  .playground-controls .example-select,
+  .playground-controls .example-select select,
+  .playground-controls .example-input,
+  .playground-controls .example-input input {
+    width: 100%;
+  }
+
+  .playground-controls .example-select,
+  .playground-controls .example-input {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .playground-controls .example-external-drop {
+    width: 100%;
+  }
+
+  .playground-controls .example-external-drop__target {
+    width: min(300px, 100%);
+  }
+
+  .playground-grid-region > .example-widget-count {
+    margin-inline: 12px;
   }
 }

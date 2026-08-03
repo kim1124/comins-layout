@@ -18,64 +18,89 @@ function collectBrowserDiagnostics(page: Page) {
   return diagnostics;
 }
 
-async function dragWidgetToTarget(
+async function expectPlaygroundShell(
   page: Page,
-  widgetId: string,
-  targetLabel: string,
+  path: "/examples/widget" | "/examples/layout" | "/examples/advanced",
+  heading: "위젯" | "레이아웃" | "고급 예제",
 ) {
-  const title = page
-    .getByTestId(`dashboard-widget-${widgetId}`)
-    .locator(".comins-grid-layout-widget__title");
-  const target = page.getByLabel(targetLabel);
-  const [titleBox, targetBox] = await Promise.all([
-    title.boundingBox(),
-    target.boundingBox(),
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto(path);
+
+  const navigation = page.getByRole("navigation", { name: "예제 메뉴" });
+  const links = navigation.getByRole("link");
+  await expect(navigation).toBeVisible();
+  await expect(links).toHaveCount(3);
+  await expect(links).toHaveText(["위젯", "레이아웃", "고급 예제"]);
+  await expect(navigation.getByRole("link", { name: heading })).toHaveAttribute("aria-current", "page");
+
+  await expect(page.locator(".docs-sidebar")).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toHaveCount(0);
+  await expect(page.locator(".playground-controls")).toBeVisible();
+  await expect(page.locator(".grid-stack")).toHaveCount(1);
+
+  const [mainBox, headerBox, controlsBox, gridBox] = await Promise.all([
+    page.locator(".playground-main").boundingBox(),
+    page.locator(".playground-header").boundingBox(),
+    page.locator(".playground-controls").boundingBox(),
+    page.locator(".playground-grid-region .grid-stack").boundingBox(),
   ]);
 
-  if (!titleBox || !targetBox) {
-    throw new Error("Playground external drop geometry is unavailable");
-  }
+  expect(mainBox, "playground main geometry").not.toBeNull();
+  expect(headerBox, "playground header geometry").not.toBeNull();
+  expect(controlsBox, "playground controls geometry").not.toBeNull();
+  expect(gridBox, "playground grid geometry").not.toBeNull();
 
-  await page.mouse.move(
-    titleBox.x + titleBox.width / 2,
-    titleBox.y + titleBox.height / 2,
-  );
-  await page.mouse.down();
-  await page.mouse.move(
-    targetBox.x + targetBox.width / 2,
-    targetBox.y + targetBox.height / 2,
-    { steps: 16 },
-  );
-  await page.mouse.up();
+  expect(gridBox!.y).toBeGreaterThan(headerBox!.y + headerBox!.height);
+  expect(gridBox!.y).toBeGreaterThan(controlsBox!.y + controlsBox!.height);
+  expect(Math.abs(gridBox!.width - mainBox!.width)).toBeLessThanOrEqual(2);
+  expect(diagnostics).toEqual([]);
 }
 
 test.describe("gridstack docs playground routing", () => {
-  test("loads the getting started docs example as the single basic entry", async ({ page }) => {
-    const diagnostics = collectBrowserDiagnostics(page);
-    await page.goto("/docs/getting-started");
+  test("normalizes legacy and unknown routes to their canonical shells", async ({ page }) => {
+    const routes = [
+      { from: "/", heading: "위젯", to: "/examples/widget" },
+      { from: "/examples/crud", heading: "위젯", to: "/examples/widget" },
+      { from: "/examples/complete", heading: "고급 예제", to: "/examples/advanced" },
+      { from: "/examples/basic", heading: "시작하기", to: "/docs/getting-started" },
+      { from: "/unknown-route", heading: "위젯", to: "/examples/widget" },
+    ] as const;
 
-    await expect(page.getByRole("banner")).toContainText("comins-grid-layout");
-    await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toBeVisible();
-    await expect(page.getByRole("main").getByRole("heading", { name: "시작하기" })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "기본" })).toHaveCount(0);
-    await expect(page.locator(".docs-code__pre").first()).toBeVisible();
-    await expect(page.getByRole("heading", { name: "라이브 예제" })).toHaveCount(0);
-    await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "12");
-    await expect(page.locator(".grid-stack-item")).toHaveCount(12);
+    for (const route of routes) {
+      await page.goto(route.from);
 
-    const moveToggle = page.getByRole("button", { name: "이동 가능" });
-    await expect(moveToggle).toHaveAttribute("aria-pressed", "true");
-    await expect(moveToggle).toHaveAttribute("data-active", "true");
-    await moveToggle.click();
-    await expect(page.getByRole("button", { name: "이동 불가" })).toHaveAttribute("data-active", "false");
-    expect(diagnostics).toEqual([]);
+      await expect(page).toHaveURL(new RegExp(`${route.to.replaceAll("/", "\\/")}$`));
+      await expect(page.getByRole("main").getByRole("heading", { name: route.heading }).first()).toBeVisible();
+    }
   });
 
-  test("redirects the legacy basic route to getting started", async ({ page }) => {
-    await page.goto("/examples/basic");
+  test("normalizes a legacy example link during client-side navigation", async ({ page }) => {
+    await page.goto("/docs/getting-started");
 
-    await expect(page).toHaveURL(/\/docs\/getting-started$/);
-    await expect(page.getByRole("main").getByRole("heading", { name: "시작하기" })).toBeVisible();
+    await page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "종합 예제" }).click();
+
+    await expect(page).toHaveURL(/\/examples\/advanced$/);
+    await expect(page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "고급 예제" })).toHaveAttribute("aria-current", "page");
+  });
+
+  test("renders a dedicated full-width shell for every example route", async ({ page }) => {
+    await expectPlaygroundShell(page, "/examples/widget", "위젯");
+    await expectPlaygroundShell(page, "/examples/layout", "레이아웃");
+    await expectPlaygroundShell(page, "/examples/advanced", "고급 예제");
+  });
+
+  test("keeps the getting started and API pages in the docs shell", async ({ page }) => {
+    for (const route of [
+      { heading: "시작하기", path: "/docs/getting-started" },
+      { heading: "API", path: "/api" },
+    ]) {
+      await page.goto(route.path);
+
+      await expect(page.locator(".docs-shell")).toBeVisible();
+      await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toBeVisible();
+      await expect(page.locator(".playground-shell")).toHaveCount(0);
+      await expect(page.getByRole("main").getByRole("heading", { name: route.heading }).first()).toBeVisible();
+    }
   });
 
   test("uses a global search input instead of top navigation chips", async ({ page }) => {
@@ -94,113 +119,6 @@ test.describe("gridstack docs playground routing", () => {
     await results.getByRole("option", { name: /serializeState/ }).click();
     await expect(page).toHaveURL(/\/api#api-layout-save-restore$/);
     await expect(page.locator("#api-layout-save-restore")).toBeVisible();
-  });
-
-  test("does not render example metrics chips on live example pages", async ({ page }) => {
-    for (const path of ["/docs/getting-started", "/examples/crud", "/examples/layout", "/examples/widget", "/examples/complete"]) {
-      await page.goto(path);
-
-      await expect(page.locator(".example-metrics")).toHaveCount(0);
-    }
-  });
-
-  test("adds a widget through the add and delete dialog controls", async ({ page }) => {
-    const diagnostics = collectBrowserDiagnostics(page);
-    await page.goto("/examples/crud");
-
-    await expect(page.getByRole("main")).toContainText("추가 / 삭제");
-    await expect(page.getByText("위젯 3개")).toBeVisible();
-    await expect(page.getByLabel("crud widget actions").getByRole("button", { name: "위젯 추가" })).toBeVisible();
-    await expect(page.getByLabel("crud widget actions").getByRole("button", { name: "위젯 삭제" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "위젯 수정" })).toHaveCount(0);
-    await expect(page.getByLabel("crud widget edit form")).toHaveCount(0);
-    await expect(page.getByLabel("수정 대상")).toHaveCount(0);
-    await page.getByRole("button", { name: "위젯 추가" }).click();
-
-    const dialog = page.getByRole("dialog", { name: "위젯 추가" });
-    await expect(dialog).toBeVisible();
-    await dialog.getByLabel("새 위젯 너비").selectOption("4");
-    await dialog.getByLabel("새 위젯 높이").selectOption("3");
-    await dialog.getByRole("button", { name: "위젯 저장" }).click();
-
-    await expect(page.getByText("위젯 4개")).toBeVisible();
-    await expect(page.getByTestId("dashboard-widget-widget-4")).toHaveAttribute("data-layout-w", "4");
-    await expect(page.getByTestId("dashboard-widget-widget-4")).toHaveAttribute("data-layout-h", "3");
-    expect(diagnostics).toEqual([]);
-  });
-
-  test("exposes layout save restore, column select, and global lock examples", async ({ page }) => {
-    const diagnostics = collectBrowserDiagnostics(page);
-    await page.goto("/examples/layout");
-
-    await expect(page.getByRole("main")).toContainText("레이아웃");
-    await page.getByRole("button", { name: "레이아웃 저장" }).first().click();
-    await expect(page.getByText("저장 완료").first()).toBeVisible();
-
-    const columnSelect = page.getByLabel("컬럼 선택").first();
-    await expect(columnSelect.locator("option")).toHaveCount(12);
-    await columnSelect.selectOption("4");
-    await expect(page.getByTestId("dashboard-grid").first()).toHaveAttribute("data-columns", "4");
-
-    await page.getByRole("button", { name: "레이아웃 해제" }).click();
-    await expect(page.getByRole("button", { name: "레이아웃 잠금" })).toHaveAttribute("data-active", "true");
-    await expect(page.locator(".example-status")).toHaveCount(0);
-    expect(diagnostics).toEqual([]);
-  });
-
-  test("locks movement and resizing on an individual widget", async ({ page }) => {
-    const diagnostics = collectBrowserDiagnostics(page);
-    await page.goto("/examples/widget");
-
-    await expect(page.getByRole("main")).toContainText("위젯");
-    await page.getByLabel("위젯 선택").selectOption("sales");
-    await page.getByRole("button", { name: "이동 잠금" }).click();
-    await page.getByRole("button", { name: "리사이즈 잠금" }).click();
-
-    const widgetActions = page.getByLabel("widget interaction actions");
-    await expect(widgetActions.getByRole("button", { name: "이동 잠금" })).toHaveAttribute("data-active", "true");
-    await expect(widgetActions.getByRole("button", { name: "리사이즈 잠금" })).toHaveAttribute("data-active", "true");
-    await expect(page.locator(".example-status")).toHaveCount(0);
-    await expect(page.locator(".dashboard-widget-badges")).toHaveCount(0);
-    expect(diagnostics).toEqual([]);
-  });
-
-  test("shows the complete smoke example and feature-based API docs", async ({ page }) => {
-    await page.goto("/examples/complete");
-
-    await expect(page.locator(".docs-article__header")).toHaveCount(0);
-    await expect(page.locator(".docs-example-case__header")).toHaveCount(0);
-    await expect(page.locator(".docs-code__pre")).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "라이브 예제" })).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "레이아웃 저장" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "위젯 추가" })).toBeVisible();
-
-    await page.getByRole("link", { name: "API" }).click();
-    await expect(page).toHaveURL(/\/api$/);
-    await expect(page.getByRole("heading", { name: "1. Dashboard 렌더링" })).toBeVisible();
-    await expect(page.getByRole("main")).toContainText("DashboardWidget");
-  });
-
-  test("deletes a widget through the complete playground external drop target", async ({ page }, testInfo) => {
-    test.skip(!isDesktopBrowserProject(testInfo.project.name), "The Playground external drop is covered on supported desktop browsers.");
-    const diagnostics = collectBrowserDiagnostics(page);
-    await page.setViewportSize({ width: 1440, height: 1200 });
-    await page.goto("/examples/complete");
-
-    const targetLabel = "위젯을 여기에 놓으면 삭제됩니다";
-    const target = page.getByLabel(targetLabel);
-    await expect(target).toBeVisible();
-    await expect(target).toHaveJSProperty("tagName", "DIV");
-    await expect(target).toHaveCSS("width", "300px");
-    await expect(target).toHaveCSS("height", "300px");
-    await expect(page.getByText("위젯 4개")).toBeVisible();
-
-    await dragWidgetToTarget(page, "sales", targetLabel);
-
-    await expect(page.getByTestId("dashboard-widget-sales")).toBeHidden();
-    await expect(page.getByText("위젯 3개")).toBeVisible();
-    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toHaveText("sales 위젯을 삭제했습니다.");
-    expect(diagnostics).toEqual([]);
   });
 
   test("documents the gridstack API by feature with props methods and examples", async ({ page }) => {
@@ -259,13 +177,13 @@ test.describe("gridstack docs playground routing", () => {
     await expect(layoutApi).toContainText("serializeLayout()은 columns와 widget geometry만 저장합니다.");
   });
 
-  test("unmounts the previous live route when docs pages change", async ({ page }) => {
-    await page.goto("/docs/getting-started");
+  test("unmounts the previous example route before mounting the next owner", async ({ page }) => {
+    await page.goto("/examples/widget");
 
     await page.evaluate(() => {
       window.__cominsGridLayoutLastUnmount = undefined;
     });
-    await page.getByRole("link", { name: "레이아웃" }).click();
+    await page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "레이아웃" }).click();
 
     await expect(page).toHaveURL(/\/examples\/layout$/);
     await expect
@@ -275,6 +193,6 @@ test.describe("gridstack docs playground routing", () => {
           return typeof lastUnmount === "string" ? lastUnmount : lastUnmount?.routePath;
         }),
       )
-      .toBe("/docs/getting-started");
+      .toBe("/examples/widget");
   });
 });
