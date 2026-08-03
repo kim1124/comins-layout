@@ -916,19 +916,16 @@ test("emits one external drop event and removes controlled state through the con
 test("does not emit an external drop event when dropping outside the target", async ({ page }, testInfo) => {
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
-  await page.goto("/readme-demo");
-  await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
+  await page.goto("/examples/advanced");
 
-  const widget = page.getByTestId("dashboard-widget-overview");
+  const widget = page.getByTestId("dashboard-widget-sales");
   await dragWidget(page, widget, 180, 0);
   await waitForInteractionToSettle(widget);
 
   await expect(widget).toBeVisible();
-  expect(await page.evaluate(
-    () => window.__cominsReadmeDemo
-      ?.getInteractionEvents()
-      .filter((event) => event.startsWith("external-drop:")),
-  )).toEqual([]);
+  await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toHaveText(
+    "위젯을 삭제 영역으로 드래그해 보세요.",
+  );
 });
 
 test("resolves an external drop target remounted after grid initialization", async ({ page }, testInfo) => {
@@ -1046,18 +1043,20 @@ test("orders the external drop callback after layout commit and before drag stop
 test("drops a widget on a plain div with mobile touch", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chrome", "Touch external drop is covered in mobile Chrome.");
   await page.setViewportSize({ width: 412, height: 1400 });
-  await page.goto("/readme-demo");
+  await page.goto("/examples/advanced");
 
-  const widget = page.getByTestId("dashboard-widget-overview");
-  const title = widget.locator(".comins-grid-layout-widget__title");
-  const target = page.getByTestId("external-drop-trash-child");
+  const widget = page.getByTestId("dashboard-widget-sales");
+  const dragHandle = widget.locator(".grid-stack-item-content");
+  const target = page.locator("[data-dashboard-drop-target='trash']");
   await waitForWidgetGridEngine(widget);
-  await performTouchGestureToTarget(page, title, target, 12);
+  await performTouchGestureToTarget(page, dragHandle, target, 12);
 
   await expect(widget).toBeHidden();
-  await expect.poll(
-    () => page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents()),
-  ).toContain("external-drop:trash:overview");
+  await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toContainText(
+    "target=trash; widget=sales; columns=12; layout=",
+  );
+  const targetBox = await target.boundingBox();
+  expect(targetBox?.width).toBeLessThanOrEqual(300);
 });
 
 test("moves a widget with touch after a runtime column change", async ({ page }, testInfo) => {

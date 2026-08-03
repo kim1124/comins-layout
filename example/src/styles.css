@@ -773,6 +773,7 @@ button {
   gap: 8px;
   height: 300px;
   justify-content: center;
+  max-width: 100%;
   padding: 24px;
   text-align: center;
   width: 300px;

@@ -46,6 +46,20 @@ async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: n
   await page.mouse.up();
 }
 
+async function dragWidgetToTarget(page: Page, widget: Locator, target: Locator) {
+  await waitForWidgetGridEngine(widget);
+  const title = widget.locator(".comins-grid-layout-widget__title");
+  const [titleBox, targetBox] = await Promise.all([title.boundingBox(), target.boundingBox()]);
+  if (!titleBox || !targetBox) {
+    throw new Error("External drop geometry is unavailable");
+  }
+
+  await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 16 });
+  await page.mouse.up();
+}
+
 async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
   await waitForWidgetGridEngine(widget);
   await widget.scrollIntoViewIfNeeded();
@@ -533,5 +547,165 @@ test.describe("Layout Playground", () => {
 
     await page.getByRole("button", { name: "전체 상태 저장" }).click();
     expect(JSON.parse(await fullStateEditor.inputValue())).toEqual(savedFullState);
+  });
+});
+
+test.describe("Advanced Playground", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1400 });
+    await page.goto("/examples/advanced");
+  });
+
+  test("deletes only through the configured 300x300 typed external target callback", async ({ page }) => {
+    await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
+    await expect(page.locator(".grid-stack")).toHaveCount(1);
+
+    const target = page.locator("[data-dashboard-drop-target='trash']");
+    await expect(target).toBeVisible();
+    const targetBox = await target.boundingBox();
+    expect(targetBox?.width).toBe(300);
+    expect(targetBox?.height).toBe(300);
+
+    const widget = page.getByTestId("dashboard-widget-sales");
+    await dragWidgetToTarget(page, widget, target);
+
+    await expect(widget).toBeHidden();
+    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toContainText(
+      "target=trash; widget=sales; columns=12; layout=",
+    );
+    await expect(page.getByRole("button", { name: /GridStack (addWidget|removeWidget|destroy)/i })).toHaveCount(0);
+  });
+
+  test("keeps the widget and target status unchanged when a drag ends outside the target", async ({ page }) => {
+    const widget = page.getByTestId("dashboard-widget-sales");
+    const initialStatus = "위젯을 삭제 영역으로 드래그해 보세요.";
+    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toHaveText(initialStatus);
+
+    await dragWidget(page, widget, 160, 0);
+
+    await expect(widget).toBeVisible();
+    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toHaveText(initialStatus);
+  });
+
+  test("round-trips independent 6 and 12 column geometry through the visible state cache", async ({ page }) => {
+    const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
+    const activeColumns = page.getByRole("status", { name: "활성 컬럼 상태" });
+    const cacheKeys = page.getByRole("status", { name: "사용 가능한 컬럼 캐시" });
+    const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+
+    await expect(columnSelect).toHaveValue("12");
+    await expect(activeColumns).toHaveText("현재 12컬럼입니다.");
+    const initialTwelve = await readDashboardLayouts(page);
+    await resizeWidget(page, page.getByTestId("dashboard-widget-orders"), 0, 110);
+    await expect.poll(() => readDashboardLayouts(page)).not.toEqual(initialTwelve);
+    const modifiedTwelve = await readDashboardLayouts(page);
+
+    await columnSelect.selectOption("6");
+    await expect(activeColumns).toHaveText("현재 6컬럼입니다.");
+    const initialSix = await readDashboardLayouts(page);
+    await resizeWidget(page, page.getByTestId("dashboard-widget-sales"), 0, 110);
+    await expect.poll(() => readDashboardLayouts(page)).not.toEqual(initialSix);
+    const modifiedSix = await readDashboardLayouts(page);
+
+    await columnSelect.selectOption("12");
+    await expect.poll(() => readDashboardLayouts(page)).toEqual(modifiedTwelve);
+    await columnSelect.selectOption("6");
+    await expect.poll(() => readDashboardLayouts(page)).toEqual(modifiedSix);
+    await expect(cacheKeys).toHaveText("사용 가능한 캐시 컬럼: 6, 12");
+
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const savedStateJson = await stateEditor.inputValue();
+    const savedState = JSON.parse(savedStateJson) as {
+      layoutsByColumn: Record<string, { widgets: IdentifiedWidgetLayout[] }>;
+    };
+    expect(Object.keys(savedState.layoutsByColumn).sort()).toEqual(["12", "6"]);
+    expect(savedState.layoutsByColumn["6"]?.widgets).toEqual(modifiedSix);
+    expect(savedState.layoutsByColumn["12"]?.widgets).toEqual(modifiedTwelve);
+
+    await page.getByRole("button", { name: "전체 삭제" }).click();
+    await expect(page.locator(".grid-stack-item")).toHaveCount(0);
+    await stateEditor.fill(savedStateJson);
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+    await expect.poll(() => readDashboardLayouts(page)).toEqual(modifiedSix);
+    await columnSelect.selectOption("12");
+    await expect.poll(() => readDashboardLayouts(page)).toEqual(modifiedTwelve);
+  });
+
+  test("routes responsive viewport columns through the same reducer cache keys as manual selection", async ({ page }) => {
+    const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
+    const activeColumns = page.getByRole("status", { name: "활성 컬럼 상태" });
+    const cacheKeys = page.getByRole("status", { name: "사용 가능한 컬럼 캐시" });
+    const responsiveToggle = page.getByRole("button", { name: "반응형 컬럼 사용" });
+
+    await columnSelect.selectOption("6");
+    await columnSelect.selectOption("12");
+    await expect(cacheKeys).toHaveText("사용 가능한 캐시 컬럼: 6, 12");
+
+    await responsiveToggle.click();
+    await expect(responsiveToggle).toHaveAttribute("aria-pressed", "true");
+    await page.setViewportSize({ width: 800, height: 1000 });
+    await expect(activeColumns).toHaveText("현재 6컬럼입니다.");
+    await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "6");
+    await expect(cacheKeys).toHaveText("사용 가능한 캐시 컬럼: 6, 12");
+
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await expect(activeColumns).toHaveText("현재 12컬럼입니다.");
+    await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "12");
+    await expect(cacheKeys).toHaveText("사용 가능한 캐시 컬럼: 6, 12");
+  });
+
+  test("rejects malformed full-state JSON without crashing or changing reducer geometry", async ({ page }) => {
+    const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    const initialLayouts = await readDashboardLayouts(page);
+    const malformedState = '{"columns":12}';
+
+    await stateEditor.fill(malformedState);
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+
+    await expect(page.getByRole("status", { name: "전체 상태 저장 복원 상태" })).toHaveText(
+      "JSON 형식 또는 상태 값을 확인해 주세요.",
+    );
+    await expect(stateEditor).toHaveValue(malformedState);
+    await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
+    await expect.poll(() => readDashboardLayouts(page)).toEqual(initialLayouts);
+  });
+
+  test("uses only supported compact list commit and read-only handle queries with controlled float", async ({ page }) => {
+    const queryStatus = page.getByRole("status", { name: "GridStack 읽기 전용 상태" });
+    const commitStatus = page.getByRole("status", { name: "제어 레이아웃 커밋 상태" });
+    const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+
+    await expect(queryStatus).toContainText("column=12; row=");
+    await expect(queryStatus).toContainText("float=false");
+
+    await page.getByRole("button", { name: "compact 정렬 후 커밋" }).click();
+    await expect(page.getByRole("status", { name: "handle 작업 상태" })).toHaveText(
+      "compact 정렬을 커밋했습니다.",
+    );
+    await expect(commitStatus).toContainText("12컬럼 레이아웃을 React 상태에 커밋했습니다.");
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    let savedState = JSON.parse(await stateEditor.inputValue()) as {
+      layoutsByColumn: Record<string, { widgets: IdentifiedWidgetLayout[] }>;
+    };
+    expect(savedState.layoutsByColumn["12"]?.widgets).toEqual(await readDashboardLayouts(page));
+
+    await page.getByRole("button", { name: "list 정렬 후 커밋" }).click();
+    await expect(page.getByRole("status", { name: "handle 작업 상태" })).toHaveText(
+      "list 정렬을 커밋했습니다.",
+    );
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    savedState = JSON.parse(await stateEditor.inputValue()) as typeof savedState;
+    expect(savedState.layoutsByColumn["12"]?.widgets).toEqual(await readDashboardLayouts(page));
+
+    await page.getByRole("button", { name: "Float 사용" }).click();
+    await expect(page.getByRole("button", { name: "Float 사용" })).toHaveAttribute("aria-pressed", "true");
+    await expect(queryStatus).toContainText("float=true");
+
+    const beforeFloatLayout = await readWidgetLayout(page.getByTestId("dashboard-widget-sales"));
+    await resizeWidget(page, page.getByTestId("dashboard-widget-sales"), 0, 110);
+    await expect.poll(() => readWidgetLayout(page.getByTestId("dashboard-widget-sales"))).not.toEqual(beforeFloatLayout);
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    savedState = JSON.parse(await stateEditor.inputValue()) as typeof savedState;
+    expect(savedState.layoutsByColumn["12"]?.widgets).toEqual(await readDashboardLayouts(page));
   });
 });
