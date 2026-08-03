@@ -67,12 +67,8 @@ export function WidgetPlayground() {
 
     const nextWidget = dashboard.widgets.find((widget) => widget.id !== id);
     dashboard.commands.removeWidget(id);
-    if (selectedWidgetId === id) {
-      setSelectedWidgetId(nextWidget?.id);
-      setStatus(nextWidget ? `${nextWidget.title ?? nextWidget.id} 위젯을 선택했습니다.` : "선택할 위젯이 없습니다.");
-      return;
-    }
-    setStatus(`${removedWidget.title ?? removedWidget.id} 위젯을 삭제했습니다.`);
+    setSelectedWidgetId(nextWidget?.id);
+    setStatus(nextWidget ? `${nextWidget.title ?? nextWidget.id} 위젯을 선택했습니다.` : "선택할 위젯이 없습니다.");
   };
 
   const deleteWidget = () => {
@@ -126,6 +122,7 @@ export function WidgetPlayground() {
       <section aria-label="위젯 예제 컨트롤" className="playground-controls">
         <WidgetCrudControls
           addDialogOpen={addDialogOpen}
+          canEdit
           dashboard={dashboard}
           editDialogOpen={editDialogOpen}
           mode="widget"

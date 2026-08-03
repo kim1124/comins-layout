@@ -29,6 +29,7 @@ export type EditedWidgetDraft = Pick<NewWidgetDraft, "title" | "value">;
 
 type WidgetCrudControlsProps = {
   addDialogOpen?: boolean;
+  canEdit?: boolean;
   dashboard: DashboardRuntime;
   editDialogOpen?: boolean;
   mode: string;
@@ -152,6 +153,7 @@ function WidgetDialogForm({
 
 export function WidgetCrudControls({
   addDialogOpen,
+  canEdit = false,
   dashboard,
   editDialogOpen,
   mode,
@@ -282,10 +284,12 @@ export function WidgetCrudControls({
             onChange={(id) => setSelectedWidgetId(id)}
           />
         </fieldset>
-        <button type="button" disabled={!selectedWidget} onClick={() => setEditDialogOpen(true)}>
-          <Pencil aria-hidden="true" size={14} />
-          선택 위젯 수정
-        </button>
+        {canEdit ? (
+          <button type="button" disabled={!selectedWidget} onClick={() => setEditDialogOpen(true)}>
+            <Pencil aria-hidden="true" size={14} />
+            선택 위젯 수정
+          </button>
+        ) : null}
         <button className="example-action-button example-action-button--danger" disabled={!selectedWidget} type="button" onClick={deleteWidget}>
           <Trash2 aria-hidden="true" size={14} />
           선택 위젯 삭제
@@ -314,22 +318,24 @@ export function WidgetCrudControls({
         />
       </Dialog>
 
-      <Dialog
-        description="선택한 위젯의 제목과 값을 변경합니다."
-        open={resolvedEditDialogOpen}
-        title="위젯 수정"
-        onOpenChange={setEditDialogOpen}
-      >
-        <WidgetDialogForm
-          initialTitle={selectedWidget?.title ?? ""}
-          initialValue={selectedWidget?.data?.value ?? ""}
-          mode="edit"
+      {canEdit ? (
+        <Dialog
+          description="선택한 위젯의 제목과 값을 변경합니다."
           open={resolvedEditDialogOpen}
-          scope={`${mode}-edit`}
-          onCancel={() => setEditDialogOpen(false)}
-          onSubmit={editWidget}
-        />
-      </Dialog>
+          title="위젯 수정"
+          onOpenChange={setEditDialogOpen}
+        >
+          <WidgetDialogForm
+            initialTitle={selectedWidget?.title ?? ""}
+            initialValue={selectedWidget?.data?.value ?? ""}
+            mode="edit"
+            open={resolvedEditDialogOpen}
+            scope={`${mode}-edit`}
+            onCancel={() => setEditDialogOpen(false)}
+            onSubmit={editWidget}
+          />
+        </Dialog>
+      ) : null}
     </>
   );
 }

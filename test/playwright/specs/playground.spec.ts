@@ -174,6 +174,16 @@ test.describe("Widget Playground", () => {
     await expect(page.getByRole("status", { name: "위젯 작업 상태" })).toContainText("선택할 위젯이 없습니다.");
   });
 
+  test("selects the first remaining widget when a different widget is deleted from its header", async ({ page }) => {
+    const selection = page.getByRole("combobox", { name: "위젯 선택" });
+    await selection.selectOption("traffic");
+    await page.getByRole("button", { name: "주문 삭제" }).click();
+
+    await expect(page.getByTestId("dashboard-widget-orders")).toBeHidden();
+    await expect(selection).toHaveValue("sales");
+    await expect(page.getByRole("status", { name: "위젯 작업 상태" })).toContainText("매출 위젯을 선택했습니다.");
+  });
+
   test("prevents and then permits a real drag through the move lock", async ({ page }) => {
     const widget = page.getByTestId("dashboard-widget-sales");
     const moveLock = page.getByRole("button", { name: "이동 잠금" });
@@ -244,13 +254,13 @@ test.describe("Widget Playground", () => {
     expect(state.widgets?.find((candidate) => candidate.id === "sales")?.locked).toBe(false);
   });
 
-  test("preserves one clear owner and first-widget fallback for the shared Advanced controls", async ({ page }) => {
+  test("preserves Advanced control ownership and first-widget fallback", async ({ page }) => {
     await page.goto("/examples/advanced");
     await expect(page.getByRole("button", { name: "전체 삭제" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "선택 위젯 수정" })).toHaveCount(0);
 
     await page.getByRole("button", { name: "매출 삭제" }).click();
     await expect(page.getByTestId("dashboard-widget-sales")).toBeHidden();
     await expect(page.getByRole("combobox", { name: "위젯 선택" })).toHaveValue("traffic");
-    await expect(page.getByRole("button", { name: "선택 위젯 수정" })).toBeEnabled();
   });
 });
