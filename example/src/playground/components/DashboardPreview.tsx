@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { DashboardGridProps } from "../../../../src";
 import { DashboardGrid } from "../../../../src";
 
@@ -8,7 +9,11 @@ type DashboardPreviewProps = {
   externalDropTargets?: DashboardGridProps<ExampleWidgetData>["externalDropTargets"];
   movable?: boolean;
   onWidgetExternalDrop?: DashboardGridProps<ExampleWidgetData>["onWidgetExternalDrop"];
+  onLayoutCommit?: DashboardGridProps<ExampleWidgetData>["onLayoutCommit"];
+  onWidgetRemove?: DashboardGridProps<ExampleWidgetData>["onRemoveWidget"];
+  onWidgetSelect?: (id: string) => void;
   resizable?: boolean;
+  selectedWidgetId?: string;
   showControls?: boolean;
 };
 
@@ -16,8 +21,12 @@ export function DashboardPreview({
   dashboard,
   externalDropTargets,
   movable = true,
+  onLayoutCommit,
   onWidgetExternalDrop,
+  onWidgetRemove,
+  onWidgetSelect,
   resizable = true,
+  selectedWidgetId,
   showControls = true,
 }: DashboardPreviewProps) {
   return (
@@ -33,24 +42,43 @@ export function DashboardPreview({
         widgets={dashboard.widgets}
         onMaximizeWidget={dashboard.commands.maximizeWidget}
         onMinimizeWidget={dashboard.commands.minimizeWidget}
-        onRemoveWidget={dashboard.commands.removeWidget}
+        onRemoveWidget={onWidgetRemove ?? dashboard.commands.removeWidget}
         onRestoreWidget={dashboard.commands.restoreWidget}
+        onLayoutCommit={onLayoutCommit}
         onWidgetExternalDrop={onWidgetExternalDrop}
         onWidgetHeaderDoubleClick={dashboard.commands.fitWidgetToColumns}
-        onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
-        renderWidget={(widget) => (
-          <div className="dashboard-widget-body">
-            <span>{widget.data?.description}</span>
-            <strong>{widget.data?.value}</strong>
-          </div>
-        )}
+        onWidgetLayoutChange={onLayoutCommit ? undefined : dashboard.commands.updateWidgetLayout}
+        renderWidget={(widget) => {
+          const content = (
+            <>
+              <span>{widget.data?.description}</span>
+              <strong>{widget.data?.value}</strong>
+            </>
+          );
+
+          return onWidgetSelect ? (
+            <button
+              aria-label={`${widget.title ?? widget.id} 위젯 선택`}
+              aria-pressed={selectedWidgetId === widget.id}
+              className="dashboard-widget-body"
+              data-selected={selectedWidgetId === widget.id ? "true" : "false"}
+              type="button"
+              onClick={() => onWidgetSelect(widget.id)}
+            >
+              {content}
+            </button>
+          ) : (
+            <div className="dashboard-widget-body">{content}</div>
+          );
+        }}
       />
     </>
   );
 }
 
 export function PlaygroundHeader({ kicker, title }: { kicker: string; title: string }) {
-  const titleId = `playground-title-${title}`;
+  const generatedId = useId();
+  const titleId = `playground-title-${generatedId.replace(/:/g, "")}`;
 
   return (
     <header aria-labelledby={titleId} className="playground-header">

@@ -741,6 +741,11 @@ button {
   min-width: 120px;
 }
 
+.example-input .example-input-error {
+  color: #b91c1c;
+  font-size: 12px;
+}
+
 .example-widget-count {
   margin: 0 0 12px;
 }
@@ -822,6 +827,18 @@ button {
   gap: 8px;
   justify-content: flex-start;
   padding: 16px;
+  text-align: left;
+  width: 100%;
+}
+
+button.dashboard-widget-body {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+
+button.dashboard-widget-body[data-selected="true"] {
+  box-shadow: inset 0 0 0 2px var(--comins-color-accent);
 }
 
 .dashboard-widget-body strong {
@@ -973,6 +990,47 @@ button {
 
 .playground-controls .example-actions {
   margin: 0;
+}
+
+.example-interaction-actions {
+  border: 0;
+  padding: 0;
+}
+
+.example-control-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.example-status {
+  color: #214d42;
+  font-size: 13px;
+  margin: 0;
+}
+
+.example-state-output {
+  border: 1px solid var(--comins-color-border);
+  border-radius: var(--comins-radius-md);
+  padding: 10px 12px;
+}
+
+.example-state-output summary {
+  color: #334155;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.example-state-output pre {
+  background: #f8fafc;
+  border-radius: 6px;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
+  margin: 10px 0 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 10px;
 }
 
 .playground-grid-region {
