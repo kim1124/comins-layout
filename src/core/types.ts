@@ -68,16 +68,27 @@ export type DashboardLayoutSnapshot = {
   widgets: DashboardWidgetLayout[];
 };
 
+export type DashboardColumnLayoutSnapshot = {
+  widgets: DashboardWidgetLayout[];
+  previousLayouts: Record<DashboardWidgetId, DashboardWidgetLayout>;
+};
+
+export type DashboardLayoutsByColumn = Partial<
+  Record<DashboardColumnCount, DashboardColumnLayoutSnapshot>
+>;
+
 export type DashboardStateSnapshot<TData = unknown> = {
   columns: DashboardColumnCount;
   widgets: DashboardWidget<TData>[];
   previousLayouts: Record<DashboardWidgetId, DashboardWidgetLayout>;
+  layoutsByColumn: DashboardLayoutsByColumn;
 };
 
 export type DashboardStateSnapshotInput<TData = unknown> = {
   columns: number;
   widgets: DashboardWidget<TData>[];
   previousLayouts?: Record<DashboardWidgetId, DashboardWidgetLayout>;
+  layoutsByColumn?: DashboardLayoutsByColumn;
 };
 
 export type DashboardInteractionOptions = {
@@ -90,6 +101,7 @@ export type DashboardLayoutState<TData = unknown> = {
   columns: DashboardColumnCount;
   widgets: DashboardWidget<TData>[];
   previousLayouts: Record<DashboardWidgetId, DashboardWidgetLayout | undefined>;
+  layoutsByColumn: DashboardLayoutsByColumn;
   refreshVersion: number;
 };
 

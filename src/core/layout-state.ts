@@ -1,7 +1,10 @@
-import { clampDashboardColumnCount } from "./columns";
+import { clampDashboardColumnCount, DASHBOARD_COLUMN_COUNTS } from "./columns";
 import type {
+  DashboardColumnCount,
+  DashboardColumnLayoutSnapshot,
   DashboardLayoutSnapshot,
   DashboardLayoutState,
+  DashboardLayoutsByColumn,
   DashboardStateSnapshot,
   DashboardStateSnapshotInput,
   DashboardWidget,
@@ -22,13 +25,15 @@ export function createDashboardLayoutState<TData = unknown>(
       ? normalizeWidget<TData>(widget, columns)
       : normalizeWidget<TData>({ id: widget.id, layout: widget }, columns),
   );
+  const previousLayouts = restorePreviousLayouts(snapshot, widgets, columns);
 
-  return {
+  return withActiveColumnSnapshot({
     columns,
     widgets,
-    previousLayouts: restorePreviousLayouts(snapshot, widgets, columns),
+    previousLayouts,
+    layoutsByColumn: normalizeLayoutsByColumn(snapshot, widgets, previousLayouts, columns),
     refreshVersion: 0,
-  };
+  });
 }
 
 export function addDashboardWidget<TData>(
@@ -355,6 +360,80 @@ export function serializeDashboardState<TData>(state: DashboardLayoutState<TData
         .filter((entry): entry is [DashboardWidgetId, DashboardWidgetLayout] => entry[1] !== undefined)
         .map(([id, layout]) => [id, { ...layout, id }]),
     ),
+    layoutsByColumn: DASHBOARD_COLUMN_COUNTS.reduce<DashboardLayoutsByColumn>((layoutsByColumn, columns) => {
+      const snapshot = state.layoutsByColumn[columns];
+      if (!snapshot) {
+        return layoutsByColumn;
+      }
+
+      layoutsByColumn[columns] = createColumnLayoutSnapshot(
+        snapshot.widgets.map((layout) => ({ id: layout.id, layout })),
+        snapshot.previousLayouts,
+        columns,
+      );
+      return layoutsByColumn;
+    }, {}),
+  };
+}
+
+function createColumnLayoutSnapshot<TData>(
+  widgets: DashboardWidget<TData>[],
+  previousLayouts: DashboardLayoutState<TData>["previousLayouts"],
+  columns: DashboardColumnCount,
+): DashboardColumnLayoutSnapshot {
+  const widgetIds = new Set(widgets.map((widget) => widget.id));
+
+  return {
+    widgets: widgets.map((widget) => normalizeColumnLayout({ ...widget.layout, id: widget.id }, columns)),
+    previousLayouts: Object.fromEntries(
+      Object.entries(previousLayouts)
+        .filter(
+          (entry): entry is [DashboardWidgetId, DashboardWidgetLayout] =>
+            entry[1] !== undefined && widgetIds.has(entry[0]) && entry[1].id === entry[0],
+        )
+        .map(([id, layout]) => [id, normalizeColumnLayout({ ...layout, id }, columns)]),
+    ),
+  };
+}
+
+function normalizeLayoutsByColumn<TData>(
+  snapshot: DashboardLayoutStateInput<TData>,
+  widgets: DashboardWidget<TData>[],
+  activePreviousLayouts: DashboardLayoutState<TData>["previousLayouts"],
+  activeColumns: DashboardColumnCount,
+): DashboardLayoutsByColumn {
+  if (!("layoutsByColumn" in snapshot) || !snapshot.layoutsByColumn) {
+    return {};
+  }
+
+  const widgetIds = new Set(widgets.map((widget) => widget.id));
+  const layoutsByColumn: DashboardLayoutsByColumn = {};
+
+  DASHBOARD_COLUMN_COUNTS.forEach((columns) => {
+    const cachedSnapshot = snapshot.layoutsByColumn?.[columns];
+    if (!cachedSnapshot || !Array.isArray(cachedSnapshot.widgets)) {
+      return;
+    }
+
+    const cachedWidgets = cachedSnapshot.widgets
+      .filter((layout): layout is DashboardWidgetLayout => Boolean(layout) && widgetIds.has(layout.id))
+      .map((layout) => ({ id: layout.id, layout: { ...layout, id: layout.id } }));
+    const cachedPreviousLayouts = cachedSnapshot.previousLayouts ?? {};
+
+    layoutsByColumn[columns] = createColumnLayoutSnapshot(cachedWidgets, cachedPreviousLayouts, columns);
+  });
+
+  layoutsByColumn[activeColumns] = createColumnLayoutSnapshot(widgets, activePreviousLayouts, activeColumns);
+  return layoutsByColumn;
+}
+
+function withActiveColumnSnapshot<TData>(state: DashboardLayoutState<TData>): DashboardLayoutState<TData> {
+  return {
+    ...state,
+    layoutsByColumn: {
+      ...state.layoutsByColumn,
+      [state.columns]: createColumnLayoutSnapshot(state.widgets, state.previousLayouts, state.columns),
+    },
   };
 }
 
@@ -415,6 +494,31 @@ function normalizeLayout(layout: DashboardWidgetLayout, columns: number): Dashbo
     w,
     h: Math.max(1, Math.round(layout.h)),
   };
+}
+
+function normalizeColumnLayout(layout: DashboardWidgetLayout, columns: DashboardColumnCount): DashboardWidgetLayout {
+  const { minW: _minW, minH: _minH, maxW: _maxW, maxH: _maxH, ...normalized } = normalizeLayout(layout, columns);
+  const minW = normalizeLayoutLimit(layout.minW, 1, columns);
+  const minH = normalizeLayoutLimit(layout.minH, 1);
+  const maxW = normalizeLayoutLimit(layout.maxW, minW ?? 1, columns);
+  const maxH = normalizeLayoutLimit(layout.maxH, minH ?? 1);
+
+  return {
+    ...normalized,
+    ...(minW === undefined ? {} : { minW }),
+    ...(minH === undefined ? {} : { minH }),
+    ...(maxW === undefined ? {} : { maxW }),
+    ...(maxH === undefined ? {} : { maxH }),
+  };
+}
+
+function normalizeLayoutLimit(value: number | undefined, minimum: number, maximum?: number): number | undefined {
+  if (value === undefined || !Number.isFinite(value)) {
+    return undefined;
+  }
+
+  const rounded = Math.round(value);
+  return maximum === undefined ? Math.max(minimum, rounded) : Math.max(minimum, Math.min(rounded, maximum));
 }
 
 function rememberPreviousLayout<TData>(

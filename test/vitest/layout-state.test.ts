@@ -160,6 +160,20 @@ describe("dashboard layout state", () => {
 
     expect(saved).toEqual({
       columns: 6,
+      layoutsByColumn: {
+        6: {
+          previousLayouts: {},
+          widgets: [
+            {
+              id: "sales",
+              x: 1,
+              y: 2,
+              w: 3,
+              h: 2,
+            },
+          ],
+        },
+      },
       previousLayouts: {},
       widgets: [
         {
@@ -309,6 +323,160 @@ describe("dashboard layout state", () => {
         { id: "traffic", x: 9, y: 0, w: 3, h: 2 },
         { id: "orders", x: 0, y: 2, w: 2, h: 2 },
       ],
+    });
+  });
+
+  describe("column layout snapshots", () => {
+    const layoutsByColumn = {
+      12: {
+        widgets: [
+          { id: "sales", x: 0, y: 0, w: 8, h: 2 },
+          { id: "traffic", x: 8, y: 0, w: 4, h: 2 },
+        ],
+        previousLayouts: {},
+      },
+      6: {
+        widgets: [
+          { id: "sales", x: 0, y: 0, w: 3, h: 2 },
+          { id: "traffic", x: 3, y: 0, w: 3, h: 2 },
+        ],
+        previousLayouts: {},
+      },
+    };
+
+    it("migrates a legacy snapshot by creating an active-column cache entry", () => {
+      const state = createDashboardLayoutState({
+        columns: 6,
+        widgets: [
+          { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 } },
+          { id: "traffic", layout: { id: "traffic", x: 3, y: 0, w: 3, h: 2 } },
+        ],
+      });
+
+      expect(state.layoutsByColumn).toEqual({
+        6: {
+          widgets: [
+            { id: "sales", x: 0, y: 0, w: 3, h: 2 },
+            { id: "traffic", x: 3, y: 0, w: 3, h: 2 },
+          ],
+          previousLayouts: {},
+        },
+      });
+    });
+
+    it("round-trips cached column layouts without exposing shared layout references", () => {
+      const state = createDashboardLayoutState({
+        columns: 12,
+        widgets: [
+          { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 8, h: 2 } },
+          { id: "traffic", layout: { id: "traffic", x: 8, y: 0, w: 4, h: 2 } },
+        ],
+        layoutsByColumn,
+      });
+      const saved = serializeDashboardState(state);
+
+      expect(saved.layoutsByColumn).toEqual(layoutsByColumn);
+      expect(saved.layoutsByColumn[6]?.widgets[0]).not.toBe(state.layoutsByColumn[6]?.widgets[0]);
+      expect(saved.layoutsByColumn[12]?.widgets[0]).not.toBe(state.layoutsByColumn[12]?.widgets[0]);
+    });
+
+    it("uses authoritative active widgets and restore layouts over a conflicting active cache entry", () => {
+      const state = createDashboardLayoutState({
+        columns: 12,
+        widgets: [
+          { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 9, h: 2 } },
+          { id: "traffic", layout: { id: "traffic", x: 9, y: 0, w: 3, h: 2 } },
+        ],
+        previousLayouts: {
+          sales: { id: "sales", x: 1, y: 2, w: 4, h: 2 },
+        },
+        layoutsByColumn,
+      });
+
+      expect(state.layoutsByColumn[12]).toEqual({
+        widgets: [
+          { id: "sales", x: 0, y: 0, w: 9, h: 2 },
+          { id: "traffic", x: 9, y: 0, w: 3, h: 2 },
+        ],
+        previousLayouts: {
+          sales: { id: "sales", x: 1, y: 2, w: 4, h: 2 },
+        },
+      });
+    });
+
+    it("normalizes cached layout geometry and limits against the cached column count", () => {
+      const state = createDashboardLayoutState({
+        columns: 12,
+        widgets: [{ id: "sales", layout: { id: "sales", x: 0, y: 0, w: 8, h: 2 } }],
+        layoutsByColumn: {
+          6: {
+            widgets: [{ id: "sales", x: 5, y: -1, w: 5, h: 0, minW: 10, minH: 0, maxW: 20, maxH: 0 }],
+            previousLayouts: {},
+          },
+        },
+      });
+
+      expect(state.layoutsByColumn[6]?.widgets).toEqual([
+        { id: "sales", x: 1, y: 0, w: 5, h: 1, minW: 6, minH: 1, maxW: 6, maxH: 1 },
+      ]);
+    });
+
+    it("discards invalid cache columns, layouts, and restore entries", () => {
+      const state = createDashboardLayoutState({
+        columns: 12,
+        widgets: [
+          { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 8, h: 2 } },
+          { id: "traffic", layout: { id: "traffic", x: 8, y: 0, w: 4, h: 2 } },
+        ],
+        layoutsByColumn: {
+          0: { widgets: [{ id: "sales", x: 0, y: 0, w: 1, h: 1 }], previousLayouts: {} },
+          6: {
+            widgets: [
+              { id: "sales", x: 0, y: 0, w: 3, h: 2 },
+              { id: "unknown", x: 3, y: 0, w: 3, h: 2 },
+            ],
+            previousLayouts: {
+              sales: { id: "traffic", x: 0, y: 0, w: 3, h: 2 },
+              unknown: { id: "unknown", x: 0, y: 0, w: 3, h: 2 },
+            },
+          },
+          13: { widgets: [{ id: "sales", x: 0, y: 0, w: 1, h: 1 }], previousLayouts: {} },
+          desktop: { widgets: [{ id: "sales", x: 0, y: 0, w: 1, h: 1 }], previousLayouts: {} },
+        } as unknown as DashboardStateSnapshotInput["layoutsByColumn"],
+      });
+
+      expect(state.layoutsByColumn).toEqual({
+        6: {
+          widgets: [{ id: "sales", x: 0, y: 0, w: 3, h: 2 }],
+          previousLayouts: {},
+        },
+        12: {
+          widgets: [
+            { id: "sales", x: 0, y: 0, w: 8, h: 2 },
+            { id: "traffic", x: 8, y: 0, w: 4, h: 2 },
+          ],
+          previousLayouts: {},
+        },
+      });
+    });
+
+    it("keeps the legacy layout serializer limited to active columns and widget layouts", () => {
+      const state = createDashboardLayoutState({
+        columns: 12,
+        widgets: [
+          { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 8, h: 2 } },
+          { id: "traffic", layout: { id: "traffic", x: 8, y: 0, w: 4, h: 2 } },
+        ],
+        layoutsByColumn,
+      });
+
+      expect(serializeDashboardLayout(state)).toEqual({
+        columns: 12,
+        widgets: [
+          { id: "sales", x: 0, y: 0, w: 8, h: 2 },
+          { id: "traffic", x: 8, y: 0, w: 4, h: 2 },
+        ],
+      });
     });
   });
 });
