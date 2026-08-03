@@ -497,4 +497,41 @@ test.describe("Layout Playground", () => {
     };
     expect(Object.keys(resetState.layoutsByColumn)).toEqual(["12"]);
   });
+
+  test("rejects malformed supported-column caches without changing geometry, caches, or the editor", async ({ page }) => {
+    const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
+    const fullStateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    const fullStateStatus = page.getByRole("status", { name: "전체 상태 저장 복원 상태" });
+    const privateInvalidValue = "CACHE_DO_NOT_ECHO";
+    const consoleMessages: string[] = [];
+    page.on("console", (message) => consoleMessages.push(message.text()));
+
+    await columnSelect.selectOption("6");
+    await columnSelect.selectOption("12");
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const savedFullStateJson = await fullStateEditor.inputValue();
+    const savedFullState = JSON.parse(savedFullStateJson) as {
+      layoutsByColumn: Record<string, { widgets: Array<Record<string, unknown>> }>;
+    };
+    const activeLayouts = await readDashboardLayouts(page);
+    const malformedFullState = JSON.parse(savedFullStateJson) as typeof savedFullState;
+    const malformedSixColumnLayout = malformedFullState.layoutsByColumn["6"]?.widgets[0];
+    expect(malformedSixColumnLayout).toBeDefined();
+    if (!malformedSixColumnLayout) {
+      throw new Error("Expected a cached 6-column layout fixture");
+    }
+    malformedSixColumnLayout.x = privateInvalidValue;
+    const malformedFullStateJson = JSON.stringify(malformedFullState, null, 2);
+
+    await fullStateEditor.fill(malformedFullStateJson);
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+    await expect(fullStateStatus).toHaveText("JSON 형식 또는 레이아웃 값을 확인해 주세요.");
+    await expect(fullStateEditor).toHaveValue(malformedFullStateJson);
+    await expect.poll(() => readDashboardLayouts(page)).toEqual(activeLayouts);
+    expect((await page.locator('[role="status"]').allTextContents()).join("\n")).not.toContain(privateInvalidValue);
+    expect(consoleMessages.join("\n")).not.toContain(privateInvalidValue);
+
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    expect(JSON.parse(await fullStateEditor.inputValue())).toEqual(savedFullState);
+  });
 });

@@ -17,6 +17,8 @@ const columnOptions: SelectOption[] = DASHBOARD_COLUMN_COUNTS.map((column) => ({
 }));
 
 const JSON_ERROR_STATUS = "JSON 형식 또는 레이아웃 값을 확인해 주세요.";
+const layoutLimitKeys = ["minW", "minH", "maxW", "maxH"] as const;
+const supportedColumnKeys = new Set(DASHBOARD_COLUMN_COUNTS.map(String));
 
 type PendingLayoutOperation = {
   before: string;
@@ -35,8 +37,44 @@ function isLayout(value: unknown): value is DashboardWidgetLayout {
   return (
     typeof value.id === "string" &&
     [value.x, value.y, value.w, value.h].every((coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate)) &&
+    layoutLimitKeys.every((key) => value[key] === undefined || (typeof value[key] === "number" && Number.isFinite(value[key]))) &&
     (value.w as number) > 0 &&
     (value.h as number) > 0
+  );
+}
+
+function hasUniqueLayoutIds(layouts: DashboardWidgetLayout[]): boolean {
+  return new Set(layouts.map((layout) => layout.id)).size === layouts.length;
+}
+
+function isPreviousLayoutMap(value: unknown, widgetIds: ReadonlySet<string>): boolean {
+  return (
+    isRecord(value) &&
+    Object.entries(value).every(
+      ([id, layout]) => widgetIds.has(id) && isLayout(layout) && layout.id === id,
+    )
+  );
+}
+
+function isColumnLayoutSnapshot(value: unknown, widgetIds: ReadonlySet<string>): boolean {
+  if (!isRecord(value) || !Array.isArray(value.widgets) || !value.widgets.every(isLayout)) {
+    return false;
+  }
+
+  return (
+    hasUniqueLayoutIds(value.widgets) &&
+    value.widgets.every((layout) => widgetIds.has(layout.id)) &&
+    isPreviousLayoutMap(value.previousLayouts, widgetIds)
+  );
+}
+
+function isLayoutsByColumn(value: unknown, widgetIds: ReadonlySet<string>): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return Object.entries(value).every(
+    ([column, snapshot]) => !supportedColumnKeys.has(column) || isColumnLayoutSnapshot(snapshot, widgetIds),
   );
 }
 
@@ -49,19 +87,29 @@ function isLayoutSnapshot(value: unknown): value is DashboardLayoutSnapshot {
 }
 
 function isStateSnapshot(value: unknown): value is DashboardStateSnapshotInput<ExampleWidgetData> {
+  if (!isRecord(value) || !isSupportedColumns(value.columns) || !Array.isArray(value.widgets)) {
+    return false;
+  }
+
+  const validWidgets = value.widgets.every(
+    (widget) =>
+      isRecord(widget) &&
+      typeof widget.id === "string" &&
+      isLayout(widget.layout) &&
+      widget.layout.id === widget.id,
+  );
+  if (!validWidgets) {
+    return false;
+  }
+
+  const widgetIds = new Set(value.widgets.map((widget) => (widget as { id: string }).id));
+  if (widgetIds.size !== value.widgets.length) {
+    return false;
+  }
+
   return (
-    isRecord(value) &&
-    isSupportedColumns(value.columns) &&
-    Array.isArray(value.widgets) &&
-    value.widgets.every(
-      (widget) =>
-        isRecord(widget) &&
-        typeof widget.id === "string" &&
-        isLayout(widget.layout) &&
-        widget.layout.id === widget.id,
-    ) &&
-    (value.previousLayouts === undefined || isRecord(value.previousLayouts)) &&
-    (value.layoutsByColumn === undefined || isRecord(value.layoutsByColumn))
+    (value.previousLayouts === undefined || isPreviousLayoutMap(value.previousLayouts, widgetIds)) &&
+    (value.layoutsByColumn === undefined || isLayoutsByColumn(value.layoutsByColumn, widgetIds))
   );
 }
 
