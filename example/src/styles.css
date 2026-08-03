@@ -1009,6 +1009,42 @@ button.dashboard-widget-body[data-selected="true"] {
   margin: 0;
 }
 
+.example-control-group {
+  border: 1px solid var(--comins-color-border);
+  border-radius: var(--comins-radius-md);
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.example-control-group > h2 {
+  color: #24463b;
+  font-size: 14px;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.example-control-group .example-layout-json,
+.example-control-group .example-crud-actions {
+  margin: 0;
+}
+
+.example-control-description {
+  color: #52645f;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.playground-layout-controls {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.playground-layout-controls > .example-control-group:first-child,
+.playground-layout-controls > .example-control-group:last-child {
+  grid-column: 1 / -1;
+}
+
 .example-state-output {
   border: 1px solid var(--comins-color-border);
   border-radius: var(--comins-radius-md);
@@ -1090,6 +1126,14 @@ button.dashboard-widget-body[data-selected="true"] {
 
   .playground-controls {
     padding: 0 12px;
+  }
+
+  .playground-layout-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .playground-layout-controls > .example-control-group {
+    grid-column: auto;
   }
 
   .playground-controls .example-actions {

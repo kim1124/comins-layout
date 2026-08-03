@@ -29,6 +29,7 @@ export type EditedWidgetDraft = Pick<NewWidgetDraft, "title" | "value">;
 
 type WidgetCrudControlsProps = {
   addDialogOpen?: boolean;
+  canClear?: boolean;
   canEdit?: boolean;
   dashboard: DashboardRuntime;
   editDialogOpen?: boolean;
@@ -153,6 +154,7 @@ function WidgetDialogForm({
 
 export function WidgetCrudControls({
   addDialogOpen,
+  canClear = false,
   canEdit = false,
   dashboard,
   editDialogOpen,
@@ -294,7 +296,7 @@ export function WidgetCrudControls({
           <Trash2 aria-hidden="true" size={14} />
           선택 위젯 삭제
         </button>
-        {onClearWidgets ? (
+        {canClear || onClearWidgets ? (
           <button className="example-action-button example-action-button--danger" disabled={dashboard.widgets.length === 0} type="button" onClick={clearWidgets}>
             전체 삭제
           </button>
