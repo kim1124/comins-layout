@@ -93,6 +93,14 @@ function DashboardGridInner<TData = unknown>(
     setActiveColumns(nextColumns);
     onColumnsChange?.(nextColumns);
   }, [onColumnsChange]);
+  const handleLayoutCommit = useCallback((snapshot: DashboardLayoutSnapshot) => {
+    const controlledColumns = clampDashboardColumnCount(columns);
+    onLayoutCommit?.(
+      !responsive && snapshot.columns !== controlledColumns
+        ? { ...snapshot, columns: controlledColumns }
+        : snapshot,
+    );
+  }, [columns, onLayoutCommit, responsive]);
   useImperativeHandle(
     ref,
     () => ({
@@ -133,7 +141,7 @@ function DashboardGridInner<TData = unknown>(
       widgets,
       externalDropTargets,
       onColumnsChange: handleColumnsChange,
-      onLayoutCommit,
+      onLayoutCommit: handleLayoutCommit,
       onWidgetLayoutChange,
       onWidgetExternalDrop,
       onWidgetDragStart,
@@ -150,8 +158,8 @@ function DashboardGridInner<TData = unknown>(
       engineOptions,
       externalDropTargets,
       handleColumnsChange,
+      handleLayoutCommit,
       movable,
-      onLayoutCommit,
       onWidgetExternalDrop,
       onWidgetDragStart,
       onWidgetDragStop,

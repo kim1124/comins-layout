@@ -31,8 +31,11 @@ const crudSample = `const dashboard = useDashboardGrid({ initialColumns: 6, init
 dashboard.commands.addWidget(widget);
 dashboard.commands.removeWidget(widget.id);`;
 
-const layoutSample = `const snapshot = dashboard.commands.serializeState();
-dashboard.commands.setColumns(4);
+const layoutSample = `dashboard.commands.setColumns(12);
+dashboard.commands.setColumns(6);
+dashboard.commands.setColumns(12); // restores the cached 12-column geometry
+
+const snapshot = dashboard.commands.serializeState();
 dashboard.commands.restoreLayout(snapshot);`;
 
 const lockSample = `<DashboardGrid
@@ -214,11 +217,11 @@ export const apiFeatures: ApiFeatureSection[] = [
         detail: "useDashboardGrid의 updateWidgetLayout command와 연결하는 기본 callback입니다.",
       },
       {
-        name: "DashboardLayoutSnapshot / DashboardStateSnapshot",
+        name: "DashboardLayoutSnapshot / DashboardStateSnapshot / DashboardColumnLayoutSnapshot / DashboardLayoutsByColumn",
         type: "type",
         description: "layout-only 저장과 full-state 저장을 구분하는 snapshot 타입입니다.",
         detail:
-          "serializeState()은 widgets, columns, previousLayouts를 저장합니다. 최대화 또는 최소화 후에도 restore가 원래 geometry를 복원합니다. serializeLayout()은 columns와 widget geometry만 저장합니다. pending maximize/minimize restore geometry는 포함하지 않습니다. 이전 JSON은 DashboardStateSnapshotInput으로 previousLayouts 없이 읽을 수 있습니다.",
+          "serializeState()은 widgets, columns, previousLayouts, layoutsByColumn을 저장합니다. DashboardLayoutsByColumn은 DashboardColumnLayoutSnapshot의 지원 컬럼별 cache입니다. serializeLayout()은 활성 columns와 widget geometry만 저장합니다. active top-level widgets와 previousLayouts가 active cache보다 authoritative입니다. legacy snapshot은 layoutsByColumn 없이 복원할 수 있습니다. 12 -> 6 -> 12 전환 후 serializeState()와 restoreLayout()은 각 컬럼 cache를 보존합니다.",
       },
     ],
     methods: [
@@ -377,6 +380,12 @@ export const apiFeatures: ApiFeatureSection[] = [
         detail: "Comins adapter boundary 내부에서 사용하며 직접 GridStack 인스턴스를 노출하지 않습니다.",
       },
       {
+        name: "DashboardGridHandle",
+        type: "type",
+        description: "getGridStack, refresh, compact, commitLayout을 제공하는 advanced public handle입니다.",
+        detail: "getGridStack()은 escape hatch입니다. controlled example에서는 raw GridStack add/remove/destroy를 호출하지 않습니다.",
+      },
+      {
         name: "DashboardWidgetResizeFrameEvent / DashboardResizeScheduler",
         type: "type",
         description: "resize frame event와 scheduler contract입니다.",
@@ -440,13 +449,13 @@ export const docsPages: DocsPage[] = [
       {
         codeSamples: [{ code: crudSample, language: "ts", title: "Widget add/remove commands" }],
         description: "기본 3개 위젯에서 Dialog를 통해 위젯을 추가하고, 선택 위젯을 삭제합니다.",
-        title: "추가 / 삭제",
+        title: "위젯 CRUD",
       },
     ],
-    label: "추가 / 삭제",
-    path: "/examples/crud",
+    label: "위젯",
+    path: "/examples/widget",
     summary: "widget create, delete 흐름입니다.",
-    title: "추가 / 삭제",
+    title: "위젯",
   },
   {
     category: "Examples",
@@ -476,29 +485,15 @@ export const docsPages: DocsPage[] = [
     category: "Examples",
     examples: [
       {
-        codeSamples: [{ code: widgetLockSample, language: "ts", title: "Widget interaction flags" }],
-        description: "위젯 목록에서 개별 위젯의 이동과 리사이즈 잠금을 분리해서 확인합니다.",
-        title: "개별 위젯 interaction",
+        codeSamples: [{ code: `${layoutSample}\n\n${widgetLockSample}`, language: "ts", title: "Advanced controlled state" }],
+        description: "responsive column, public handle query, external drop, 전체 상태와 컬럼 cache 복원을 제어된 React state로 확인합니다.",
+        title: "고급 제어 예제",
       },
     ],
-    label: "위젯",
-    path: "/examples/widget",
-    summary: "위젯별 이동, 리사이즈, 이동 잠금, 리사이즈 잠금 흐름입니다.",
-    title: "위젯",
-  },
-  {
-    category: "Examples",
-    examples: [
-      {
-        codeSamples: [{ code: `${crudSample}\n\n${layoutSample}\n\n${widgetLockSample}`, language: "ts", title: "Complete smoke" }],
-        description: "위젯 추가/삭제, 레이아웃 저장/복원, column 변경, 전체 잠금, 개별 위젯 잠금을 한 화면에서 확인합니다.",
-        title: "종합 예제",
-      },
-    ],
-    label: "종합 예제",
-    path: "/examples/complete",
-    summary: "1부터 4까지의 핵심 흐름을 한 화면에서 확인합니다.",
-    title: "종합 예제",
+    label: "고급 예제",
+    path: "/examples/advanced",
+    summary: "responsive, handle, external drop, 전체 상태 cache 흐름입니다.",
+    title: "고급 예제",
   },
   {
     category: "API",

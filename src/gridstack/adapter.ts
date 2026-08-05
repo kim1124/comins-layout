@@ -91,6 +91,7 @@ export function createDashboardGridAdapter<TData>(
   let currentOptions = options;
   let appliedOptions = options;
   let isInteracting = false;
+  let isSyncingControlledState = false;
   let pendingCommit = false;
   let pendingSync = false;
   let finishInteractionFrame: number | undefined;
@@ -227,7 +228,7 @@ export function createDashboardGridAdapter<TData>(
     }
   };
 
-  const scheduleColumnsChange = () => {
+  const scheduleColumnsChange = (commitChange = true) => {
     cancelFrame(columnsFrame);
     columnsFrame = window.requestAnimationFrame(() => {
       columnsFrame = undefined;
@@ -238,7 +239,9 @@ export function createDashboardGridAdapter<TData>(
       }
       lastObservedColumns = columns;
       currentOptions.onColumnsChange?.(columns);
-      commitLayout();
+      if (commitChange) {
+        commitLayout();
+      }
     });
   };
 
@@ -246,9 +249,14 @@ export function createDashboardGridAdapter<TData>(
     previousOptions: DashboardGridAdapterOptions<TData>,
     nextOptions: DashboardGridAdapterOptions<TData>,
   ) => {
-    applyRuntimeEngineOptions(previousOptions, nextOptions);
-    syncGridWidgets(grid, element, registeredItems, nextOptions.widgets, nextOptions);
-    scheduleColumnsChange();
+    isSyncingControlledState = true;
+    try {
+      applyRuntimeEngineOptions(previousOptions, nextOptions);
+      syncGridWidgets(grid, element, registeredItems, nextOptions.widgets, nextOptions);
+    } finally {
+      isSyncingControlledState = false;
+    }
+    scheduleColumnsChange(false);
   };
 
   const cancelFrame = (frame: number | undefined) => {
@@ -531,6 +539,9 @@ export function createDashboardGridAdapter<TData>(
   };
 
   const changeHandler = () => {
+    if (isSyncingControlledState) {
+      return;
+    }
     scheduleColumnsChange();
     if (isInteracting) {
       pendingCommit = true;

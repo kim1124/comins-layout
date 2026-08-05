@@ -49,6 +49,20 @@ describe("consumer README", () => {
     ]) expect(readme).toContain(`\`${name}\``);
   });
 
+  it("documents the per-column persistence and controlled GridStack contracts", () => {
+    for (const text of [
+      "DashboardColumnLayoutSnapshot",
+      "DashboardLayoutsByColumn",
+      "layoutsByColumn",
+      "active columns' layout-only snapshot",
+      "complete state snapshot",
+      "Legacy snapshots",
+      "12 -> 6 -> 12",
+      "escape hatch",
+      "raw GridStack add/remove/destroy",
+    ]) expect(readme).toContain(text);
+  });
+
   it("keeps the checked-in animation within the GIF contract", () => {
     const header = readFileSync(gifPath).subarray(0, 6).toString("ascii");
     expect(["GIF87a", "GIF89a"]).toContain(header);

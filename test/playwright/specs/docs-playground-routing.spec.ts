@@ -74,10 +74,17 @@ test.describe("gridstack docs playground routing", () => {
     }
   });
 
-  test("normalizes a legacy example link during client-side navigation", async ({ page }) => {
+  test("navigates docs users to the current widget, layout, and advanced playgrounds", async ({ page }) => {
     await page.goto("/docs/getting-started");
 
-    await page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "종합 예제" }).click();
+    const navigation = page.getByRole("navigation", { name: "문서 메뉴" });
+    await expect(navigation.getByRole("link", { name: "위젯" })).toHaveAttribute("href", "/examples/widget");
+    await expect(navigation.getByRole("link", { name: "레이아웃" })).toHaveAttribute("href", "/examples/layout");
+    await expect(navigation.getByRole("link", { name: "고급 예제" })).toHaveAttribute("href", "/examples/advanced");
+    await expect(navigation.getByRole("link", { name: "추가 / 삭제" })).toHaveCount(0);
+    await expect(navigation.getByRole("link", { name: "종합 예제" })).toHaveCount(0);
+
+    await navigation.getByRole("link", { name: "고급 예제" }).click();
 
     await expect(page).toHaveURL(/\/examples\/advanced$/);
     await expect(page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "고급 예제" })).toHaveAttribute("aria-current", "page");
@@ -167,14 +174,22 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.locator("#api-dashboard-rendering").locator(".docs-reference-list__sample").first()).toHaveCSS("padding-left", "10px");
   });
 
-  test("documents the previousLayouts persistence contract", async ({ page }, testInfo) => {
+  test("documents the full per-column persistence and controlled handle contracts", async ({ page }, testInfo) => {
     test.skip(!isDesktopBrowserProject(testInfo.project.name), "Persistence contract rendering is checked on supported desktop browsers.");
 
     await page.goto("/api");
 
     const layoutApi = page.locator("#api-layout-save-restore");
-    await expect(layoutApi).toContainText("serializeState()은 widgets, columns, previousLayouts를 저장합니다.");
-    await expect(layoutApi).toContainText("serializeLayout()은 columns와 widget geometry만 저장합니다.");
+    await expect(layoutApi).toContainText("DashboardColumnLayoutSnapshot");
+    await expect(layoutApi).toContainText("DashboardLayoutsByColumn");
+    await expect(layoutApi).toContainText("layoutsByColumn");
+    await expect(layoutApi).toContainText("serializeState()은 widgets, columns, previousLayouts, layoutsByColumn을 저장합니다.");
+    await expect(layoutApi).toContainText("serializeLayout()은 활성 columns와 widget geometry만 저장합니다.");
+    await expect(layoutApi).toContainText("legacy snapshot은 layoutsByColumn 없이 복원할 수 있습니다.");
+    await expect(layoutApi).toContainText("active top-level widgets와 previousLayouts가 active cache보다 authoritative입니다.");
+    await expect(layoutApi).toContainText("12 -> 6 -> 12");
+    await expect(page.getByText("getGridStack()은 escape hatch입니다.")).toBeVisible();
+    await expect(page.getByText("controlled example에서는 raw GridStack add/remove/destroy를 호출하지 않습니다.")).toBeVisible();
   });
 
   test("unmounts the previous example route before mounting the next owner", async ({ page }) => {
