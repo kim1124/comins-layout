@@ -89,6 +89,15 @@ function isLayoutsByColumn(value: unknown, widgetIds: ReadonlySet<string>): bool
   );
 }
 
+function hasValidOptionalWidgetMetadata(value: Record<string, unknown>): boolean {
+  return (
+    (value.title === undefined || typeof value.title === "string") &&
+    ["locked", "movable", "resizable", "minimized", "maximized"].every(
+      (key) => value[key] === undefined || typeof value[key] === "boolean",
+    )
+  );
+}
+
 function isStateSnapshot(value: unknown): value is DashboardStateSnapshotInput<ExampleWidgetData> {
   if (
     !isRecord(value) ||
@@ -104,7 +113,8 @@ function isStateSnapshot(value: unknown): value is DashboardStateSnapshotInput<E
       isRecord(widget) &&
       typeof widget.id === "string" &&
       isLayout(widget.layout) &&
-      widget.layout.id === widget.id,
+      widget.layout.id === widget.id &&
+      hasValidOptionalWidgetMetadata(widget),
   );
   if (!validWidgets) {
     return false;
@@ -116,6 +126,21 @@ function isStateSnapshot(value: unknown): value is DashboardStateSnapshotInput<E
     (value.previousLayouts === undefined || isPreviousLayoutMap(value.previousLayouts, widgetIds)) &&
     (value.layoutsByColumn === undefined || isLayoutsByColumn(value.layoutsByColumn, widgetIds))
   );
+}
+
+function discardUnsupportedColumnCaches(
+  snapshot: DashboardStateSnapshotInput<ExampleWidgetData>,
+): DashboardStateSnapshotInput<ExampleWidgetData> {
+  if (!snapshot.layoutsByColumn) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    layoutsByColumn: Object.fromEntries(
+      Object.entries(snapshot.layoutsByColumn).filter(([column]) => supportedColumnKeys.has(column)),
+    ) as DashboardStateSnapshotInput<ExampleWidgetData>["layoutsByColumn"],
+  };
 }
 
 export function AdvancedPlayground() {
@@ -183,7 +208,7 @@ export function AdvancedPlayground() {
       if (!isStateSnapshot(parsed)) {
         throw new Error("invalid dashboard state snapshot");
       }
-      dashboard.commands.restoreLayout(parsed);
+      dashboard.commands.restoreLayout(discardUnsupportedColumnCaches(parsed));
       setLayoutStatus("전체 상태와 컬럼 캐시를 복원했습니다.");
     } catch {
       setLayoutStatus(JSON_ERROR_STATUS);
@@ -223,6 +248,12 @@ export function AdvancedPlayground() {
 
     setHandleStatus(`${layout} 정렬을 커밋했습니다.`);
     window.requestAnimationFrame(refreshGridQueries);
+  };
+
+  const queryGridStatus = () => {
+    if (refreshGridQueries()) {
+      setHandleStatus("GridStack 상태를 조회했습니다.");
+    }
   };
 
   return (
@@ -286,7 +317,7 @@ export function AdvancedPlayground() {
           <div className="example-actions">
             <button type="button" onClick={() => compactAndCommit("compact")}>compact 정렬 후 커밋</button>
             <button type="button" onClick={() => compactAndCommit("list")}>list 정렬 후 커밋</button>
-            <button type="button" onClick={refreshGridQueries}>엔진 상태 조회</button>
+            <button type="button" onClick={queryGridStatus}>엔진 상태 조회</button>
           </div>
           <p aria-label="handle 작업 상태" className="example-status" role="status">{handleStatus}</p>
           <p aria-label="GridStack 읽기 전용 상태" className="example-status" role="status">{queryStatus}</p>

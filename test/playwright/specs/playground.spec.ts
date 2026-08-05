@@ -551,9 +551,26 @@ test.describe("Layout Playground", () => {
 });
 
 test.describe("Advanced Playground", () => {
-  test.beforeEach(async ({ page }) => {
+  const diagnosticsByTest = new Map<string, string[]>();
+
+  test.beforeEach(async ({ page }, testInfo) => {
+    const diagnostics: string[] = [];
+    diagnosticsByTest.set(testInfo.testId, diagnostics);
+    page.on("console", (message) => {
+      if (message.type() === "error") {
+        diagnostics.push(`[console] ${message.text()}`);
+      }
+    });
+    page.on("pageerror", (error) => {
+      diagnostics.push(`[pageerror] ${error.message}`);
+    });
     await page.setViewportSize({ width: 1280, height: 1400 });
     await page.goto("/examples/advanced");
+  });
+
+  test.afterEach(async ({}, testInfo) => {
+    expect(diagnosticsByTest.get(testInfo.testId), "Advanced Playground browser diagnostics").toEqual([]);
+    diagnosticsByTest.delete(testInfo.testId);
   });
 
   test("deletes only through the configured 300x300 typed external target callback", async ({ page }) => {
@@ -668,6 +685,94 @@ test.describe("Advanced Playground", () => {
     await expect(stateEditor).toHaveValue(malformedState);
     await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
     await expect.poll(() => readDashboardLayouts(page)).toEqual(initialLayouts);
+  });
+
+  test("rejects every invalid optional widget metadata type without changing state or exposing raw input", async ({ page }) => {
+    const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
+    const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    const stateStatus = page.getByRole("status", { name: "전체 상태 저장 복원 상태" });
+    const metadataCases = [
+      { key: "title", value: ["INVALID_TITLE"] },
+      { key: "locked", value: "INVALID_LOCKED" },
+      { key: "movable", value: "INVALID_MOVABLE" },
+      { key: "resizable", value: "INVALID_RESIZABLE" },
+      { key: "minimized", value: "INVALID_MINIMIZED" },
+      { key: "maximized", value: "INVALID_MAXIMIZED" },
+    ] as const;
+
+    await columnSelect.selectOption("6");
+    await columnSelect.selectOption("12");
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const savedStateJson = await stateEditor.inputValue();
+    const savedState = JSON.parse(savedStateJson) as {
+      widgets: Array<{ layout: Record<string, unknown> } & Record<string, unknown>>;
+    };
+    const initialLayouts = await readDashboardLayouts(page);
+
+    for (const metadataCase of metadataCases) {
+      const malformedState = JSON.parse(savedStateJson) as typeof savedState;
+      const firstWidget = malformedState.widgets[0];
+      expect(firstWidget).toBeDefined();
+      if (!firstWidget) {
+        throw new Error("Expected an Advanced fixture widget");
+      }
+      firstWidget.layout.x = 4;
+      firstWidget[metadataCase.key] = metadataCase.value;
+      const malformedStateJson = JSON.stringify(malformedState);
+
+      await stateEditor.fill(malformedStateJson);
+      await page.getByRole("button", { name: "전체 상태 복원" }).click();
+      await expect(stateStatus).toHaveText("JSON 형식 또는 상태 값을 확인해 주세요.");
+      await expect(stateEditor).toHaveValue(malformedStateJson);
+      await expect.poll(() => readDashboardLayouts(page)).toEqual(initialLayouts);
+      expect((await page.locator('[role="status"]').allTextContents()).join("\n")).not.toContain(String(metadataCase.value));
+      expect(diagnosticsByTest.get(test.info().testId)?.join("\n")).not.toContain(String(metadataCase.value));
+    }
+
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    expect(await stateEditor.inputValue()).toBe(savedStateJson);
+  });
+
+  test("ignores unsupported cache keys while restoring valid top-level state and supported caches", async ({ page }) => {
+    const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
+    const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    const stateStatus = page.getByRole("status", { name: "전체 상태 저장 복원 상태" });
+
+    await columnSelect.selectOption("6");
+    await columnSelect.selectOption("12");
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const stateWithUnsupportedCache = JSON.parse(await stateEditor.inputValue()) as {
+      widgets: Array<{ id: string; layout: { x: number } }>;
+      layoutsByColumn: Record<string, unknown>;
+    };
+    const firstWidget = stateWithUnsupportedCache.widgets[0];
+    expect(firstWidget).toBeDefined();
+    if (!firstWidget) {
+      throw new Error("Expected an Advanced fixture widget");
+    }
+    firstWidget.layout.x = 4;
+    stateWithUnsupportedCache.layoutsByColumn["99"] = null;
+
+    await stateEditor.fill(JSON.stringify(stateWithUnsupportedCache));
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+    await expect(stateStatus).toHaveText("전체 상태와 컬럼 캐시를 복원했습니다.");
+    await expect.poll(() => readDashboardLayouts(page)).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: firstWidget.id, x: 4 })]),
+    );
+
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const restoredState = JSON.parse(await stateEditor.inputValue()) as { layoutsByColumn: Record<string, unknown> };
+    expect(restoredState.layoutsByColumn).not.toHaveProperty("99");
+    expect(Object.keys(restoredState.layoutsByColumn).sort()).toEqual(["12", "6"]);
+  });
+
+  test("clears the initial not-ready handle status after a successful query", async ({ page }) => {
+    const handleStatus = page.getByRole("status", { name: "handle 작업 상태" });
+    const queryStatus = page.getByRole("status", { name: "GridStack 읽기 전용 상태" });
+
+    await page.getByRole("button", { name: "엔진 상태 조회" }).click();
+    await expect(queryStatus).toContainText("column=12; row=");
+    await expect(handleStatus).not.toContainText("GridStack이 아직 준비되지 않았습니다.");
   });
 
   test("uses only supported compact list commit and read-only handle queries with controlled float", async ({ page }) => {
