@@ -983,6 +983,12 @@ button.dashboard-widget-body[data-selected="true"] {
   margin: 0;
 }
 
+.playground-description {
+  color: #536674;
+  margin: 4px 0 0;
+  max-width: 72ch;
+}
+
 .playground-controls {
   display: grid;
   gap: 12px;

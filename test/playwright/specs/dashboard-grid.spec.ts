@@ -18,6 +18,10 @@ type WidgetLayout = {
   h: number;
 };
 
+type IdentifiedWidgetLayout = WidgetLayout & {
+  id: string;
+};
+
 type ResourceCounters = HeapCounter & {
   nodes: number;
   listeners: number;
@@ -128,6 +132,23 @@ async function readWidgetLayout(widget: Locator): Promise<WidgetLayout> {
     w: Number(element.getAttribute("data-layout-w")),
     h: Number(element.getAttribute("data-layout-h")),
   }));
+}
+
+async function readDashboardLayouts(page: Page): Promise<IdentifiedWidgetLayout[]> {
+  return page.locator(".grid-stack-item").evaluateAll((elements) =>
+    elements.flatMap((element) => {
+      const id = element.getAttribute("gs-id") ?? element.getAttribute("data-widget-id");
+      return id
+        ? [{
+            id,
+            x: Number(element.getAttribute("data-layout-x")),
+            y: Number(element.getAttribute("data-layout-y")),
+            w: Number(element.getAttribute("data-layout-w")),
+            h: Number(element.getAttribute("data-layout-h")),
+          }]
+        : [];
+    }),
+  );
 }
 
 async function readGridEngineColumn(grid: Locator): Promise<number> {
@@ -1354,7 +1375,7 @@ test("does not resize row widgets on header double-click when the row has no emp
   await expect(traffic).toHaveAttribute("data-layout-w", "8");
 });
 
-test("defers grid sync while a widget is actively resizing", async ({ page }, testInfo) => {
+test("preserves independent controlled caches when columns change during a resize", async ({ page }, testInfo) => {
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction regression runs on supported desktop browsers.");
 
   const diagnostics = collectBrowserDiagnostics(page);
@@ -1362,15 +1383,33 @@ test("defers grid sync while a widget is actively resizing", async ({ page }, te
   await page.goto("/examples/layout");
 
   const grid = page.getByTestId("dashboard-grid");
+  const columnSelect = page.getByLabel("컬럼 선택");
+  const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
   const sales = page.getByTestId("dashboard-widget-sales");
-  await page.getByLabel("컬럼 선택").selectOption("6");
-  await expect(grid).toHaveAttribute("data-columns", "6");
+  const orders = page.getByTestId("dashboard-widget-orders");
 
-  const beforeResize = await readWidgetLayout(sales);
+  const initialTwelve = await readDashboardLayouts(page);
+  await resizeWidget(page, orders, 0, 110);
+  await expect.poll(() => readDashboardLayouts(page)).not.toEqual(initialTwelve);
+  const targetTwelve = await readDashboardLayouts(page);
+
+  await columnSelect.selectOption("6");
+  await expect(grid).toHaveAttribute("data-columns", "6");
+  const initialSix = await readDashboardLayouts(page);
+  await resizeWidget(page, sales, 0, 110);
+  await expect.poll(() => readDashboardLayouts(page)).not.toEqual(initialSix);
+  const sourceSix = await readDashboardLayouts(page);
+  expect(sourceSix).not.toEqual(targetTwelve);
+
+  await columnSelect.selectOption("12");
+  await expect.poll(() => readDashboardLayouts(page)).toEqual(targetTwelve);
+  await columnSelect.selectOption("6");
+  await expect.poll(() => readDashboardLayouts(page)).toEqual(sourceSix);
+
   const { startX, startY } = await startWidgetResize(page, sales);
 
   await page.mouse.move(startX + 120, startY + 90, { steps: 8 });
-  await page.getByLabel("컬럼 선택").evaluate((element) => {
+  await columnSelect.evaluate((element) => {
     const select = element as HTMLSelectElement;
     select.value = "12";
     select.dispatchEvent(new Event("change", { bubbles: true }));
@@ -1383,10 +1422,17 @@ test("defers grid sync while a widget is actively resizing", async ({ page }, te
 
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect.poll(() => readGridEngineColumn(grid)).toBe(12);
-  await expect.poll(async () => {
-    const layout = await readWidgetLayout(sales);
-    return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
-  }).toBe(true);
+  await expect.poll(() => readDashboardLayouts(page)).toEqual(targetTwelve);
+
+  await page.getByRole("button", { name: "전체 상태 저장" }).click();
+  const restoredState = JSON.parse(await stateEditor.inputValue()) as {
+    layoutsByColumn: Record<string, { widgets: IdentifiedWidgetLayout[] }>;
+  };
+  expect(restoredState.layoutsByColumn["6"]?.widgets).toEqual(sourceSix);
+  expect(restoredState.layoutsByColumn["12"]?.widgets).toEqual(targetTwelve);
+  expect(restoredState.layoutsByColumn["6"]?.widgets).not.toEqual(
+    restoredState.layoutsByColumn["12"]?.widgets,
+  );
 
   await page.waitForTimeout(100);
   expect(diagnostics).toEqual([]);
@@ -1401,6 +1447,8 @@ test("finalizes widget resize when the pointer leaves the browser boundary", asy
 
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");
+  await expect(grid).toHaveAttribute("data-columns", "12");
+  const targetTwelveLayout = await readWidgetLayout(sales);
 
   await page.getByLabel("컬럼 선택").selectOption("6");
   await expect(grid).toHaveAttribute("data-columns", "6");
@@ -1430,13 +1478,11 @@ test("finalizes widget resize when the pointer leaves the browser boundary", asy
     await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(false);
     await expect(grid).toHaveAttribute("data-columns", "12");
     await expect.poll(() => readGridEngineColumn(grid)).toBe(12);
-    const forcedLayout = await readWidgetLayout(sales);
-    expect(forcedLayout.w).toBe(6);
-    expect(forcedLayout.h).toBeGreaterThan(2);
+    await expect.poll(() => readWidgetLayout(sales)).toEqual(targetTwelveLayout);
     await page.mouse.up().catch(() => undefined);
     await page.bringToFront();
 
-    const afterForcedEnd = forcedLayout;
+    const afterForcedEnd = targetTwelveLayout;
     await resizeWidgetWithDomEvents(sales, 180, 130);
     await expect.poll(async () => {
       const layout = await readWidgetLayout(sales);

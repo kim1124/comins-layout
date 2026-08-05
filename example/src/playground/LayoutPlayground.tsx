@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Boxes, Columns3, RotateCcw, Save } from "lucide-react";
 
 import { DASHBOARD_COLUMN_COUNTS, useDashboardGrid } from "../../../src";
-import type { DashboardLayoutSnapshot, DashboardStateSnapshotInput, DashboardWidgetLayout } from "../../../src";
+import type { DashboardLayoutSnapshot, DashboardWidgetLayout } from "../../../src";
 import { Select } from "../components/ui/select";
 import type { SelectOption } from "../components/ui/select";
 import { DashboardPreview, PlaygroundHeader } from "./components/DashboardPreview";
 import { LayoutJson } from "./components/LayoutJson";
 import { WidgetCrudControls } from "./components/WidgetCrudControls";
 import { createLayoutPlaygroundFixture } from "./fixtures";
+import { sanitizeDashboardStateSnapshot } from "./state-snapshot";
 import type { ExampleWidgetData } from "./types";
 
 const columnOptions: SelectOption[] = DASHBOARD_COLUMN_COUNTS.map((column) => ({
@@ -18,7 +19,6 @@ const columnOptions: SelectOption[] = DASHBOARD_COLUMN_COUNTS.map((column) => ({
 
 const JSON_ERROR_STATUS = "JSON 형식 또는 레이아웃 값을 확인해 주세요.";
 const layoutLimitKeys = ["minW", "minH", "maxW", "maxH"] as const;
-const supportedColumnKeys = new Set(DASHBOARD_COLUMN_COUNTS.map(String));
 
 type PendingLayoutOperation = {
   before: string;
@@ -43,74 +43,12 @@ function isLayout(value: unknown): value is DashboardWidgetLayout {
   );
 }
 
-function hasUniqueLayoutIds(layouts: DashboardWidgetLayout[]): boolean {
-  return new Set(layouts.map((layout) => layout.id)).size === layouts.length;
-}
-
-function isPreviousLayoutMap(value: unknown, widgetIds: ReadonlySet<string>): boolean {
-  return (
-    isRecord(value) &&
-    Object.entries(value).every(
-      ([id, layout]) => widgetIds.has(id) && isLayout(layout) && layout.id === id,
-    )
-  );
-}
-
-function isColumnLayoutSnapshot(value: unknown, widgetIds: ReadonlySet<string>): boolean {
-  if (!isRecord(value) || !Array.isArray(value.widgets) || !value.widgets.every(isLayout)) {
-    return false;
-  }
-
-  return (
-    hasUniqueLayoutIds(value.widgets) &&
-    value.widgets.every((layout) => widgetIds.has(layout.id)) &&
-    isPreviousLayoutMap(value.previousLayouts, widgetIds)
-  );
-}
-
-function isLayoutsByColumn(value: unknown, widgetIds: ReadonlySet<string>): boolean {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return Object.entries(value).every(
-    ([column, snapshot]) => !supportedColumnKeys.has(column) || isColumnLayoutSnapshot(snapshot, widgetIds),
-  );
-}
-
 function isSupportedColumns(value: unknown): value is DashboardLayoutSnapshot["columns"] {
   return typeof value === "number" && DASHBOARD_COLUMN_COUNTS.includes(value as DashboardLayoutSnapshot["columns"]);
 }
 
 function isLayoutSnapshot(value: unknown): value is DashboardLayoutSnapshot {
   return isRecord(value) && isSupportedColumns(value.columns) && Array.isArray(value.widgets) && value.widgets.every(isLayout);
-}
-
-function isStateSnapshot(value: unknown): value is DashboardStateSnapshotInput<ExampleWidgetData> {
-  if (!isRecord(value) || !isSupportedColumns(value.columns) || !Array.isArray(value.widgets)) {
-    return false;
-  }
-
-  const validWidgets = value.widgets.every(
-    (widget) =>
-      isRecord(widget) &&
-      typeof widget.id === "string" &&
-      isLayout(widget.layout) &&
-      widget.layout.id === widget.id,
-  );
-  if (!validWidgets) {
-    return false;
-  }
-
-  const widgetIds = new Set(value.widgets.map((widget) => (widget as { id: string }).id));
-  if (widgetIds.size !== value.widgets.length) {
-    return false;
-  }
-
-  return (
-    (value.previousLayouts === undefined || isPreviousLayoutMap(value.previousLayouts, widgetIds)) &&
-    (value.layoutsByColumn === undefined || isLayoutsByColumn(value.layoutsByColumn, widgetIds))
-  );
 }
 
 export function LayoutPlayground() {
@@ -167,10 +105,11 @@ export function LayoutPlayground() {
   const restoreFullState = () => {
     try {
       const parsed: unknown = JSON.parse(fullStateJson);
-      if (!isStateSnapshot(parsed)) {
+      const snapshot = sanitizeDashboardStateSnapshot<ExampleWidgetData>(parsed);
+      if (!snapshot) {
         throw new Error("invalid state snapshot");
       }
-      dashboard.commands.restoreLayout(parsed);
+      dashboard.commands.restoreLayout(snapshot);
       setFullStateStatus("전체 상태와 컬럼 캐시를 복원했습니다.");
     } catch {
       setFullStateStatus(JSON_ERROR_STATUS);
@@ -197,7 +136,11 @@ export function LayoutPlayground() {
 
   return (
     <section className="playground-workspace" data-example-mode="layout">
-      <PlaygroundHeader kicker="레이아웃 예제" title="레이아웃" />
+      <PlaygroundHeader
+        description="컬럼별 레이아웃을 저장·복원하고 정렬 및 빈 공간 채우기를 비교합니다."
+        kicker="레이아웃 예제"
+        title="레이아웃"
+      />
       <section aria-label="레이아웃 예제 컨트롤" className="playground-controls playground-layout-controls">
         <section aria-label="레이아웃 위젯 CRUD" className="example-control-group">
           <h2>위젯 CRUD</h2>

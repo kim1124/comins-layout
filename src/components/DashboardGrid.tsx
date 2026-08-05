@@ -95,11 +95,10 @@ function DashboardGridInner<TData = unknown>(
   }, [onColumnsChange]);
   const handleLayoutCommit = useCallback((snapshot: DashboardLayoutSnapshot) => {
     const controlledColumns = clampDashboardColumnCount(columns);
-    onLayoutCommit?.(
-      !responsive && snapshot.columns !== controlledColumns
-        ? { ...snapshot, columns: controlledColumns }
-        : snapshot,
-    );
+    if (!responsive && snapshot.columns !== controlledColumns) {
+      return;
+    }
+    onLayoutCommit?.(snapshot);
   }, [columns, onLayoutCommit, responsive]);
   useImperativeHandle(
     ref,

@@ -76,7 +76,15 @@ export function DashboardPreview({
   );
 }
 
-export function PlaygroundHeader({ kicker, title }: { kicker: string; title: string }) {
+export function PlaygroundHeader({
+  description,
+  kicker,
+  title,
+}: {
+  description: string;
+  kicker: string;
+  title: string;
+}) {
   const generatedId = useId();
   const titleId = `playground-title-${generatedId.replace(/:/g, "")}`;
 
@@ -84,6 +92,7 @@ export function PlaygroundHeader({ kicker, title }: { kicker: string; title: str
     <header aria-labelledby={titleId} className="playground-header">
       <p className="example-kicker">{kicker}</p>
       <h1 id={titleId}>{title}</h1>
+      <p className="playground-description">{description}</p>
     </header>
   );
 }

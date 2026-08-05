@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Lock, Move, Save, Settings2, Trash2, Unlock } from "lucide-react";
 
-import { DASHBOARD_COLUMN_COUNTS, DashboardGrid, useDashboardGrid } from "../../../src";
+import { DashboardGrid, useDashboardGrid } from "../../../src";
 import type {
   DashboardExternalDropTarget,
   DashboardGridHandle,
   DashboardLayoutSnapshot,
   DashboardResponsiveOptions,
-  DashboardStateSnapshotInput,
-  DashboardWidgetLayout,
   DashboardWidgetExternalDropEvent,
 } from "../../../src";
 import { Select } from "../components/ui/select";
@@ -17,6 +15,7 @@ import { PlaygroundHeader, toggleStateProps } from "./components/DashboardPrevie
 import { LayoutJson } from "./components/LayoutJson";
 import { WidgetCrudControls } from "./components/WidgetCrudControls";
 import { createAdvancedPlaygroundFixture } from "./fixtures";
+import { sanitizeDashboardStateSnapshot } from "./state-snapshot";
 import type { ExampleWidgetData } from "./types";
 
 const columnOptions: SelectOption[] = [
@@ -37,111 +36,6 @@ const responsiveOptions: DashboardResponsiveOptions = {
 const INITIAL_EXTERNAL_DROP_STATUS = "위젯을 삭제 영역으로 드래그해 보세요.";
 const GRID_NOT_READY_STATUS = "GridStack이 아직 준비되지 않았습니다.";
 const JSON_ERROR_STATUS = "JSON 형식 또는 상태 값을 확인해 주세요.";
-const layoutLimitKeys = ["minW", "minH", "maxW", "maxH"] as const;
-const supportedColumnKeys = new Set(DASHBOARD_COLUMN_COUNTS.map(String));
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isLayout(value: unknown): value is DashboardWidgetLayout {
-  return (
-    isRecord(value) &&
-    typeof value.id === "string" &&
-    [value.x, value.y, value.w, value.h].every(
-      (coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate),
-    ) &&
-    layoutLimitKeys.every(
-      (key) => value[key] === undefined || (typeof value[key] === "number" && Number.isFinite(value[key])),
-    ) &&
-    (value.w as number) > 0 &&
-    (value.h as number) > 0
-  );
-}
-
-function isPreviousLayoutMap(value: unknown, widgetIds: ReadonlySet<string>): boolean {
-  return (
-    isRecord(value) &&
-    Object.entries(value).every(
-      ([id, layout]) => widgetIds.has(id) && isLayout(layout) && layout.id === id,
-    )
-  );
-}
-
-function isColumnLayoutSnapshot(value: unknown, widgetIds: ReadonlySet<string>): boolean {
-  if (!isRecord(value) || !Array.isArray(value.widgets) || !value.widgets.every(isLayout)) {
-    return false;
-  }
-
-  return (
-    new Set(value.widgets.map((layout) => layout.id)).size === value.widgets.length &&
-    value.widgets.every((layout) => widgetIds.has(layout.id)) &&
-    isPreviousLayoutMap(value.previousLayouts, widgetIds)
-  );
-}
-
-function isLayoutsByColumn(value: unknown, widgetIds: ReadonlySet<string>): boolean {
-  return (
-    isRecord(value) &&
-    Object.entries(value).every(
-      ([column, snapshot]) => !supportedColumnKeys.has(column) || isColumnLayoutSnapshot(snapshot, widgetIds),
-    )
-  );
-}
-
-function hasValidOptionalWidgetMetadata(value: Record<string, unknown>): boolean {
-  return (
-    (value.title === undefined || typeof value.title === "string") &&
-    ["locked", "movable", "resizable", "minimized", "maximized"].every(
-      (key) => value[key] === undefined || typeof value[key] === "boolean",
-    )
-  );
-}
-
-function isStateSnapshot(value: unknown): value is DashboardStateSnapshotInput<ExampleWidgetData> {
-  if (
-    !isRecord(value) ||
-    typeof value.columns !== "number" ||
-    !DASHBOARD_COLUMN_COUNTS.includes(value.columns as DashboardLayoutSnapshot["columns"]) ||
-    !Array.isArray(value.widgets)
-  ) {
-    return false;
-  }
-
-  const validWidgets = value.widgets.every(
-    (widget) =>
-      isRecord(widget) &&
-      typeof widget.id === "string" &&
-      isLayout(widget.layout) &&
-      widget.layout.id === widget.id &&
-      hasValidOptionalWidgetMetadata(widget),
-  );
-  if (!validWidgets) {
-    return false;
-  }
-
-  const widgetIds = new Set(value.widgets.map((widget) => (widget as { id: string }).id));
-  return (
-    widgetIds.size === value.widgets.length &&
-    (value.previousLayouts === undefined || isPreviousLayoutMap(value.previousLayouts, widgetIds)) &&
-    (value.layoutsByColumn === undefined || isLayoutsByColumn(value.layoutsByColumn, widgetIds))
-  );
-}
-
-function discardUnsupportedColumnCaches(
-  snapshot: DashboardStateSnapshotInput<ExampleWidgetData>,
-): DashboardStateSnapshotInput<ExampleWidgetData> {
-  if (!snapshot.layoutsByColumn) {
-    return snapshot;
-  }
-
-  return {
-    ...snapshot,
-    layoutsByColumn: Object.fromEntries(
-      Object.entries(snapshot.layoutsByColumn).filter(([column]) => supportedColumnKeys.has(column)),
-    ) as DashboardStateSnapshotInput<ExampleWidgetData>["layoutsByColumn"],
-  };
-}
 
 export function AdvancedPlayground() {
   const dashboard = useDashboardGrid<ExampleWidgetData>({
@@ -182,7 +76,11 @@ export function AdvancedPlayground() {
     let remainingAttempts = 120;
 
     const readWhenReady = () => {
-      if (refreshGridQueries() || remainingAttempts <= 0) {
+      if (refreshGridQueries()) {
+        setHandleStatus((status) => status === GRID_NOT_READY_STATUS ? "GridStack이 준비되었습니다." : status);
+        return;
+      }
+      if (remainingAttempts <= 0) {
         return;
       }
       remainingAttempts -= 1;
@@ -205,10 +103,11 @@ export function AdvancedPlayground() {
   const restoreLayout = () => {
     try {
       const parsed: unknown = JSON.parse(layoutJson);
-      if (!isStateSnapshot(parsed)) {
+      const snapshot = sanitizeDashboardStateSnapshot<ExampleWidgetData>(parsed);
+      if (!snapshot) {
         throw new Error("invalid dashboard state snapshot");
       }
-      dashboard.commands.restoreLayout(discardUnsupportedColumnCaches(parsed));
+      dashboard.commands.restoreLayout(snapshot);
       setLayoutStatus("전체 상태와 컬럼 캐시를 복원했습니다.");
     } catch {
       setLayoutStatus(JSON_ERROR_STATUS);
@@ -264,7 +163,11 @@ export function AdvancedPlayground() {
 
   return (
     <section className="playground-workspace" data-example-mode="advanced">
-      <PlaygroundHeader kicker="개발 예제" title="고급 예제" />
+      <PlaygroundHeader
+        description="반응형 컬럼, 안전한 GridStack handle, 외부 드롭을 제어 상태와 함께 검증합니다."
+        kicker="개발 예제"
+        title="고급 예제"
+      />
       <section aria-label="고급 예제 컨트롤" className="playground-controls playground-advanced-controls">
         <section aria-label="고급 위젯 CRUD" className="example-control-group">
           <h2>제어 위젯</h2>

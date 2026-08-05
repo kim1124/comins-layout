@@ -118,7 +118,11 @@ export function WidgetPlayground() {
 
   return (
     <section className="playground-workspace" data-example-mode="widget">
-      <PlaygroundHeader kicker="위젯 예제" title="위젯" />
+      <PlaygroundHeader
+        description="위젯을 추가·수정·삭제하고 개별 이동 및 크기 조절 잠금을 확인합니다."
+        kicker="위젯 예제"
+        title="위젯"
+      />
       <section aria-label="위젯 예제 컨트롤" className="playground-controls">
         <WidgetCrudControls
           addDialogOpen={addDialogOpen}

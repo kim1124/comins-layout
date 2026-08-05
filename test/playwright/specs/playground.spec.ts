@@ -133,6 +133,7 @@ test.describe("Widget Playground", () => {
   test("renders one Grid, the fixture widgets, and a valid heading relationship", async ({ page }) => {
     await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
     await expect(page.locator(".grid-stack")).toHaveCount(1);
+    await expect(page.getByText("위젯을 추가·수정·삭제하고 개별 이동 및 크기 조절 잠금을 확인합니다.")).toBeVisible();
     await expect(page.getByTestId("dashboard-widget-sales")).toContainText("매출");
     await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("트래픽");
     await expect(page.getByTestId("dashboard-widget-orders")).toContainText("주문");
@@ -322,6 +323,7 @@ test.describe("Layout Playground", () => {
   test("provides add, edit, delete, and clear CRUD through one Grid", async ({ page }) => {
     await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
     await expect(page.locator(".grid-stack")).toHaveCount(1);
+    await expect(page.getByText("컬럼별 레이아웃을 저장·복원하고 정렬 및 빈 공간 채우기를 비교합니다.")).toBeVisible();
 
     await page.getByRole("button", { name: "위젯 추가" }).click();
     const addDialog = page.getByRole("dialog", { name: "위젯 추가" });
@@ -512,11 +514,54 @@ test.describe("Layout Playground", () => {
     expect(Object.keys(resetState.layoutsByColumn)).toEqual(["12"]);
   });
 
-  test("rejects malformed supported-column caches without changing geometry, caches, or the editor", async ({ page }) => {
+  test("discards only a malformed supported-column cache and restores authoritative top-level state", async ({ page }) => {
     const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
     const fullStateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
     const fullStateStatus = page.getByRole("status", { name: "전체 상태 저장 복원 상태" });
-    const privateInvalidValue = "CACHE_DO_NOT_ECHO";
+
+    await columnSelect.selectOption("6");
+    await columnSelect.selectOption("12");
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const savedFullStateJson = await fullStateEditor.inputValue();
+    const savedFullState = JSON.parse(savedFullStateJson) as {
+      widgets: Array<{ layout: { h: number } }>;
+      layoutsByColumn: Record<string, { widgets: Array<Record<string, unknown>> }>;
+    };
+    const malformedFullState = JSON.parse(savedFullStateJson) as typeof savedFullState;
+    const activeWidget = malformedFullState.widgets?.[0] as { layout?: { h?: number } } | undefined;
+    expect(activeWidget?.layout?.h).toBeDefined();
+    if (!activeWidget?.layout || typeof activeWidget.layout.h !== "number") {
+      throw new Error("Expected a top-level active widget fixture");
+    }
+    activeWidget.layout.h += 1;
+    const malformedSixColumnLayout = malformedFullState.layoutsByColumn["6"]?.widgets[0];
+    expect(malformedSixColumnLayout).toBeDefined();
+    if (!malformedSixColumnLayout) {
+      throw new Error("Expected a cached 6-column layout fixture");
+    }
+    malformedSixColumnLayout.x = "CACHE_DO_NOT_ECHO";
+    const malformedFullStateJson = JSON.stringify(malformedFullState, null, 2);
+
+    await fullStateEditor.fill(malformedFullStateJson);
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+    await expect(fullStateStatus).toHaveText("전체 상태와 컬럼 캐시를 복원했습니다.");
+    await expect(fullStateEditor).toHaveValue(malformedFullStateJson);
+    await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute(
+      "data-layout-h",
+      String(activeWidget.layout.h),
+    );
+
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const restoredState = JSON.parse(await fullStateEditor.inputValue()) as typeof savedFullState;
+    expect(Object.keys(restoredState.layoutsByColumn)).toEqual(["12"]);
+    expect(restoredState.layoutsByColumn["12"]?.widgets).toEqual(await readDashboardLayouts(page));
+  });
+
+  test("rejects invalid widget metadata without changing geometry, caches, or exposing the sentinel", async ({ page }) => {
+    const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
+    const fullStateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    const fullStateStatus = page.getByRole("status", { name: "전체 상태 저장 복원 상태" });
+    const privateInvalidValue = "LAYOUT_METADATA_DO_NOT_ECHO";
     const consoleMessages: string[] = [];
     page.on("console", (message) => consoleMessages.push(message.text()));
 
@@ -524,18 +569,18 @@ test.describe("Layout Playground", () => {
     await columnSelect.selectOption("12");
     await page.getByRole("button", { name: "전체 상태 저장" }).click();
     const savedFullStateJson = await fullStateEditor.inputValue();
-    const savedFullState = JSON.parse(savedFullStateJson) as {
-      layoutsByColumn: Record<string, { widgets: Array<Record<string, unknown>> }>;
+    const malformedFullState = JSON.parse(savedFullStateJson) as {
+      widgets: Array<{ layout: { x: number }; locked?: unknown }>;
     };
     const activeLayouts = await readDashboardLayouts(page);
-    const malformedFullState = JSON.parse(savedFullStateJson) as typeof savedFullState;
-    const malformedSixColumnLayout = malformedFullState.layoutsByColumn["6"]?.widgets[0];
-    expect(malformedSixColumnLayout).toBeDefined();
-    if (!malformedSixColumnLayout) {
-      throw new Error("Expected a cached 6-column layout fixture");
+    const firstWidget = malformedFullState.widgets[0];
+    expect(firstWidget).toBeDefined();
+    if (!firstWidget) {
+      throw new Error("Expected a top-level Layout fixture widget");
     }
-    malformedSixColumnLayout.x = privateInvalidValue;
-    const malformedFullStateJson = JSON.stringify(malformedFullState, null, 2);
+    firstWidget.layout.x = 4;
+    firstWidget.locked = privateInvalidValue;
+    const malformedFullStateJson = JSON.stringify(malformedFullState);
 
     await fullStateEditor.fill(malformedFullStateJson);
     await page.getByRole("button", { name: "전체 상태 복원" }).click();
@@ -546,7 +591,7 @@ test.describe("Layout Playground", () => {
     expect(consoleMessages.join("\n")).not.toContain(privateInvalidValue);
 
     await page.getByRole("button", { name: "전체 상태 저장" }).click();
-    expect(JSON.parse(await fullStateEditor.inputValue())).toEqual(savedFullState);
+    expect(await fullStateEditor.inputValue()).toBe(savedFullStateJson);
   });
 });
 
@@ -576,6 +621,7 @@ test.describe("Advanced Playground", () => {
   test("deletes only through the configured 300x300 typed external target callback", async ({ page }) => {
     await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
     await expect(page.locator(".grid-stack")).toHaveCount(1);
+    await expect(page.getByText("반응형 컬럼, 안전한 GridStack handle, 외부 드롭을 제어 상태와 함께 검증합니다.")).toBeVisible();
 
     const target = page.locator("[data-dashboard-drop-target='trash']");
     await expect(target).toBeVisible();
@@ -770,7 +816,6 @@ test.describe("Advanced Playground", () => {
     const handleStatus = page.getByRole("status", { name: "handle 작업 상태" });
     const queryStatus = page.getByRole("status", { name: "GridStack 읽기 전용 상태" });
 
-    await page.getByRole("button", { name: "엔진 상태 조회" }).click();
     await expect(queryStatus).toContainText("column=12; row=");
     await expect(handleStatus).not.toContainText("GridStack이 아직 준비되지 않았습니다.");
   });

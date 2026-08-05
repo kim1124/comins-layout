@@ -113,6 +113,10 @@ export function createDashboardGridAdapter<TData>(
 
   const commitLayout = () => {
     const snapshot = readDashboardLayoutSnapshot(grid, grid.getColumn());
+    const controlledColumns = clampDashboardColumnCount(currentOptions.columns ?? 12);
+    if (!currentOptions.responsive && snapshot.columns !== controlledColumns) {
+      return snapshot;
+    }
     if (sameDashboardLayoutSnapshot(lastCommittedLayout, snapshot)) {
       return snapshot;
     }
