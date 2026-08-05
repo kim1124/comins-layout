@@ -708,6 +708,52 @@ test("exposes a live GridStack handle and deduplicates explicit layout commits",
     .toBeNull();
 });
 
+test("commits an interaction that returns to a layout seen before a controlled sync", async ({ page }, testInfo) => {
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Controlled sync dedupe is covered on supported desktop browsers.");
+
+  await page.goto("/readme-demo");
+  const overview = page.getByTestId("dashboard-widget-overview");
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.moveWithGridStack("overview", 2, 0));
+  await expect(overview).toHaveAttribute("data-layout-x", "2");
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setOverviewPosition(0, 0));
+  await expect(overview).toHaveAttribute("data-layout-x", "0");
+  await expect(overview).toHaveAttribute("gs-x", "0");
+  await page.evaluate(() => {
+    window.__cominsReadmeDemo?.resetCommitCount();
+    window.__cominsReadmeDemo?.resetInteractionEvents();
+  });
+
+  const overviewBox = await overview.boundingBox();
+  if (!overviewBox) {
+    throw new Error("Overview bounding box is not available");
+  }
+  const titleBox = await overview.locator(".comins-grid-layout-widget__title").boundingBox();
+  if (!titleBox) {
+    throw new Error("Overview drag handle bounding box is not available");
+  }
+  const startX = titleBox.x + titleBox.width / 2;
+  const startY = titleBox.y + titleBox.height / 2;
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(startX + overviewBox.width, startY, { steps: 12 });
+  await page.mouse.up();
+
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getInteractionEvents() ?? [])).toEqual(
+    expect.arrayContaining(["drag-start:overview", "drag-stop:overview"]),
+  );
+  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getCommitCount() ?? -1)).toBe(1);
+  await expect.poll(() => page.evaluate(
+    () => window.__cominsReadmeDemo?.getLastCommittedLayout()?.widgets.find((widget) => widget.id === "overview")?.x ?? null,
+  )).toBe(2);
+  await expect(overview).toHaveAttribute("data-layout-x", "2");
+
+  await page.evaluate(() => window.__cominsReadmeDemo?.setCustomDragHandle(false));
+  await expect(overview).toHaveAttribute("data-layout-x", "2");
+});
+
 test("compacts only through the explicit handle command and commits once", async ({ page }, testInfo) => {
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "Advanced compact behavior is covered on supported desktop browsers.");
 
@@ -1503,7 +1549,8 @@ test("finishes widget drag after leaving the grid area", async ({ page }, testIn
   expect(diagnostics).toEqual([]);
 });
 
-test("executes the Layout playground workflow", async ({ page }) => {
+test("executes the complete feature set through explicit playground routes", async ({ page }, testInfo) => {
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction smoke test runs on supported desktop browsers.");
 
   await page.goto("/examples/layout");
 
@@ -1519,6 +1566,20 @@ test("executes the Layout playground workflow", async ({ page }) => {
   await expect(columnSelect.locator("option")).toHaveCount(12);
   await columnSelect.selectOption("12");
   await expect(grid).toHaveAttribute("data-columns", "12");
+
+  await page.getByLabel("활성 레이아웃 JSON").fill(JSON.stringify({
+    columns: 12,
+    widgets: [
+      { id: "sales", x: 0, y: 0, w: 3, h: 2 },
+      { id: "traffic", x: 3, y: 0, w: 3, h: 2 },
+      { id: "orders", x: 0, y: 2, w: 6, h: 2 },
+      { id: "alerts", x: 6, y: 2, w: 6, h: 2 },
+    ],
+  }));
+  await page.getByRole("button", { name: "활성 레이아웃 복원" }).click();
+  await page.getByRole("button", { name: "빈 공간 채우기" }).click();
+  await expect(sales).toHaveAttribute("data-layout-w", "6");
+  await expect(page.getByTestId("dashboard-widget-traffic")).toHaveAttribute("data-layout-x", "6");
 
   await page.getByRole("button", { name: "전체 상태 저장" }).click();
   const savedJson = await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue();
@@ -1564,4 +1625,70 @@ test("executes the Layout playground workflow", async ({ page }) => {
   await expect(page.getByTestId("dashboard-widget-traffic")).toBeHidden();
 
   expect(await page.locator(".grid-stack-item").count()).toBe(0);
+
+  await page.goto("/examples/advanced");
+  const advancedSales = page.getByTestId("dashboard-widget-sales");
+  const advancedSalesBox = await advancedSales.boundingBox();
+  if (!advancedSalesBox) {
+    throw new Error("Advanced widget bounding box is not available");
+  }
+
+  await page.getByRole("button", { name: "이동 가능" }).click();
+  await expect(page.getByRole("button", { name: "이동 불가" })).toHaveAttribute("data-active", "false");
+  await expect.poll(() => grid.evaluate((element) => Boolean((element as HTMLElement & {
+    gridstack?: { opts?: { disableDrag?: boolean } };
+  }).gridstack?.opts?.disableDrag))).toBe(true);
+  const lockedPosition = await readWidgetLayout(advancedSales);
+  expect(await dragWidgetWithDomEvents(advancedSales, advancedSalesBox.width, 0)).toBe(false);
+  await expect.poll(() => readWidgetLayout(advancedSales)).toEqual(lockedPosition);
+
+  await page.getByRole("button", { name: "이동 불가" }).click();
+  await expect(page.getByRole("button", { name: "이동 가능" })).toHaveAttribute("data-active", "true");
+  await expect.poll(() => grid.evaluate((element) => Boolean((element as HTMLElement & {
+    gridstack?: { opts?: { disableDrag?: boolean } };
+  }).gridstack?.opts?.disableDrag))).toBe(false);
+  await expect.poll(() => advancedSales.evaluate((element) => Boolean((element as HTMLElement & {
+    gridstackNode?: { noMove?: boolean };
+  }).gridstackNode?.noMove))).toBe(false);
+  await advancedSales.scrollIntoViewIfNeeded();
+  const advancedBodyBox = await advancedSales.locator(".dashboard-widget-body").boundingBox();
+  if (!advancedBodyBox) {
+    throw new Error("Advanced widget drag surface is not available");
+  }
+  const advancedDragX = advancedBodyBox.x + advancedBodyBox.width / 2;
+  const advancedDragY = advancedBodyBox.y + advancedBodyBox.height / 2;
+  await page.mouse.move(advancedDragX, advancedDragY);
+  await page.mouse.down();
+  await page.mouse.move(advancedDragX + advancedSalesBox.width, advancedDragY, { steps: 12 });
+  await expect.poll(async () => (await readWidgetInteractionState(advancedSales)).isDragging).toBe(true);
+  await page.mouse.up();
+  await expect.poll(async () => {
+    const layout = await readWidgetLayout(advancedSales);
+    return layout.x !== lockedPosition.x || layout.y !== lockedPosition.y;
+  }).toBe(true);
+
+  await page.getByRole("button", { name: "크기 조절 가능" }).click();
+  await expect(page.getByRole("button", { name: "크기 조절 불가" })).toHaveAttribute("data-active", "false");
+  await expect.poll(() => grid.evaluate((element) => Boolean((element as HTMLElement & {
+    gridstack?: { opts?: { disableResize?: boolean } };
+  }).gridstack?.opts?.disableResize))).toBe(true);
+  const lockedSize = await readWidgetLayout(advancedSales);
+  await expect(advancedSales.locator(".ui-resizable-se")).toBeHidden();
+  await expect.poll(() => readWidgetLayout(advancedSales)).toEqual(lockedSize);
+
+  await page.getByRole("button", { name: "크기 조절 불가" }).click();
+  await expect(page.getByRole("button", { name: "크기 조절 가능" })).toHaveAttribute("data-active", "true");
+  await expect.poll(() => grid.evaluate((element) => Boolean((element as HTMLElement & {
+    gridstack?: { opts?: { disableResize?: boolean } };
+  }).gridstack?.opts?.disableResize))).toBe(false);
+  const beforeResize = await readWidgetLayout(advancedSales);
+  await resizeWidget(page, advancedSales, 140, 100);
+  await expect.poll(async () => {
+    const layout = await readWidgetLayout(advancedSales);
+    return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
+  }).toBe(true);
+
+  await page.getByRole("button", { name: "레이아웃 갱신" }).click();
+  await expect(page.getByRole("status", { name: "handle 작업 상태" })).toHaveText("레이아웃을 갱신했습니다.");
+  await expect(advancedSales).toBeVisible();
 });

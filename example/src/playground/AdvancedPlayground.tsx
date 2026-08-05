@@ -256,6 +256,12 @@ export function AdvancedPlayground() {
     }
   };
 
+  const refreshLayout = () => {
+    dashboard.commands.refreshLayout();
+    setHandleStatus("레이아웃을 갱신했습니다.");
+    window.requestAnimationFrame(refreshGridQueries);
+  };
+
   return (
     <section className="playground-workspace" data-example-mode="advanced">
       <PlaygroundHeader kicker="개발 예제" title="고급 예제" />
@@ -317,6 +323,7 @@ export function AdvancedPlayground() {
           <div className="example-actions">
             <button type="button" onClick={() => compactAndCommit("compact")}>compact 정렬 후 커밋</button>
             <button type="button" onClick={() => compactAndCommit("list")}>list 정렬 후 커밋</button>
+            <button type="button" onClick={refreshLayout}>레이아웃 갱신</button>
             <button type="button" onClick={queryGridStatus}>엔진 상태 조회</button>
           </div>
           <p aria-label="handle 작업 상태" className="example-status" role="status">{handleStatus}</p>

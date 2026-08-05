@@ -256,6 +256,9 @@ export function createDashboardGridAdapter<TData>(
     } finally {
       isSyncingControlledState = false;
     }
+    if (lastCommittedLayout) {
+      lastCommittedLayout = readDashboardLayoutSnapshot(grid, grid.getColumn());
+    }
     scheduleColumnsChange(false);
   };
 
