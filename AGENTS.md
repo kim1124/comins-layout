@@ -1,4 +1,4 @@
-<!-- comins-reference:managed-start contract=v1.4 -->
+<!-- comins-reference:managed-start contract=v1.5 -->
 # Comins Module AGENTS.md
 
 ## Scope
@@ -11,7 +11,7 @@
 ## Required Order
 
 - Resolve the Git root and applicable instructions first. Then follow Contract
-  v1.4: license compliance; security and sensitive data; Comins common rules;
+  v1.5: license compliance; security and sensitive data; Comins common rules;
   module rules; smallest change and affected checks; Git, pull request, and CI;
   release checks only when publishing.
 
@@ -31,6 +31,9 @@
   module owns its checker commands and CI implementation.
 - Remote writes, publishing, tags, Releases, policy exceptions, and destructive
   operations require explicit approval.
+- Name new Codex development branches `codex-<short-feature-name>`; append `-2`,
+  `-3`, and so on for additional work under the same representative feature.
+  Existing and provider-managed branches are exempt.
 
 ## Verification
 
