@@ -10,11 +10,17 @@ npm run verify
 
 ## Browser Checks
 
-Run when rendered example, drag and drop, resize, maximize, minimize, or responsive behavior changes:
+Run this required Chromium gate when rendered example, drag and drop, resize, maximize, minimize, or responsive behavior changes:
 
 ```bash
-npm run verify:full
+npm run test:e2e -- --project=chromium --project=mobile-chrome --project=chromium-resource
 ```
+
+### Optional cross-engine verification
+
+Run `npm run verify:full` only when an explicit Firefox/WebKit compatibility
+check is requested. It is not a required completion, pull-request, publish, or
+release gate.
 
 ## Vitest Scope
 
@@ -31,11 +37,12 @@ Use Vitest for:
 
 The browser project matrix is:
 
-- `chromium`, `firefox`, and `webkit`: shared desktop rendering and pointer-interaction scenarios
+- `chromium`: required desktop rendering and pointer-interaction scenarios
+- `firefox` and `webkit`: optional explicit cross-engine scenarios
 - `mobile-chrome`: Pixel 7 touch scenarios; CDP-backed touch injection remains Chromium-only
 - `chromium-resource`: isolated single-worker 100-widget resource gate; Chrome DevTools Protocol counters remain Chromium-only
 
-Playwright WebKit validates the engine path in automation. It is not a branded Safari binary or a substitute for a macOS/iOS Safari device check.
+Playwright WebKit can validate the engine path when explicitly selected. It is not a branded Safari binary or a substitute for a macOS/iOS Safari device check.
 
 Use Playwright for:
 
@@ -70,7 +77,7 @@ CDP counter gate는 자동화된 Chrome DevTools Protocol 검증이다. 직접 C
 Do not mark implementation work complete if:
 
 - package `verify` fails
-- required browser verification is skipped without a blocker
+- required Chromium browser verification is skipped without a blocker
 - browser verification finds visible UI breakage
 - 100-widget resource stability gate에서 counter 누적 증가 또는 console/page error가 확인된다.
 

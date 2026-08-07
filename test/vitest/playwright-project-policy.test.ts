@@ -185,6 +185,11 @@ describe("Playwright project policy", () => {
   it("documents Chromium-only required CI and optional Firefox/WebKit runs", () => {
     const readme = readFileSync("README.md", "utf8");
     const supportBoundaries = readFileSync("docs/05-open-questions.md", "utf8");
+    const verificationStrategy = readFileSync(
+      "docs/04-verification-strategy.md",
+      "utf8",
+    );
+    const moduleInstructions = readFileSync("AGENTS.md", "utf8");
 
     expect(readme).toContain("required CI uses Playwright Chromium");
     expect(readme).toContain("Firefox remains an optional explicit Playwright project");
@@ -200,5 +205,14 @@ describe("Playwright project policy", () => {
       "Firefox and Playwright WebKit projects remain available for explicit, non-gating checks",
     );
     expect(supportBoundaries).toContain("Branded Safari on macOS and iOS is not directly verified");
+    expect(verificationStrategy).toContain(CHROMIUM_E2E_COMMAND);
+    expect(verificationStrategy).toContain(
+      "Optional cross-engine verification",
+    );
+    expect(moduleInstructions).toContain(CHROMIUM_E2E_COMMAND);
+    expect(moduleInstructions).toContain("optional cross-engine verification");
+    expect(moduleInstructions).not.toContain(
+      "run `npm run verify:full` once after focused checks",
+    );
   });
 });

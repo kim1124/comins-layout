@@ -46,5 +46,5 @@
 - Support widget CRUD, move, resize, maximize/minimize, arrange, reset, serialization, runtime columns `1`–`12`, interaction toggles, and scheduled content resize signals.
 - Keep React/React DOM as peer dependencies, exclude Next.js-only APIs, isolate GridStack in the package adapter, and preserve serializable state and widget IDs.
 - Treat 100 or more widgets and repeated runtime column changes as baseline performance requirements.
-- Run `npm run verify` as the package baseline. For GridStack lifecycle, drag, resize, column-cycle, or other browser-visible behavior changes, run `npm run verify:full` once after focused checks.
+- Run `npm run verify` as the package baseline. For GridStack lifecycle, drag, resize, column-cycle, or other browser-visible behavior changes, run `npm run test:e2e -- --project=chromium --project=mobile-chrome --project=chromium-resource` once after focused checks. Use `npm run verify:full` only for optional cross-engine verification when explicitly requested.
 - Write managed-required reports to `reports/YYYY-MM-DD.md`.
