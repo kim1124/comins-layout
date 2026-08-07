@@ -8,7 +8,7 @@ import {
   isDesktopBrowserProject,
 } from "../playwright/project-policy";
 
-const PUBLISH_E2E_COMMAND = [
+const CHROMIUM_E2E_COMMAND = [
   "npm run test:e2e --",
   "--project=chromium",
   "--project=mobile-chrome",
@@ -58,20 +58,7 @@ function isE2ERunCommand(command: string) {
     /(?:^|\s)(?:npx\s+)?playwright test(?:\s|$)/.test(command);
 }
 
-function expectVerifyWorkflowPolicy(workflow: string) {
-  const runCommands = extractWorkflowRunCommands(workflow);
-
-  expect(
-    runCommands.filter((command) =>
-      command.includes("playwright install --with-deps")
-    ),
-  ).toEqual([
-    "npx playwright install --with-deps chromium firefox webkit",
-  ]);
-  expect(runCommands).toContain("npm run verify:full");
-}
-
-function expectPublishWorkflowPolicy(workflow: string) {
+function expectChromiumWorkflowPolicy(workflow: string) {
   const runCommands = extractWorkflowRunCommands(workflow);
 
   expect(
@@ -86,7 +73,7 @@ function expectPublishWorkflowPolicy(workflow: string) {
   expect(
     runCommands.filter(isE2ERunCommand),
   ).toEqual([
-    PUBLISH_E2E_COMMAND,
+    CHROMIUM_E2E_COMMAND,
   ]);
 }
 
@@ -104,7 +91,7 @@ describe("Playwright project policy", () => {
     expect(isDesktopBrowserProject("chromium-resource")).toBe(false);
   });
 
-  it("configures all supported browser projects and installs them in CI", () => {
+  it("configures all supported browser projects for explicit local runs", () => {
     const projects = playwrightConfig.projects ?? [];
     const projectNames = projects.map((project) => project.name);
     const firefox = projects.find((project) => project.name === "firefox");
@@ -112,8 +99,6 @@ describe("Playwright project policy", () => {
     const resource = projects.find(
       (project) => project.name === "chromium-resource",
     );
-    const workflow = readFileSync(".github/workflows/verify.yml", "utf8");
-
     expect(projectNames).toEqual([
       "chromium",
       "firefox",
@@ -124,13 +109,18 @@ describe("Playwright project policy", () => {
     expect(firefox?.use).toMatchObject({ defaultBrowserType: "firefox" });
     expect(webkit?.use).toMatchObject({ defaultBrowserType: "webkit" });
     expect(resource?.dependencies).toEqual(["chromium", "mobile-chrome"]);
-    expectVerifyWorkflowPolicy(workflow);
+  });
+
+  it("keeps pull-request verification on the installed Chromium projects", () => {
+    const workflow = readFileSync(".github/workflows/verify.yml", "utf8");
+
+    expectChromiumWorkflowPolicy(workflow);
   });
 
   it("keeps publish verification on the installed Chromium projects", () => {
     const workflow = readFileSync(".github/workflows/publish.yml", "utf8");
 
-    expectPublishWorkflowPolicy(workflow);
+    expectChromiumWorkflowPolicy(workflow);
   });
 
   it.each([
@@ -177,19 +167,7 @@ describe("Playwright project policy", () => {
   ])("rejects publish workflow when %s", (_case, mutate) => {
     const workflow = readFileSync(".github/workflows/publish.yml", "utf8");
 
-    expect(() => expectPublishWorkflowPolicy(mutate(workflow))).toThrow();
-  });
-
-  it("rejects PR verification without the full browser gate", () => {
-    const workflow = readFileSync(".github/workflows/verify.yml", "utf8");
-    const withoutFullVerification = workflow.replace(
-      "      - run: npm run verify:full\n",
-      "",
-    );
-
-    expect(() =>
-      expectVerifyWorkflowPolicy(withoutFullVerification),
-    ).toThrow();
+    expect(() => expectChromiumWorkflowPolicy(mutate(workflow))).toThrow();
   });
 
   it("does not limit desktop parity scenarios to Chromium", () => {
@@ -204,13 +182,23 @@ describe("Playwright project policy", () => {
     }
   });
 
-  it("documents the automated engines without claiming branded Safari coverage", () => {
+  it("documents Chromium-only required CI and optional Firefox/WebKit runs", () => {
     const readme = readFileSync("README.md", "utf8");
     const supportBoundaries = readFileSync("docs/05-open-questions.md", "utf8");
 
-    expect(readme).toContain("Playwright Chromium and Firefox");
-    expect(readme).toContain("Playwright WebKit");
+    expect(readme).toContain("required CI uses Playwright Chromium");
+    expect(readme).toContain("Firefox remains an optional explicit Playwright project");
+    expect(readme).toContain(
+      "Playwright WebKit remains available for explicit engine checks but is not a required CI gate",
+    );
+    expect(readme).not.toContain("automated with Playwright Chromium and Firefox");
+    expect(readme).not.toContain("automated with Playwright WebKit");
+    expect(supportBoundaries).toContain(
+      "Desktop Chromium is the required automated compatibility target",
+    );
+    expect(supportBoundaries).toContain(
+      "Firefox and Playwright WebKit projects remain available for explicit, non-gating checks",
+    );
     expect(supportBoundaries).toContain("Branded Safari on macOS and iOS is not directly verified");
-    expect(supportBoundaries).not.toContain("Firefox and Safari are not verified or supported");
   });
 });
