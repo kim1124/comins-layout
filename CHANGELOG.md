@@ -1,11 +1,13 @@
 # comins-grid-layout
 
-## 0.1.6
+## 0.2.0
 
+- Added controlled external widget drop targets with a typed, non-destructive callback; consumers retain deletion ownership through `removeWidget`.
+- Added per-column layout persistence across runtime column changes and consolidated the documentation playgrounds around the shared state contract.
+- Expanded automated browser coverage to desktop Firefox and Playwright WebKit while retaining Chromium and mobile coverage.
 - Added a fail-closed npm service-identity gate before trusted staging and for exact-version release closure.
 - Updated development tooling to React Router 8.3.0 and PostCSS 8.5.24.
 - Adopted Comins Contract v1.4 release and sensitive-data guidance.
-- No runtime or public API changes.
 
 ## 0.1.5
 
