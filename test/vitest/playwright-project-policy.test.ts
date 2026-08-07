@@ -53,6 +53,11 @@ function extractWorkflowRunCommands(workflow: string) {
   return commands;
 }
 
+function isE2ERunCommand(command: string) {
+  return /(?:^|\s)npm run (?:test|verify):e2e(?:\s|$)/.test(command) ||
+    /(?:^|\s)(?:npx\s+)?playwright test(?:\s|$)/.test(command);
+}
+
 function expectVerifyWorkflowPolicy(workflow: string) {
   const runCommands = extractWorkflowRunCommands(workflow);
 
@@ -79,7 +84,7 @@ function expectPublishWorkflowPolicy(workflow: string) {
   expect(runCommands).toContain("npm run verify");
   expect(runCommands).not.toContain("npm run verify:full");
   expect(
-    runCommands.filter((command) => command.includes("npm run test:e2e")),
+    runCommands.filter(isE2ERunCommand),
   ).toEqual([
     PUBLISH_E2E_COMMAND,
   ]);
@@ -151,6 +156,22 @@ describe("Playwright project policy", () => {
         workflow.replace(
           "      - name: Install pinned Gitleaks\n",
           "      - run: npm run test:e2e\n      - name: Install pinned Gitleaks\n",
+        ),
+    ],
+    [
+      "the unfiltered E2E alias is added",
+      (workflow: string) =>
+        workflow.replace(
+          "      - name: Install pinned Gitleaks\n",
+          "      - run: npm run verify:e2e\n      - name: Install pinned Gitleaks\n",
+        ),
+    ],
+    [
+      "Playwright is invoked directly without project filters",
+      (workflow: string) =>
+        workflow.replace(
+          "      - name: Install pinned Gitleaks\n",
+          "      - run: npx playwright test --config=playwright.config.ts\n      - name: Install pinned Gitleaks\n",
         ),
     ],
   ])("rejects publish workflow when %s", (_case, mutate) => {
