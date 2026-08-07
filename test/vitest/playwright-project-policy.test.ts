@@ -47,6 +47,21 @@ describe("Playwright project policy", () => {
     );
   });
 
+  it("keeps publish verification on the installed Chromium projects", () => {
+    const workflow = readFileSync(".github/workflows/publish.yml", "utf8");
+
+    expect(workflow).toContain(
+      "npx playwright install --with-deps chromium",
+    );
+    expect(workflow).not.toContain(
+      "npx playwright install --with-deps chromium firefox webkit",
+    );
+    expect(workflow).not.toContain("npm run verify:full");
+    expect(workflow).toContain("--project=chromium");
+    expect(workflow).toContain("--project=mobile-chrome");
+    expect(workflow).toContain("--project=chromium-resource");
+  });
+
   it("does not limit desktop parity scenarios to Chromium", () => {
     const specs = [
       "test/playwright/specs/dashboard-grid.spec.ts",
