@@ -79,6 +79,8 @@ test('adopts the lean Contract v1.4 module policy', () => {
   assert.match(security, /\| < 0\.2\.0 \| No \|/);
   assert.match(changelog, /^## 0\.2\.0$/m);
   assert.match(changelog, /external widget drop targets/i);
+  assert.match(changelog, /typed, non-destructive callback/i);
+  assert.match(changelog, /consumers retain deletion ownership through `removeWidget`/i);
   assert.match(changelog, /per-column layout persistence/i);
   assert.match(changelog, /desktop Firefox and Playwright WebKit/i);
   assert.match(changelog, /npm service-identity/i);

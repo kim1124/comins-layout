@@ -2,7 +2,7 @@
 
 ## 0.2.0
 
-- Added controlled external widget drop targets with package-owned deletion and callback handling.
+- Added controlled external widget drop targets with a typed, non-destructive callback; consumers retain deletion ownership through `removeWidget`.
 - Added per-column layout persistence across runtime column changes and consolidated the documentation playgrounds around the shared state contract.
 - Expanded automated browser coverage to desktop Firefox and Playwright WebKit while retaining Chromium and mobile coverage.
 - Added a fail-closed npm service-identity gate before trusted staging and for exact-version release closure.
