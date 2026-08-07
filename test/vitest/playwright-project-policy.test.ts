@@ -8,6 +8,83 @@ import {
   isDesktopBrowserProject,
 } from "../playwright/project-policy";
 
+const PUBLISH_E2E_COMMAND = [
+  "npm run test:e2e --",
+  "--project=chromium",
+  "--project=mobile-chrome",
+  "--project=chromium-resource",
+].join(" ");
+
+function extractWorkflowRunCommands(workflow: string) {
+  const lines = workflow.split("\n");
+  const commands: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index]?.match(/^(\s*)(?:- )?run:\s*(.*)$/);
+
+    if (!match) {
+      continue;
+    }
+
+    const [, indentation = "", rawCommand = ""] = match;
+    const blockStyle = rawCommand === ">-" || rawCommand === ">" ||
+      rawCommand === "|-" || rawCommand === "|";
+    const commandParts: string[] = [];
+
+    if (blockStyle) {
+      for (index += 1; index < lines.length; index += 1) {
+        const line = lines[index] ?? "";
+        const lineIndentation = line.match(/^\s*/)?.[0].length ?? 0;
+
+        if (line.trim() !== "" && lineIndentation <= indentation.length) {
+          index -= 1;
+          break;
+        }
+
+        commandParts.push(line.trim());
+      }
+    } else {
+      commandParts.push(rawCommand);
+    }
+
+    commands.push(commandParts.join(" ").replace(/\s+/g, " ").trim());
+  }
+
+  return commands;
+}
+
+function expectVerifyWorkflowPolicy(workflow: string) {
+  const runCommands = extractWorkflowRunCommands(workflow);
+
+  expect(
+    runCommands.filter((command) =>
+      command.includes("playwright install --with-deps")
+    ),
+  ).toEqual([
+    "npx playwright install --with-deps chromium firefox webkit",
+  ]);
+  expect(runCommands).toContain("npm run verify:full");
+}
+
+function expectPublishWorkflowPolicy(workflow: string) {
+  const runCommands = extractWorkflowRunCommands(workflow);
+
+  expect(
+    runCommands.filter((command) =>
+      command.includes("playwright install --with-deps")
+    ),
+  ).toEqual([
+    "npx playwright install --with-deps chromium",
+  ]);
+  expect(runCommands).toContain("npm run verify");
+  expect(runCommands).not.toContain("npm run verify:full");
+  expect(
+    runCommands.filter((command) => command.includes("npm run test:e2e")),
+  ).toEqual([
+    PUBLISH_E2E_COMMAND,
+  ]);
+}
+
 describe("Playwright project policy", () => {
   it("classifies Chromium, Firefox, and WebKit as desktop browser projects", () => {
     expect(DESKTOP_BROWSER_PROJECTS).toEqual([
@@ -42,24 +119,56 @@ describe("Playwright project policy", () => {
     expect(firefox?.use).toMatchObject({ defaultBrowserType: "firefox" });
     expect(webkit?.use).toMatchObject({ defaultBrowserType: "webkit" });
     expect(resource?.dependencies).toEqual(["chromium", "mobile-chrome"]);
-    expect(workflow).toContain(
-      "npx playwright install --with-deps chromium firefox webkit",
-    );
+    expectVerifyWorkflowPolicy(workflow);
   });
 
   it("keeps publish verification on the installed Chromium projects", () => {
     const workflow = readFileSync(".github/workflows/publish.yml", "utf8");
 
-    expect(workflow).toContain(
-      "npx playwright install --with-deps chromium",
+    expectPublishWorkflowPolicy(workflow);
+  });
+
+  it.each([
+    [
+      "the package baseline command is missing",
+      (workflow: string) => workflow.replace("      - run: npm run verify\n", ""),
+    ],
+    [
+      "the explicit Chromium project is missing",
+      (workflow: string) => workflow.replace("          --project=chromium\n", ""),
+    ],
+    [
+      "Firefox is added to the publish E2E command",
+      (workflow: string) =>
+        workflow.replace(
+          "          --project=chromium-resource\n",
+          "          --project=chromium-resource\n          --project=firefox\n",
+        ),
+    ],
+    [
+      "an unfiltered E2E command is added",
+      (workflow: string) =>
+        workflow.replace(
+          "      - name: Install pinned Gitleaks\n",
+          "      - run: npm run test:e2e\n      - name: Install pinned Gitleaks\n",
+        ),
+    ],
+  ])("rejects publish workflow when %s", (_case, mutate) => {
+    const workflow = readFileSync(".github/workflows/publish.yml", "utf8");
+
+    expect(() => expectPublishWorkflowPolicy(mutate(workflow))).toThrow();
+  });
+
+  it("rejects PR verification without the full browser gate", () => {
+    const workflow = readFileSync(".github/workflows/verify.yml", "utf8");
+    const withoutFullVerification = workflow.replace(
+      "      - run: npm run verify:full\n",
+      "",
     );
-    expect(workflow).not.toContain(
-      "npx playwright install --with-deps chromium firefox webkit",
-    );
-    expect(workflow).not.toContain("npm run verify:full");
-    expect(workflow).toContain("--project=chromium");
-    expect(workflow).toContain("--project=mobile-chrome");
-    expect(workflow).toContain("--project=chromium-resource");
+
+    expect(() =>
+      expectVerifyWorkflowPolicy(withoutFullVerification),
+    ).toThrow();
   });
 
   it("does not limit desktop parity scenarios to Chromium", () => {
