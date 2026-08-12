@@ -5,7 +5,7 @@ test("renders the gridstack example dashboard", async ({ page }) => {
 
   await expect(page.locator("body")).toHaveCSS("font-size", "12px");
   await expect(page.locator("body")).toHaveCSS("font-family", /Spoqa Han Sans Neo/);
-  await expect(page.getByRole("heading", { name: "위젯" })).toBeVisible();
+  await expect(page.locator(".docs-live").getByRole("heading", { name: "위젯" })).toBeVisible();
   await expect(page.getByTestId("dashboard-widget-sales")).toBeVisible();
   await expect(page.getByTestId("dashboard-widget-traffic")).toBeVisible();
 });

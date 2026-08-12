@@ -234,6 +234,11 @@ button {
   z-index: 30;
 }
 
+.docs-topnav > [data-testid="playground-locale-toggle"] {
+  position: relative;
+  z-index: 31;
+}
+
 .example-search {
   align-items: center;
   border: 1px solid var(--comins-color-border);
@@ -484,6 +489,24 @@ button {
   display: grid;
   gap: 16px;
   padding-top: 20px;
+}
+
+.docs-live .playground-workspace,
+.docs-live .playground-grid-region,
+.docs-live .playground-grid-region .grid-stack {
+  width: 100%;
+}
+
+.docs-live .playground-header {
+  padding: 0;
+}
+
+.docs-live .playground-controls {
+  padding-inline: 0;
+}
+
+.docs-live .playground-grid-region > .example-widget-count {
+  margin-inline: 0;
 }
 
 .docs-article--live-only .docs-live {

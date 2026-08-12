@@ -49,15 +49,7 @@ async function dragWidget(page: Page, widget: Locator, deltaX: number, deltaY: n
 async function dragWidgetToTarget(page: Page, widget: Locator, target: Locator) {
   await waitForWidgetGridEngine(widget);
   const title = widget.locator(".comins-grid-layout-widget__title");
-  const [titleBox, targetBox] = await Promise.all([title.boundingBox(), target.boundingBox()]);
-  if (!titleBox || !targetBox) {
-    throw new Error("External drop geometry is unavailable");
-  }
-
-  await page.mouse.move(titleBox.x + titleBox.width / 2, titleBox.y + titleBox.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 16 });
-  await page.mouse.up();
+  await title.dragTo(target);
 }
 
 async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY: number) {
@@ -126,7 +118,11 @@ function expectRowsToCoverColumns(layouts: IdentifiedWidgetLayout[], columns: nu
 }
 
 test.describe("Widget Playground", () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    if (testInfo.project.name !== "mobile-chrome") {
+      await page.setViewportSize({ width: 1280, height: 1400 });
+    }
+
     await page.goto("/examples/widget");
   });
 

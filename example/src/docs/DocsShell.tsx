@@ -4,9 +4,12 @@ import { Highlight, themes } from "prism-react-renderer";
 import { PanelLeft, Search } from "lucide-react";
 
 import { createDocsContent, createDocsNavGroups, searchDocs } from "./content";
-import type { ApiFeatureSection, DocsCodeSample, DocsNavGroup, DocsPage, DocsSearchItem, DocsSearchKind } from "./types";
+import type { ApiFeatureSection, DocsCodeSample, DocsNavGroup, DocsPage, DocsSearchItem, DocsSearchKind, PlaygroundExampleId } from "./types";
 import { defineLocalizedText, usePlaygroundLocale } from "../i18n/playground-locale";
 import { playgroundMessages } from "../i18n/messages";
+import { AdvancedPlayground } from "../playground/AdvancedPlayground";
+import { LayoutPlayground } from "../playground/LayoutPlayground";
+import { WidgetPlayground } from "../playground/WidgetPlayground";
 
 const docsMessages = {
   documentation: defineLocalizedText("문서", "Documentation"),
@@ -340,10 +343,27 @@ function DocsArticle({ apiFeatures, page }: { apiFeatures: ApiFeatureSection[]; 
           {example.codeSamples.map((sample) => (
             <CodeExample key={`${page.path}-${example.title}-${sample.title}`} sample={sample} />
           ))}
+
+          {example.liveExampleId ? (
+            <section className="docs-live" data-live-example={example.liveExampleId}>
+              <LivePlayground id={example.liveExampleId} />
+            </section>
+          ) : null}
         </section>
       ))}
     </article>
   );
+}
+
+function LivePlayground({ id }: { id: PlaygroundExampleId }) {
+  switch (id) {
+    case "advanced":
+      return <AdvancedPlayground />;
+    case "layout":
+      return <LayoutPlayground />;
+    case "widget":
+      return <WidgetPlayground />;
+  }
 }
 
 function CodeExample({ sample }: { sample: DocsCodeSample }) {

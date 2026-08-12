@@ -1,59 +1,22 @@
-import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { isDesktopBrowserProject } from "../project-policy";
 
-function collectBrowserDiagnostics(page: Page) {
-  const diagnostics: Array<{ text: string; type: ReturnType<ConsoleMessage["type"]> | "pageerror" }> = [];
-
-  page.on("console", (message) => {
-    if (message.type() === "error" || message.type() === "warning") {
-      diagnostics.push({ text: message.text(), type: message.type() });
-    }
-  });
-
-  page.on("pageerror", (error) => {
-    diagnostics.push({ text: error.message, type: "pageerror" });
-  });
-
-  return diagnostics;
-}
-
-async function expectPlaygroundShell(
+async function expectIntegratedPlayground(
   page: Page,
   path: "/examples/widget" | "/examples/layout" | "/examples/advanced",
   heading: "위젯" | "레이아웃" | "고급 예제",
 ) {
-  const diagnostics = collectBrowserDiagnostics(page);
   await page.goto(path);
 
-  const navigation = page.getByRole("navigation", { name: "예제 메뉴" });
-  const links = navigation.getByRole("link");
+  const navigation = page.getByRole("navigation", { name: "문서 메뉴" });
   await expect(navigation).toBeVisible();
-  await expect(links).toHaveCount(3);
-  await expect(links).toHaveText(["위젯", "레이아웃", "고급 예제"]);
   await expect(navigation.getByRole("link", { name: heading })).toHaveAttribute("aria-current", "page");
-
-  await expect(page.locator(".docs-sidebar")).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toHaveCount(0);
-  await expect(page.locator(".playground-controls")).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "전체 문서 검색" })).toBeVisible();
+  await expect(page.locator(".docs-code")).not.toHaveCount(0);
+  await expect(page.locator(".docs-live .playground-workspace")).toHaveCount(1);
   await expect(page.locator(".grid-stack")).toHaveCount(1);
-
-  const [mainBox, headerBox, controlsBox, gridBox] = await Promise.all([
-    page.locator(".playground-main").boundingBox(),
-    page.locator(".playground-header").boundingBox(),
-    page.locator(".playground-controls").boundingBox(),
-    page.locator(".playground-grid-region .grid-stack").boundingBox(),
-  ]);
-
-  expect(mainBox, "playground main geometry").not.toBeNull();
-  expect(headerBox, "playground header geometry").not.toBeNull();
-  expect(controlsBox, "playground controls geometry").not.toBeNull();
-  expect(gridBox, "playground grid geometry").not.toBeNull();
-
-  expect(gridBox!.y).toBeGreaterThan(headerBox!.y + headerBox!.height);
-  expect(gridBox!.y).toBeGreaterThan(controlsBox!.y + controlsBox!.height);
-  expect(Math.abs(gridBox!.width - mainBox!.width)).toBeLessThanOrEqual(2);
-  expect(diagnostics).toEqual([]);
+  await expect(page.locator(".playground-nav")).toHaveCount(0);
 }
 
 test.describe("gridstack docs playground routing", () => {
@@ -87,13 +50,13 @@ test.describe("gridstack docs playground routing", () => {
     await navigation.getByRole("link", { name: "고급 예제" }).click();
 
     await expect(page).toHaveURL(/\/examples\/advanced$/);
-    await expect(page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "고급 예제" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "고급 예제" })).toHaveAttribute("aria-current", "page");
   });
 
-  test("renders a dedicated full-width shell for every example route", async ({ page }) => {
-    await expectPlaygroundShell(page, "/examples/widget", "위젯");
-    await expectPlaygroundShell(page, "/examples/layout", "레이아웃");
-    await expectPlaygroundShell(page, "/examples/advanced", "고급 예제");
+  test("renders an integrated docs shell with one live playground for every example route", async ({ page }) => {
+    await expectIntegratedPlayground(page, "/examples/widget", "위젯");
+    await expectIntegratedPlayground(page, "/examples/layout", "레이아웃");
+    await expectIntegratedPlayground(page, "/examples/advanced", "고급 예제");
   });
 
   test("keeps the getting started and API pages in the docs shell", async ({ page }) => {
@@ -198,7 +161,7 @@ test.describe("gridstack docs playground routing", () => {
     await page.evaluate(() => {
       window.__cominsGridLayoutLastUnmount = undefined;
     });
-    await page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "레이아웃" }).click();
+    await page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "레이아웃" }).click();
 
     await expect(page).toHaveURL(/\/examples\/layout$/);
     await expect

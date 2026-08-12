@@ -436,7 +436,7 @@ async function addWidgetFromDialog(page: Page, width = "2", height = "2") {
 test("supports the Widget playground workflow", async ({ page }) => {
   await page.goto("/examples/widget");
 
-  await expect(page.getByRole("heading", { name: "위젯" })).toBeVisible();
+  await expect(page.locator(".docs-live").getByRole("heading", { name: "위젯" })).toBeVisible();
   await expect(page.getByTestId("dashboard-widget-sales")).toBeVisible();
 
   await addWidgetFromDialog(page);
@@ -1603,7 +1603,7 @@ test("executes the complete feature set through explicit playground routes", asy
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");
 
-  await expect(page.getByRole("heading", { name: "레이아웃", exact: true })).toBeVisible();
+  await expect(page.locator(".docs-live").getByRole("heading", { name: "레이아웃", exact: true })).toBeVisible();
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect(sales).toBeVisible();
   await expect(page.getByText("위젯 4개")).toBeVisible();

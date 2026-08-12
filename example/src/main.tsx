@@ -5,10 +5,6 @@ import { BrowserRouter, useLocation } from "react-router";
 
 import { DocsShell } from "./docs/DocsShell";
 import { PlaygroundLocaleProvider } from "./i18n/playground-locale";
-import { AdvancedPlayground } from "./playground/AdvancedPlayground";
-import { LayoutPlayground } from "./playground/LayoutPlayground";
-import { PlaygroundShell } from "./playground/PlaygroundShell";
-import { WidgetPlayground } from "./playground/WidgetPlayground";
 import { ReadmeDemoPage } from "./readme-demo";
 import "gridstack/dist/gridstack.min.css";
 import "../../src/styles.css";
@@ -71,25 +67,10 @@ function ExampleApp() {
   switch (location.pathname) {
     case "/api":
     case "/docs/getting-started":
-      return <DocsShell />;
     case "/examples/advanced":
-      return (
-        <PlaygroundShell routePath={location.pathname}>
-          <AdvancedPlayground />
-        </PlaygroundShell>
-      );
     case "/examples/layout":
-      return (
-        <PlaygroundShell routePath={location.pathname}>
-          <LayoutPlayground />
-        </PlaygroundShell>
-      );
     case "/examples/widget":
-      return (
-        <PlaygroundShell routePath={location.pathname}>
-          <WidgetPlayground />
-        </PlaygroundShell>
-      );
+      return <DocsShell />;
     case "/readme-demo":
       return <ReadmeDemoPage />;
     default:
