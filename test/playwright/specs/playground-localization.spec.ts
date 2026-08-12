@@ -15,15 +15,25 @@ test("switches the docs shell and locale search without changing the route", asy
   await expect(page.getByRole("article").getByRole("heading", { name: "Getting started" })).toBeVisible();
 });
 
-test("restores the English docs locale after reload", async ({ page }) => {
-  await initializePlaygroundLocale(page, "en");
+test("persists an English locale chosen from the default Korean UI across reload", async ({ page }) => {
   await page.goto("/docs/getting-started");
-  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  const localeToggle = page.getByTestId("playground-locale-toggle");
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "ko");
+  await expect(localeToggle.getByRole("button", { name: "KO" })).toHaveAttribute("aria-pressed", "true");
+
+  await localeToggle.getByRole("button", { name: "EN" }).click();
+  await expect.poll(
+    () => page.evaluate((key) => window.localStorage.getItem(key), PLAYGROUND_LOCALE_STORAGE_KEY),
+  ).toBe("en");
 
   await page.reload();
 
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(localeToggle.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
+  await expect(localeToggle.getByRole("button", { name: "KO" })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByRole("article").getByRole("heading", { name: "Getting started" })).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "Search all docs" })).toBeVisible();
 });
 
 test("falls back to Korean when stored locale is invalid", async ({ page }) => {
@@ -70,7 +80,17 @@ test("searches resolved docs copy for each locale", async ({ page }) => {
   await expect(page.getByRole("option", { name: /Layout 저장 \/ 복원/ }).first()).toBeVisible();
 
   await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
-  await page.getByRole("searchbox", { name: "Search all docs" }).fill("serialization");
+  const englishSearch = page.getByRole("searchbox", { name: "Search all docs" });
+  await expect(englishSearch).toHaveValue("");
+  await expect(page.getByRole("listbox", { name: "All docs search results" })).toHaveCount(0);
+
+  await englishSearch.fill("직렬화");
+  const oppositeLanguageResults = page.getByRole("listbox", { name: "All docs search results" });
+  await expect(oppositeLanguageResults).toBeVisible();
+  await expect(oppositeLanguageResults.getByRole("option")).toHaveCount(0);
+  await expect(oppositeLanguageResults).toContainText("No results found.");
+
+  await englishSearch.fill("serialization");
   await expect(page.getByRole("option", { name: /Save and restore layout/ }).first()).toBeVisible();
 });
 
@@ -146,6 +166,70 @@ test("resolves shared Widget controls, validation, and fixture presentation imme
   await expect(localizedDialog.getByText("Enter a value.")).toBeVisible();
   await expect(localizedDialog.getByRole("button", { name: "Save widget" })).toBeVisible();
   await expect(localizedDialog.getByRole("button", { name: "Close dialog" }).last()).toBeVisible();
+});
+
+test("moves initial focus into the dialog and keeps the backdrop out of the tab order", async ({ page }) => {
+  await page.goto("/examples/widget");
+  const opener = page.getByRole("button", { name: "위젯 추가" });
+  await opener.click();
+
+  const dialog = page.getByRole("dialog", { name: "위젯 추가" });
+  const koreanLocale = dialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "KO" });
+  await expect(koreanLocale).toBeFocused();
+  await expect(page.locator(".example-dialog__backdrop")).toHaveAttribute("tabindex", "-1");
+});
+
+test("contains forward and reverse Tab navigation within the dialog", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByRole("button", { name: "위젯 추가" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "위젯 추가" });
+  const koreanLocale = dialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "KO" });
+  const saveButton = dialog.getByRole("button", { name: "위젯 저장" });
+  await koreanLocale.focus();
+
+  await page.keyboard.press("Shift+Tab");
+  await expect(saveButton).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(koreanLocale).toBeFocused();
+});
+
+test("closes the dialog with Escape and restores focus to its opener", async ({ page }) => {
+  await page.goto("/examples/widget");
+  const opener = page.getByRole("button", { name: "위젯 추가" });
+  await opener.click();
+
+  const dialog = page.getByRole("dialog", { name: "위젯 추가" });
+  await dialog.getByLabel("위젯명").focus();
+  await page.keyboard.press("Escape");
+
+  await expect(dialog).toHaveCount(0);
+  await expect(opener).toBeFocused();
+});
+
+test("closes from a backdrop coordinate without activating covered page controls", async ({ page }) => {
+  await page.goto("/examples/widget");
+  const opener = page.getByRole("button", { name: "위젯 추가" });
+  await opener.click();
+
+  const dialog = page.getByRole("dialog", { name: "위젯 추가" });
+  const search = page.getByRole("searchbox", { name: "전체 문서 검색" });
+  const searchBox = await search.boundingBox();
+  expect(searchBox).not.toBeNull();
+  const point = {
+    x: searchBox!.x + searchBox!.width / 2,
+    y: searchBox!.y + searchBox!.height / 2,
+  };
+  expect(await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y)?.classList.contains("example-dialog__backdrop") ?? false,
+    point,
+  )).toBe(true);
+
+  await page.mouse.click(point.x, point.y);
+
+  await expect(dialog).toHaveCount(0);
+  await expect(search).toHaveValue("");
+  await expect(opener).toBeFocused();
 });
 
 test("keeps Widget selection, geometry, dialog draft, and detail state across locale changes", async ({ page }) => {
@@ -298,12 +382,12 @@ test("keeps an edit draft and semantic validation error while the dialog changes
   await dialog.getByRole("button", { name: "변경 저장" }).click();
   await expect(dialog.getByText("값을 입력해 주세요.")).toBeVisible();
 
-  for (const topNavTarget of [
-    page.getByRole("searchbox", { name: "전체 문서 검색" }),
-    page.getByRole("heading", { name: "comins-grid-layout" }),
-  ]) {
-    await expect(topNavTarget.click({ timeout: 750, trial: true })).rejects.toThrow("intercepts pointer events");
-  }
+  const searchBox = await page.getByRole("searchbox", { name: "전체 문서 검색" }).boundingBox();
+  expect(searchBox).not.toBeNull();
+  expect(await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y)?.classList.contains("example-dialog__backdrop") ?? false,
+    { x: searchBox!.x + searchBox!.width / 2, y: searchBox!.y + searchBox!.height / 2 },
+  )).toBe(true);
   await dialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "EN" }).click();
 
   const localizedDialog = page.getByRole("dialog", { name: "Edit widget" });

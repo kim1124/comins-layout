@@ -17,7 +17,7 @@ import {
 } from "./copy";
 import type { LayoutJsonStatus, LayoutOperationStatus } from "./copy";
 import { createLayoutPlaygroundFixture } from "./fixtures";
-import { sanitizeDashboardStateSnapshot } from "./state-snapshot";
+import { sanitizeExampleDashboardStateSnapshot } from "./state-snapshot";
 import type { ExampleWidgetData } from "./types";
 
 const columnOptions: SelectOption[] = DASHBOARD_COLUMN_COUNTS.map((column) => ({
@@ -108,7 +108,7 @@ export function LayoutPlayground() {
   const restoreFullState = () => {
     try {
       const parsed: unknown = JSON.parse(fullStateJson);
-      const snapshot = sanitizeDashboardStateSnapshot<ExampleWidgetData>(parsed);
+      const snapshot = sanitizeExampleDashboardStateSnapshot(parsed);
       if (!snapshot) {
         throw new Error("invalid state snapshot");
       }

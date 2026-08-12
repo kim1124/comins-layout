@@ -825,6 +825,48 @@ test.describe("Advanced Playground", () => {
     expect(await stateEditor.inputValue()).toBe(savedStateJson);
   });
 
+  for (const renderedDataKey of ["description", "value"] as const) {
+    test(`rejects object ${renderedDataKey} data without changing geometry, caches, or editor state`, async ({ page }) => {
+      const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
+      const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+      const stateStatus = page.getByRole("status", { name: "전체 상태 저장 복원 상태" });
+      const cacheStatus = page.getByRole("status", { name: "사용 가능한 컬럼 캐시" });
+      const privateInvalidValue = `INVALID_${renderedDataKey.toUpperCase()}_DO_NOT_ECHO`;
+
+      await columnSelect.selectOption("6");
+      await columnSelect.selectOption("12");
+      await page.getByRole("button", { name: "전체 상태 저장" }).click();
+      const savedStateJson = await stateEditor.inputValue();
+      const malformedState = JSON.parse(savedStateJson) as {
+        widgets: Array<{ data?: Record<string, unknown>; layout: { x: number } }>;
+      };
+      const firstWidget = malformedState.widgets[0];
+      expect(firstWidget?.data).toBeDefined();
+      if (!firstWidget?.data) {
+        throw new Error("Expected an Advanced fixture widget with render data");
+      }
+      const initialLayouts = await readDashboardLayouts(page);
+      const initialCacheStatus = await cacheStatus.textContent();
+      firstWidget.layout.x = firstWidget.layout.x === 0 ? 1 : 0;
+      firstWidget.data[renderedDataKey] = { privateInvalidValue };
+      const malformedStateJson = JSON.stringify(malformedState);
+
+      await stateEditor.fill(malformedStateJson);
+      await page.getByRole("button", { name: "전체 상태 복원" }).click();
+
+      await expect(stateStatus).toHaveText("JSON 형식 또는 상태 값을 확인해 주세요.");
+      await expect(stateEditor).toHaveValue(malformedStateJson);
+      await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
+      await expect.poll(() => readDashboardLayouts(page)).toEqual(initialLayouts);
+      await expect(cacheStatus).toHaveText(initialCacheStatus ?? "");
+      expect((await page.locator('[role="status"]').allTextContents()).join("\n")).not.toContain(privateInvalidValue);
+      expect(diagnosticsByTest.get(test.info().testId)?.join("\n")).not.toContain(privateInvalidValue);
+
+      await page.getByRole("button", { name: "전체 상태 저장" }).click();
+      expect(await stateEditor.inputValue()).toBe(savedStateJson);
+    });
+  }
+
   test("ignores unsupported cache keys while restoring valid top-level state and supported caches", async ({ page }) => {
     const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
     const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");

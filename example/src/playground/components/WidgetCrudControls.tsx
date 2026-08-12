@@ -186,6 +186,8 @@ export function WidgetCrudControls({
   const [internalAddDialogOpen, setInternalAddDialogOpen] = useState(false);
   const [internalEditDialogOpen, setInternalEditDialogOpen] = useState(false);
   const [internalSelectedWidgetId, setInternalSelectedWidgetId] = useState("sales");
+  const addDialogTriggerRef = useRef<HTMLButtonElement>(null);
+  const editDialogTriggerRef = useRef<HTMLButtonElement>(null);
   const nextWidgetNumber = useRef(dashboard.widgets.length + 1);
   const controlledSelection = onSelectedWidgetIdChange !== undefined;
   const activeSelectedId = controlledSelection ? selectedWidgetId : internalSelectedWidgetId;
@@ -293,7 +295,7 @@ export function WidgetCrudControls({
   return (
     <>
       <div className="example-actions example-crud-actions" aria-label={text(sharedPlaygroundCopy.widgetActions)}>
-        <button className="example-action-button example-action-button--add" type="button" onClick={() => setAddDialogOpen(true)}>
+        <button ref={addDialogTriggerRef} className="example-action-button example-action-button--add" type="button" onClick={() => setAddDialogOpen(true)}>
           <Plus aria-hidden="true" size={14} />
           {text(sharedPlaygroundCopy.addWidget)}
         </button>
@@ -307,7 +309,7 @@ export function WidgetCrudControls({
           />
         </fieldset>
         {canEdit ? (
-          <button type="button" disabled={!selectedWidget} onClick={() => setEditDialogOpen(true)}>
+          <button ref={editDialogTriggerRef} type="button" disabled={!selectedWidget} onClick={() => setEditDialogOpen(true)}>
             <Pencil aria-hidden="true" size={14} />
             {text(sharedPlaygroundCopy.editSelectedWidget)}
           </button>
@@ -326,6 +328,7 @@ export function WidgetCrudControls({
       <Dialog
         description={text(sharedPlaygroundCopy.dialog.add.description)}
         open={resolvedAddDialogOpen}
+        returnFocusRef={addDialogTriggerRef}
         title={text(sharedPlaygroundCopy.dialog.add.title)}
         onOpenChange={setAddDialogOpen}
       >
@@ -345,6 +348,7 @@ export function WidgetCrudControls({
         <Dialog
           description={text(sharedPlaygroundCopy.dialog.edit.description)}
           open={resolvedEditDialogOpen}
+          returnFocusRef={editDialogTriggerRef}
           title={text(sharedPlaygroundCopy.dialog.edit.title)}
           onOpenChange={setEditDialogOpen}
         >

@@ -32,7 +32,7 @@ import type {
   AdvancedLayoutStatus,
 } from "./copy";
 import { createAdvancedPlaygroundFixture } from "./fixtures";
-import { sanitizeDashboardStateSnapshot } from "./state-snapshot";
+import { sanitizeExampleDashboardStateSnapshot } from "./state-snapshot";
 import type { ExampleWidgetData } from "./types";
 
 const columnOptions: SelectOption[] = [
@@ -121,7 +121,7 @@ export function AdvancedPlayground() {
   const restoreLayout = () => {
     try {
       const parsed: unknown = JSON.parse(layoutJson);
-      const snapshot = sanitizeDashboardStateSnapshot<ExampleWidgetData>(parsed);
+      const snapshot = sanitizeExampleDashboardStateSnapshot(parsed);
       if (!snapshot) {
         throw new Error("invalid dashboard state snapshot");
       }

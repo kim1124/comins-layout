@@ -1,5 +1,8 @@
 import { createDashboardLayoutState } from "../../src";
-import { sanitizeDashboardStateSnapshot } from "../../example/src/playground/state-snapshot";
+import {
+  sanitizeDashboardStateSnapshot,
+  sanitizeExampleDashboardStateSnapshot,
+} from "../../example/src/playground/state-snapshot";
 
 const validWidget = {
   id: "sales",
@@ -118,5 +121,40 @@ describe("sanitizeDashboardStateSnapshot", () => {
     });
 
     expect(sanitized).toEqual({ columns: 12, widgets: [validWidget] });
+  });
+});
+
+describe("sanitizeExampleDashboardStateSnapshot", () => {
+  it.each(["description", "value"] as const)("rejects object %s data before restore dispatch", (key) => {
+    const data: Record<string, unknown> = {
+      description: "Monthly recurring revenue",
+      fixtureCopyKey: "sales",
+      value: "128M",
+    };
+    data[key] = { privateValue: "DO_NOT_RENDER" };
+    const snapshot = {
+      ...createValidSnapshot(),
+      widgets: [{ ...validWidget, layout: { ...validWidget.layout }, data }],
+    };
+
+    expect(sanitizeExampleDashboardStateSnapshot(snapshot)).toBeUndefined();
+  });
+
+  it("accepts string render data while preserving safe fallback for prototype-like presentation keys", () => {
+    const snapshot = {
+      ...createValidSnapshot(),
+      widgets: [{
+        ...validWidget,
+        layout: { ...validWidget.layout },
+        data: {
+          description: "Raw description",
+          fixtureCopyKey: "__proto__",
+          generatedDescriptionKey: "__proto__",
+          value: "Raw value",
+        },
+      }],
+    };
+
+    expect(sanitizeExampleDashboardStateSnapshot(snapshot)).toEqual(snapshot);
   });
 });

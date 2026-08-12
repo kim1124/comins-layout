@@ -7,6 +7,7 @@ import type {
   DashboardWidget,
   DashboardWidgetLayout,
 } from "../../../src";
+import type { ExampleWidgetData } from "./types";
 
 const layoutLimitKeys = ["minW", "minH", "maxW", "maxH"] as const;
 const supportedColumnKeys = new Set(DASHBOARD_COLUMN_COUNTS.map(String));
@@ -118,4 +119,23 @@ export function sanitizeDashboardStateSnapshot<TData>(
     ...(value.previousLayouts === undefined ? {} : { previousLayouts: value.previousLayouts }),
     ...(layoutsByColumn === undefined ? {} : { layoutsByColumn }),
   };
+}
+
+function hasSafeExampleWidgetData(data: unknown): data is ExampleWidgetData {
+  return (
+    isRecord(data) &&
+    typeof data.description === "string" &&
+    typeof data.value === "string"
+  );
+}
+
+export function sanitizeExampleDashboardStateSnapshot(
+  value: unknown,
+): DashboardStateSnapshotInput<ExampleWidgetData> | undefined {
+  const snapshot = sanitizeDashboardStateSnapshot<unknown>(value);
+  if (!snapshot || !snapshot.widgets.every((widget) => widget.data === undefined || hasSafeExampleWidgetData(widget.data))) {
+    return undefined;
+  }
+
+  return snapshot as DashboardStateSnapshotInput<ExampleWidgetData>;
 }
