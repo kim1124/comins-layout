@@ -1,16 +1,20 @@
 import type { DashboardWidget } from "../../../src";
 import { defineLocalizedText, resolveLocalizedText } from "../i18n/playground-locale";
 import type { LocalizedText, PlaygroundLocale } from "../i18n/types";
-import type { ExampleFixtureCopyKey, ExampleWidgetData } from "./types";
+import type { ExampleFixtureCopyKey, ExampleGeneratedDescriptionKey, ExampleWidgetData } from "./types";
+
+export type WidgetStatusTitle =
+  | { kind: "fixture"; key: ExampleFixtureCopyKey }
+  | { kind: "literal"; value: string };
 
 export type WidgetStatus =
-  | { type: "added"; title: string }
-  | { type: "edited"; title: string }
+  | { type: "added"; title: WidgetStatusTitle }
+  | { type: "edited"; title: WidgetStatusTitle }
   | { type: "empty" }
   | { type: "fullLock"; active: boolean }
   | { type: "moveLock"; active: boolean }
   | { type: "resizeLock"; active: boolean }
-  | { type: "selected"; title: string };
+  | { type: "selected"; title: WidgetStatusTitle };
 
 export const sharedPlaygroundCopy = {
   addWidget: defineLocalizedText("위젯 추가", "Add widget"),
@@ -104,11 +108,11 @@ export const widgetPlaygroundCopy = {
   title: defineLocalizedText("위젯", "Widget"),
 } as const;
 
-const WIDGET_STATUS_FIXTURE_PREFIX = "fixture:";
-
-export function toWidgetStatusTitle(widget: DashboardWidget<ExampleWidgetData>): string {
+export function toWidgetStatusTitle(widget: DashboardWidget<ExampleWidgetData>): WidgetStatusTitle {
   const fixtureCopyKey = widget.data?.fixtureCopyKey;
-  return fixtureCopyKey ? `${WIDGET_STATUS_FIXTURE_PREFIX}${fixtureCopyKey}` : widget.title ?? widget.id;
+  return fixtureCopyKey
+    ? { kind: "fixture", key: fixtureCopyKey }
+    : { kind: "literal", value: widget.title ?? widget.id };
 }
 
 type FixturePresentation = {
@@ -135,13 +139,17 @@ const fixturePresentations: Record<ExampleFixtureCopyKey, FixturePresentation> =
   },
 };
 
-function resolveWidgetStatusTitle(title: string, locale: PlaygroundLocale): string {
-  const fixtureCopyKey = title.startsWith(WIDGET_STATUS_FIXTURE_PREFIX)
-    ? title.slice(WIDGET_STATUS_FIXTURE_PREFIX.length) as ExampleFixtureCopyKey
-    : undefined;
-  const fixturePresentation = fixtureCopyKey ? fixturePresentations[fixtureCopyKey] : undefined;
+const generatedDescriptionPresentations: Record<ExampleGeneratedDescriptionKey, LocalizedText> = {
+  editedWidget: defineLocalizedText("수정된 대시보드 위젯", "Updated dashboard widget"),
+  newWidget: defineLocalizedText("새 대시보드 위젯", "New dashboard widget"),
+};
 
-  return fixturePresentation ? resolveLocalizedText(fixturePresentation.title, locale) : title;
+function resolveWidgetStatusTitle(title: WidgetStatusTitle, locale: PlaygroundLocale): string {
+  if (title.kind === "literal") {
+    return title.value;
+  }
+
+  return resolveLocalizedText(fixturePresentations[title.key].title, locale);
 }
 
 export function formatWidgetStatus(status: WidgetStatus, locale: PlaygroundLocale): string {
@@ -177,6 +185,16 @@ export function resolveWidgetPresentation(
   widget: DashboardWidget<ExampleWidgetData>,
   locale: PlaygroundLocale,
 ): { description: string; title: string } {
+  const generatedDescriptionKey = widget.data?.generatedDescriptionKey;
+  const generatedDescription = generatedDescriptionKey ? generatedDescriptionPresentations[generatedDescriptionKey] : undefined;
+
+  if (generatedDescription) {
+    return {
+      description: resolveLocalizedText(generatedDescription, locale),
+      title: widget.title ?? widget.id,
+    };
+  }
+
   const fixtureCopyKey = widget.data?.fixtureCopyKey;
   const fixturePresentation = fixtureCopyKey ? fixturePresentations[fixtureCopyKey] : undefined;
 

@@ -217,6 +217,76 @@ test("renders Widget status semantically in English without changing selected, l
   await expect(page.locator('[data-example-mode="widget"]')).toHaveCount(1);
 });
 
+test("keeps prefix-like user Widget titles literal in Korean and English status text", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByRole("combobox", { name: "위젯 선택" }).selectOption("traffic");
+  await page.getByRole("button", { name: "선택 위젯 수정" }).click();
+  const dialog = page.getByRole("dialog", { name: "위젯 수정" });
+  await dialog.getByLabel("위젯명").fill("fixture:sales");
+  await dialog.getByLabel("값").fill("사용자 값");
+  await dialog.getByRole("button", { name: "변경 저장" }).click();
+
+  await expect(page.getByRole("status", { name: "위젯 작업 상태" })).toHaveText("fixture:sales 위젯을 수정했습니다.");
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  await expect(page.getByRole("status", { name: "Widget action status" })).toHaveText("Updated the fixture:sales widget.");
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("fixture:sales");
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("사용자 값");
+});
+
+test("keeps prototype-like user Widget titles literal without throwing", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByRole("button", { name: "위젯 추가" }).click();
+  const dialog = page.getByRole("dialog", { name: "위젯 추가" });
+  await dialog.getByLabel("위젯명").fill("fixture:__proto__");
+  await dialog.getByLabel("값").fill("사용자 값");
+  await dialog.getByRole("button", { name: "위젯 저장" }).click();
+
+  await expect(page.getByRole("status", { name: "위젯 작업 상태" })).toHaveText("fixture:__proto__ 위젯을 추가했습니다.");
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  await expect(page.getByRole("status", { name: "Widget action status" })).toHaveText("Added the fixture:__proto__ widget.");
+  await expect(page.getByTestId("dashboard-widget-widget-4")).toContainText("fixture:__proto__");
+  await expect(page.getByTestId("dashboard-widget-widget-4")).toContainText("사용자 값");
+});
+
+test("localizes generated Widget descriptions without translating user title or value", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByRole("button", { name: "위젯 추가" }).click();
+  const dialog = page.getByRole("dialog", { name: "위젯 추가" });
+  await dialog.getByLabel("위젯명").fill("사용자 생성 위젯");
+  await dialog.getByLabel("값").fill("사용자 값");
+  await dialog.getByRole("button", { name: "위젯 저장" }).click();
+
+  const added = page.getByTestId("dashboard-widget-widget-4");
+  await expect(added).toContainText("새 대시보드 위젯");
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  await expect(added).toContainText("New dashboard widget");
+  await expect(added).toContainText("사용자 생성 위젯");
+  await expect(added).toContainText("사용자 값");
+});
+
+test("localizes edited fixture Widget descriptions without retaining fixture presentation metadata", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByRole("combobox", { name: "위젯 선택" }).selectOption("traffic");
+  await page.getByRole("button", { name: "선택 위젯 수정" }).click();
+  const dialog = page.getByRole("dialog", { name: "위젯 수정" });
+  await dialog.getByLabel("위젯명").fill("사용자 수정 위젯");
+  await dialog.getByLabel("값").fill("사용자 값");
+  await dialog.getByRole("button", { name: "변경 저장" }).click();
+
+  const traffic = page.getByTestId("dashboard-widget-traffic");
+  await expect(traffic).toContainText("수정된 대시보드 위젯");
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  await expect(traffic).toContainText("Updated dashboard widget");
+  await expect(traffic).toContainText("사용자 수정 위젯");
+  await expect(traffic).toContainText("사용자 값");
+
+  const state = JSON.parse((await page.getByLabel("Current widget state JSON").textContent()) ?? "{}") as {
+    widgets?: Array<{ data?: Record<string, unknown>; id: string }>;
+  };
+  expect(state.widgets?.find((widget) => widget.id === "traffic")?.data).toMatchObject({ generatedDescriptionKey: "editedWidget" });
+  expect(state.widgets?.find((widget) => widget.id === "traffic")?.data).not.toHaveProperty("fixtureCopyKey");
+});
+
 test("keeps an edit draft and semantic validation error while the dialog changes locale", async ({ page }) => {
   await page.goto("/examples/widget");
   await page.getByRole("combobox", { name: "위젯 선택" }).selectOption("traffic");

@@ -44,11 +44,12 @@ export function WidgetPlayground() {
     dashboard.commands.addWidget(
       createWidget(id, draft.title, 0, 0, draft.width, draft.height, {
         description: "새 대시보드 위젯",
+        generatedDescriptionKey: "newWidget",
         value: draft.value,
       }),
     );
     setSelectedWidgetId(id);
-    setStatus({ type: "added", title: draft.title });
+    setStatus({ type: "added", title: { kind: "literal", value: draft.title } });
   };
 
   const editWidget = (draft: EditedWidgetDraft) => {
@@ -56,14 +57,19 @@ export function WidgetPlayground() {
       return;
     }
 
+    const generatedDescriptionKey = selectedWidget.data?.fixtureCopyKey
+      ? "editedWidget"
+      : selectedWidget.data?.generatedDescriptionKey;
+
     dashboard.commands.updateWidget(selectedWidget.id, {
       data: {
         description: selectedWidget.data?.description ?? `${draft.title} dashboard widget`,
+        ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
         value: draft.value,
       },
       title: draft.title,
     });
-    setStatus({ type: "edited", title: draft.title });
+    setStatus({ type: "edited", title: { kind: "literal", value: draft.title } });
   };
 
   const removeWidget = (id: string) => {
