@@ -3,7 +3,7 @@ import type { DashboardGridProps } from "../../../../src";
 import { DashboardGrid } from "../../../../src";
 
 import { usePlaygroundLocale } from "../../i18n/playground-locale";
-import { resolveWidgetPresentation, sharedPlaygroundCopy } from "../copy";
+import { createPresentedWidgets, sharedPlaygroundCopy } from "../copy";
 import type { DashboardRuntime, ExampleWidgetData } from "../types";
 
 type DashboardPreviewProps = {
@@ -32,18 +32,7 @@ export function DashboardPreview({
   showControls = true,
 }: DashboardPreviewProps) {
   const { locale, text } = usePlaygroundLocale();
-  const widgets = useMemo(
-    () =>
-      dashboard.widgets.map((widget) => {
-        const presentation = resolveWidgetPresentation(widget, locale);
-        return {
-          ...widget,
-          data: widget.data ? { ...widget.data, description: presentation.description } : widget.data,
-          title: presentation.title,
-        };
-      }),
-    [dashboard.widgets, locale],
-  );
+  const widgets = useMemo(() => createPresentedWidgets(dashboard.widgets, locale), [dashboard.widgets, locale]);
 
   return (
     <>

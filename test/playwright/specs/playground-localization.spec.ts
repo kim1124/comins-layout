@@ -132,7 +132,7 @@ test("resolves shared Widget controls, validation, and fixture presentation imme
   await expect(dialog.getByText("위젯명을 입력해 주세요.")).toBeVisible();
   await expect(dialog.getByText("값을 입력해 주세요.")).toBeVisible();
 
-  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  await dialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "EN" }).click();
 
   await expect(page.getByRole("button", { name: "Add widget" })).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Select widget" })).toHaveValue("sales");
@@ -159,7 +159,7 @@ test("keeps Widget selection, geometry, dialog draft, and detail state across lo
     window.__cominsGridLayoutLastUnmount = undefined;
   });
 
-  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  await page.getByRole("dialog", { name: "위젯 추가" }).getByTestId("dialog-locale-toggle").getByRole("button", { name: "EN" }).click();
 
   await expect(page).toHaveURL(/\/examples\/widget$/);
   expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
@@ -168,6 +168,49 @@ test("keeps Widget selection, geometry, dialog draft, and detail state across lo
   await expect(page.getByLabel("Widget name")).toHaveValue("사용자 지표");
   await expect(page.locator("details.example-state-output")).toHaveAttribute("open", "");
   await expect(page.getByTestId("dashboard-widget-traffic")).toHaveAttribute("data-layout-x", before ?? "");
+});
+
+test("keeps an edit draft and semantic validation error while the dialog changes locale", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByRole("combobox", { name: "위젯 선택" }).selectOption("traffic");
+  await page.getByRole("button", { name: "선택 위젯 수정" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "위젯 수정" });
+  await dialog.getByLabel("위젯명").fill("사용자 초안 트래픽");
+  await dialog.getByLabel("값").fill("");
+  await dialog.getByRole("button", { name: "변경 저장" }).click();
+  await expect(dialog.getByText("값을 입력해 주세요.")).toBeVisible();
+
+  for (const topNavTarget of [
+    page.getByRole("searchbox", { name: "전체 문서 검색" }),
+    page.getByRole("heading", { name: "comins-grid-layout" }),
+  ]) {
+    await expect(topNavTarget.click({ timeout: 750, trial: true })).rejects.toThrow("intercepts pointer events");
+  }
+  await dialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  const localizedDialog = page.getByRole("dialog", { name: "Edit widget" });
+  await expect(localizedDialog.getByLabel("Widget name")).toHaveValue("사용자 초안 트래픽");
+  await expect(localizedDialog.getByLabel("Value")).toHaveValue("");
+  await expect(localizedDialog.getByText("Enter a value.")).toBeVisible();
+
+  await localizedDialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "KO" }).click();
+  await expect(page.getByRole("dialog", { name: "위젯 수정" }).getByLabel("위젯명")).toHaveValue("사용자 초안 트래픽");
+  await expect(page.getByRole("dialog", { name: "위젯 수정" }).getByText("값을 입력해 주세요.")).toBeVisible();
+});
+
+test("resolves Advanced fixture presentation without changing its widget geometry", async ({ page }) => {
+  await page.goto("/examples/advanced");
+  const traffic = page.getByTestId("dashboard-widget-traffic");
+  const beforeX = await traffic.getAttribute("data-layout-x");
+  const beforeY = await traffic.getAttribute("data-layout-y");
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(traffic).toContainText("Traffic");
+  await expect(traffic).toContainText("Active sessions");
+  await expect(traffic).toHaveAttribute("data-layout-x", beforeX ?? "");
+  await expect(traffic).toHaveAttribute("data-layout-y", beforeY ?? "");
 });
 
 test("uses fixture presentation until an edited Widget has user-owned data", async ({ page }) => {

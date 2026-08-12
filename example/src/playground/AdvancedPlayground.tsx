@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Lock, Move, Save, Settings2, Trash2, Unlock } from "lucide-react";
 
 import { DashboardGrid, useDashboardGrid } from "../../../src";
@@ -11,10 +11,11 @@ import type {
 } from "../../../src";
 import { Select } from "../components/ui/select";
 import type { SelectOption } from "../components/ui/select";
+import { usePlaygroundLocale } from "../i18n/playground-locale";
 import { PlaygroundHeader, toggleStateProps } from "./components/DashboardPreview";
 import { LayoutJson } from "./components/LayoutJson";
 import { WidgetCrudControls } from "./components/WidgetCrudControls";
-import { sharedPlaygroundCopy } from "./copy";
+import { createPresentedWidgets, sharedPlaygroundCopy } from "./copy";
 import { createAdvancedPlaygroundFixture } from "./fixtures";
 import { sanitizeDashboardStateSnapshot } from "./state-snapshot";
 import type { ExampleWidgetData } from "./types";
@@ -39,6 +40,7 @@ const GRID_NOT_READY_STATUS = "GridStack이 아직 준비되지 않았습니다.
 const JSON_ERROR_STATUS = "JSON 형식 또는 상태 값을 확인해 주세요.";
 
 export function AdvancedPlayground() {
+  const { locale } = usePlaygroundLocale();
   const dashboard = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 12,
     initialWidgets: createAdvancedPlaygroundFixture(),
@@ -55,6 +57,7 @@ export function AdvancedPlayground() {
   const [handleStatus, setHandleStatus] = useState(GRID_NOT_READY_STATUS);
   const [queryStatus, setQueryStatus] = useState(GRID_NOT_READY_STATUS);
   const [commitStatus, setCommitStatus] = useState("커밋된 제어 레이아웃이 없습니다.");
+  const presentedWidgets = useMemo(() => createPresentedWidgets(dashboard.widgets, locale), [dashboard.widgets, locale]);
 
   const cacheKeys = Object.keys(dashboard.state.layoutsByColumn)
     .map(Number)
@@ -285,7 +288,7 @@ export function AdvancedPlayground() {
           refreshKey={dashboard.refreshVersion}
           resizable={resizable && !locked}
           responsive={responsiveEnabled ? responsiveOptions : undefined}
-          widgets={dashboard.widgets}
+          widgets={presentedWidgets}
           onColumnsChange={dashboard.commands.setColumns}
           onLayoutCommit={handleLayoutCommit}
           onMaximizeWidget={dashboard.commands.maximizeWidget}

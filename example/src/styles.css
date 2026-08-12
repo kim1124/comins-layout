@@ -199,7 +199,7 @@ button {
   padding: 16px 24px;
   position: sticky;
   top: 0;
-  z-index: 60;
+  z-index: 20;
 }
 
 .docs-topnav h1 {
@@ -927,6 +927,12 @@ button.dashboard-widget-body[data-selected="true"] {
   line-height: 1;
   min-height: 28px;
   padding: 0 6px;
+}
+
+.example-dialog__header-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
 }
 
 .example-dialog__body {

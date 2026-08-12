@@ -54,6 +54,7 @@ type WidgetDialogFormProps = {
   initialValue: string;
   mode: "add" | "edit";
   open: boolean;
+  resetKey: string;
   scope: string;
   onCancel: () => void;
   onSubmit: (draft: NewWidgetDraft) => void;
@@ -64,6 +65,7 @@ function WidgetDialogForm({
   initialValue,
   mode,
   open,
+  resetKey,
   scope,
   onCancel,
   onSubmit,
@@ -75,9 +77,15 @@ function WidgetDialogForm({
   const [titleError, setTitleError] = useState<WidgetValidationError>(null);
   const [valueError, setValueError] = useState<WidgetValidationError>(null);
   const [width, setWidth] = useState(2);
+  const previousOpen = useRef(false);
+  const previousResetKey = useRef(resetKey);
 
   useEffect(() => {
-    if (!open) {
+    const shouldReset = open && (!previousOpen.current || previousResetKey.current !== resetKey);
+    previousOpen.current = open;
+    previousResetKey.current = resetKey;
+
+    if (!shouldReset) {
       return;
     }
 
@@ -87,7 +95,7 @@ function WidgetDialogForm({
     setTitleError(null);
     setValueError(null);
     setWidth(2);
-  }, [initialTitle, initialValue, open]);
+  }, [open, resetKey]);
 
   const submit = () => {
     const title = draftTitle.trim();
@@ -320,6 +328,7 @@ export function WidgetCrudControls({
           initialValue={String(nextNumber)}
           mode="add"
           open={resolvedAddDialogOpen}
+          resetKey={`add-${nextNumber}`}
           scope={`${mode}-new`}
           onCancel={() => setAddDialogOpen(false)}
           onSubmit={addWidget}
@@ -338,6 +347,7 @@ export function WidgetCrudControls({
             initialValue={selectedWidget?.data?.value ?? ""}
             mode="edit"
             open={resolvedEditDialogOpen}
+            resetKey={selectedWidget?.id ?? ""}
             scope={`${mode}-edit`}
             onCancel={() => setEditDialogOpen(false)}
             onSubmit={editWidget}

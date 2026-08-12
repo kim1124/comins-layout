@@ -72,6 +72,20 @@ const fixturePresentations: Record<ExampleFixtureCopyKey, FixturePresentation> =
   },
 };
 
+export function createPresentedWidgets(
+  widgets: DashboardWidget<ExampleWidgetData>[],
+  locale: PlaygroundLocale,
+): DashboardWidget<ExampleWidgetData>[] {
+  return widgets.map((widget) => {
+    const presentation = resolveWidgetPresentation(widget, locale);
+    return {
+      ...widget,
+      data: widget.data ? { ...widget.data, description: presentation.description } : widget.data,
+      title: presentation.title,
+    };
+  });
+}
+
 export function resolveWidgetPresentation(
   widget: DashboardWidget<ExampleWidgetData>,
   locale: PlaygroundLocale,
