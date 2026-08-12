@@ -193,7 +193,7 @@ button {
   background: var(--comins-color-surface);
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 360px);
+  grid-template-columns: minmax(0, 1fr) minmax(220px, 360px) auto;
   height: 76px;
   justify-content: stretch;
   padding: 16px 24px;

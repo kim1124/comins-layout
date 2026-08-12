@@ -22,6 +22,36 @@ async function expectNoRootHorizontalOverflow(page: Page) {
   expect(overflowX).toBeLessThanOrEqual(2);
 }
 
+async function expectDocsTopNavigationGeometry(page: Page) {
+  const [headerBox, bodyBox, brandBox, searchBox, localeBox] = await Promise.all([
+    page.locator(".docs-topnav").boundingBox(),
+    page.locator(".docs-shell__body").boundingBox(),
+    page.locator(".docs-topnav__brand").boundingBox(),
+    page.locator(".global-docs-search").boundingBox(),
+    page.getByTestId("playground-locale-toggle").boundingBox(),
+  ]);
+
+  expect(headerBox, "docs top navigation geometry").not.toBeNull();
+  expect(bodyBox, "docs shell body geometry").not.toBeNull();
+  expect(brandBox, "docs brand geometry").not.toBeNull();
+  expect(searchBox, "docs search geometry").not.toBeNull();
+  expect(localeBox, "docs locale control geometry").not.toBeNull();
+
+  const header = headerBox!;
+  const body = bodyBox!;
+  const children = [brandBox!, searchBox!, localeBox!];
+  const tolerance = 1;
+
+  for (const child of children) {
+    expect(child.x).toBeGreaterThanOrEqual(header.x - tolerance);
+    expect(child.y).toBeGreaterThanOrEqual(header.y - tolerance);
+    expect(child.x + child.width).toBeLessThanOrEqual(header.x + header.width + tolerance);
+    expect(child.y + child.height).toBeLessThanOrEqual(header.y + header.height + tolerance);
+  }
+
+  expect(header.y + header.height).toBeLessThanOrEqual(body.y + tolerance);
+}
+
 test("captures gridstack example visual typography screenshot", async ({
   page,
 }, testInfo) => {
@@ -39,6 +69,7 @@ test("captures gridstack example visual typography screenshot", async ({
     await expect(page.getByRole("heading", { name: route.heading }).first()).toBeVisible();
     await expectBaseTypography(page);
     await expectNoRootHorizontalOverflow(page);
+    await expectDocsTopNavigationGeometry(page);
 
     await page.screenshot({
       animations: "disabled",
