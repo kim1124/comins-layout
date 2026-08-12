@@ -3,7 +3,7 @@ import type { DashboardGridProps } from "../../../../src";
 import { DashboardGrid } from "../../../../src";
 
 import { usePlaygroundLocale } from "../../i18n/playground-locale";
-import { createPresentedWidgets, sharedPlaygroundCopy } from "../copy";
+import { createPresentedWidgets, resolveDashboardActionLabels, sharedPlaygroundCopy } from "../copy";
 import type { DashboardRuntime, ExampleWidgetData } from "../types";
 
 type DashboardPreviewProps = {
@@ -38,6 +38,7 @@ export function DashboardPreview({
     <>
       <p className="example-widget-count">{text(sharedPlaygroundCopy.widgetCount).replace("{count}", String(dashboard.widgets.length))}</p>
       <DashboardGrid
+        actionLabels={resolveDashboardActionLabels(locale)}
         columns={dashboard.columns}
         externalDropTargets={externalDropTargets}
         movable={movable}

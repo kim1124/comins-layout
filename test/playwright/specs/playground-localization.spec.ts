@@ -362,3 +362,166 @@ test("keeps Layout JSON draft data while its shared labels change locale", async
   await expect(page.locator(".example-layout-json").first()).toHaveAttribute("aria-label", "Layout JSON controls");
   await expect(page.getByRole("status", { name: "Active layout save and restore status" })).toBeVisible();
 });
+
+test("localizes Layout copy and semantic status without resetting layout state", async ({ page }) => {
+  const invalidActiveLayout = '{"private-layout":"LAYOUT_DO_NOT_ECHO"';
+  await page.goto("/examples/layout");
+  await page.getByRole("combobox", { name: "컬럼 선택" }).selectOption("6");
+
+  const activeLayout = {
+    columns: 6,
+    widgets: [
+      { id: "sales", x: 4, y: 0, w: 2, h: 2 },
+      { id: "traffic", x: 0, y: 0, w: 4, h: 2 },
+      { id: "orders", x: 3, y: 2, w: 3, h: 2 },
+      { id: "alerts", x: 0, y: 2, w: 3, h: 2 },
+    ],
+  };
+  await page.getByLabel("활성 레이아웃 JSON").fill(JSON.stringify(activeLayout));
+  await page.getByRole("button", { name: "활성 레이아웃 복원" }).click();
+  await page.getByRole("button", { name: "자동 정렬" }).click();
+  await expect(page.getByRole("status", { name: "레이아웃 작업 상태" })).toHaveText(
+    "패키지 순서로 위젯을 자동 정렬했습니다.",
+  );
+
+  await page.getByRole("button", { name: "전체 상태 저장" }).click();
+  const savedFullState = await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue();
+  const savedCacheKeys = Object.keys((JSON.parse(savedFullState) as { layoutsByColumn: Record<string, unknown> }).layoutsByColumn).sort();
+  expect(savedCacheKeys).toEqual(["12", "6"]);
+  const geometryBeforeLocaleChange = await page.locator(".grid-stack-item").evaluateAll((elements) =>
+    elements.map((element) => ({
+      h: element.getAttribute("data-layout-h"),
+      id: element.getAttribute("data-widget-id"),
+      w: element.getAttribute("data-layout-w"),
+      x: element.getAttribute("data-layout-x"),
+      y: element.getAttribute("data-layout-y"),
+    })),
+  );
+
+  await page.getByLabel("활성 레이아웃 JSON").fill(invalidActiveLayout);
+  await page.getByRole("button", { name: "활성 레이아웃 복원" }).click();
+  await expect(page.getByRole("status", { name: "활성 레이아웃 저장 복원 상태" })).toHaveText(
+    "JSON 형식 또는 레이아웃 값을 확인해 주세요.",
+  );
+  await page.evaluate(() => {
+    window.__cominsGridLayoutLastUnmount = undefined;
+  });
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page).toHaveURL(/\/examples\/layout$/);
+  expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
+  await expect(page.locator(".playground-header").getByText("Layout example", { exact: true })).toBeVisible();
+  await expect(page.locator(".playground-header").getByRole("heading", { name: "Layout", exact: true })).toBeVisible();
+  await expect(page.getByText("Save and restore layouts by column, then compare arranging and filling empty space.")).toBeVisible();
+  await expect(page.locator(".playground-controls")).toHaveAttribute("aria-label", "Layout example controls");
+  await expect(page.getByRole("combobox", { name: "Select columns" })).toHaveValue("6");
+  await expect(page.getByRole("status", { name: "Active column status" })).toHaveText("Currently using 6 columns.");
+  await expect(page.getByRole("button", { name: "Save active layout" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Restore active layout" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Save full state" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Restore full state" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Auto arrange" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Fill empty space" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Reset layout" })).toBeVisible();
+  await expect(page.getByRole("status", { name: "Active layout save and restore status" })).toHaveText(
+    "Check the JSON format or layout values.",
+  );
+  await expect(page.getByRole("status", { name: "Full state save and restore status" })).toHaveText(
+    "Saved the full state and column cache.",
+  );
+  await expect(page.getByRole("status", { name: "Layout operation status" })).toHaveText(
+    "Auto-arranged widgets in package order.",
+  );
+  await expect(page.getByLabel("Active layout JSON")).toHaveValue(invalidActiveLayout);
+  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(savedFullState);
+  await expect(page.locator(".playground-grid-region")).toHaveAttribute("aria-label", "Layout dashboard");
+  await expect(page.getByTestId("dashboard-widget-sales").getByRole("button", { name: "Sales maximize" })).toBeVisible();
+  expect(await page.locator(".grid-stack-item").evaluateAll((elements) =>
+    elements.map((element) => ({
+      h: element.getAttribute("data-layout-h"),
+      id: element.getAttribute("data-widget-id"),
+      w: element.getAttribute("data-layout-w"),
+      x: element.getAttribute("data-layout-x"),
+      y: element.getAttribute("data-layout-y"),
+    })),
+  )).toEqual(geometryBeforeLocaleChange);
+  expect((await page.locator('[role="status"]').allTextContents()).join("\n")).not.toContain("LAYOUT_DO_NOT_ECHO");
+});
+
+test("localizes Advanced copy and semantic status without resetting engine state", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 1100 });
+  await page.goto("/examples/advanced");
+
+  const responsiveToggle = page.getByRole("button", { name: "반응형 컬럼 사용" });
+  const floatToggle = page.getByRole("button", { name: "Float 사용" });
+  const movableToggle = page.getByRole("button", { name: "이동 가능" });
+  const resizableToggle = page.getByRole("button", { name: "크기 조절 가능" });
+  const lockToggle = page.getByRole("button", { name: "레이아웃 해제" });
+  await responsiveToggle.click();
+  await floatToggle.click();
+  await expect(page.getByRole("status", { name: "GridStack 읽기 전용 상태" })).toHaveText(
+    /^column=6; row=\d+; float=true$/,
+  );
+
+  const externalDropTarget = page.locator("[data-dashboard-drop-target='trash']");
+  await page.getByTestId("dashboard-widget-sales").locator(".comins-grid-layout-widget__title").dragTo(externalDropTarget);
+  await expect(page.getByTestId("dashboard-widget-sales")).toBeHidden();
+  const externalDropDiagnostic = await page.getByRole("status", { name: "외부 드롭 처리 상태" }).textContent();
+  expect(externalDropDiagnostic).toMatch(/^target=trash; widget=sales; columns=6; layout=\d+,\d+,\d+,\d+$/);
+
+  await page.getByRole("button", { name: "compact 정렬 후 커밋" }).click();
+  await expect(page.getByRole("status", { name: "handle 작업 상태" })).toHaveText("compact 정렬을 커밋했습니다.");
+  await movableToggle.click();
+  await resizableToggle.click();
+  await lockToggle.click();
+  await page.getByRole("button", { name: "전체 상태 저장" }).click();
+
+  const savedState = await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue();
+  const queryDiagnostic = await page.getByRole("status", { name: "GridStack 읽기 전용 상태" }).textContent();
+  const trafficGeometry = await page.getByTestId("dashboard-widget-traffic").evaluate((element) => ({
+    h: element.getAttribute("data-layout-h"),
+    w: element.getAttribute("data-layout-w"),
+    x: element.getAttribute("data-layout-x"),
+    y: element.getAttribute("data-layout-y"),
+  }));
+  await page.evaluate(() => {
+    window.__cominsGridLayoutLastUnmount = undefined;
+  });
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page).toHaveURL(/\/examples\/advanced$/);
+  expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
+  await expect(page.locator(".playground-header").getByText("Development example", { exact: true })).toBeVisible();
+  await expect(page.locator(".playground-header").getByRole("heading", { name: "Advanced example" })).toBeVisible();
+  await expect(page.getByText("Verify responsive columns, a safe GridStack handle, and external drop with controlled state.")).toBeVisible();
+  await expect(page.locator(".playground-controls")).toHaveAttribute("aria-label", "Advanced example controls");
+  await expect(page.getByRole("button", { name: "Use responsive columns" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Use float" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Not movable" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("button", { name: "Not resizable" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("button", { name: "Layout locked" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("combobox", { name: "Select columns" })).toHaveValue("6");
+  await expect(page.getByRole("status", { name: "Active column status" })).toHaveText("Currently using 6 columns.");
+  await expect(page.getByRole("status", { name: "Available column cache" })).toHaveText("Available cached columns: 6, 12");
+  await expect(page.getByRole("status", { name: "Handle operation status" })).toHaveText("Committed the compact arrangement.");
+  await expect(page.getByRole("status", { name: "Controlled layout commit status" })).toHaveText(
+    "Committed the 6-column layout to React state.",
+  );
+  await expect(page.getByRole("status", { name: "Full state save and restore status" })).toHaveText(
+    "Saved the full state and column cache.",
+  );
+  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(savedState);
+  await expect(page.getByRole("status", { name: "Read-only GridStack status" })).toHaveText(queryDiagnostic ?? "");
+  await expect(page.getByRole("status", { name: "External drop status" })).toHaveText(externalDropDiagnostic ?? "");
+  await expect(page.getByText("3 widgets", { exact: true })).toBeVisible();
+  await expect(page.locator(".playground-grid-region")).toHaveAttribute("aria-label", "Advanced example dashboard");
+  await expect(page.getByTestId("dashboard-widget-traffic").getByRole("button", { name: "Traffic maximize" })).toBeVisible();
+  expect(await page.getByTestId("dashboard-widget-traffic").evaluate((element) => ({
+    h: element.getAttribute("data-layout-h"),
+    w: element.getAttribute("data-layout-w"),
+    x: element.getAttribute("data-layout-x"),
+    y: element.getAttribute("data-layout-y"),
+  }))).toEqual(trafficGeometry);
+});
