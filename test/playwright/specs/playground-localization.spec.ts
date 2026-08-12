@@ -363,6 +363,71 @@ test("keeps Layout JSON draft data while its shared labels change locale", async
   await expect(page.getByRole("status", { name: "Active layout save and restore status" })).toBeVisible();
 });
 
+test("localizes shared fallback CRUD generated add copy in Layout and Advanced", async ({ page }) => {
+  await initializePlaygroundLocale(page, "en");
+
+  for (const route of ["/examples/layout", "/examples/advanced"]) {
+    await page.goto(route);
+    await page.getByRole("button", { name: "Add widget" }).click();
+
+    let dialog = page.getByRole("dialog", { name: "Add widget" });
+    await expect(dialog.getByLabel("Widget name")).toHaveValue("Widget 5");
+    await dialog.getByLabel("Widget name").fill("사용자 생성 제목");
+    await dialog.getByLabel("Value").fill("사용자 생성 값");
+    await dialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "KO" }).click();
+
+    dialog = page.getByRole("dialog", { name: "위젯 추가" });
+    await expect(dialog.getByLabel("위젯명")).toHaveValue("사용자 생성 제목");
+    await expect(dialog.getByLabel("값")).toHaveValue("사용자 생성 값");
+    await dialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+    dialog = page.getByRole("dialog", { name: "Add widget" });
+    await dialog.getByRole("button", { name: "Save widget" }).click();
+    const added = page.getByTestId("dashboard-widget-widget-5");
+    await expect(added).toContainText("New dashboard widget");
+    await expect(added).toContainText("사용자 생성 제목");
+    await expect(added).toContainText("사용자 생성 값");
+
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "KO" }).click();
+    await expect(added).toContainText("새 대시보드 위젯");
+    await expect(added).toContainText("사용자 생성 제목");
+    await expect(added).toContainText("사용자 생성 값");
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  }
+});
+
+test("localizes shared fallback CRUD fixture edits in Layout", async ({ page }) => {
+  await initializePlaygroundLocale(page, "en");
+  await page.goto("/examples/layout");
+  await page.getByRole("combobox", { name: "Select widget" }).selectOption("traffic");
+  await page.getByRole("button", { name: "Edit selected widget" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Edit widget" });
+  await expect(dialog.getByLabel("Widget name")).toHaveValue("Traffic");
+  await dialog.getByLabel("Widget name").fill("사용자 수정 제목");
+  await dialog.getByLabel("Value").fill("사용자 수정 값");
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+
+  const traffic = page.getByTestId("dashboard-widget-traffic");
+  await expect(traffic).toContainText("Updated dashboard widget");
+  await expect(traffic).toContainText("사용자 수정 제목");
+  await expect(traffic).toContainText("사용자 수정 값");
+
+  await page.getByRole("button", { name: "Save full state" }).click();
+  const state = JSON.parse(await page.getByLabel("Full state and column cache JSON").inputValue()) as {
+    widgets: Array<{ data?: Record<string, unknown>; id: string }>;
+  };
+  expect(state.widgets.find((widget) => widget.id === "traffic")?.data).toMatchObject({
+    generatedDescriptionKey: "editedWidget",
+  });
+  expect(state.widgets.find((widget) => widget.id === "traffic")?.data).not.toHaveProperty("fixtureCopyKey");
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "KO" }).click();
+  await expect(traffic).toContainText("수정된 대시보드 위젯");
+  await expect(traffic).toContainText("사용자 수정 제목");
+  await expect(traffic).toContainText("사용자 수정 값");
+});
+
 test("localizes Layout copy and semantic status without resetting layout state", async ({ page }) => {
   const invalidActiveLayout = '{"private-layout":"LAYOUT_DO_NOT_ECHO"';
   await page.goto("/examples/layout");
@@ -386,7 +451,8 @@ test("localizes Layout copy and semantic status without resetting layout state",
 
   await page.getByRole("button", { name: "전체 상태 저장" }).click();
   const savedFullState = await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue();
-  const savedCacheKeys = Object.keys((JSON.parse(savedFullState) as { layoutsByColumn: Record<string, unknown> }).layoutsByColumn).sort();
+  const savedLayoutsByColumn = (JSON.parse(savedFullState) as { layoutsByColumn: Record<string, unknown> }).layoutsByColumn;
+  const savedCacheKeys = Object.keys(savedLayoutsByColumn).sort();
   expect(savedCacheKeys).toEqual(["12", "6"]);
   const geometryBeforeLocaleChange = await page.locator(".grid-stack-item").evaluateAll((elements) =>
     elements.map((element) => ({
@@ -409,6 +475,12 @@ test("localizes Layout copy and semantic status without resetting layout state",
 
   await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
 
+  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(savedFullState);
+  await page.getByRole("button", { name: "Save full state" }).click();
+  const localizedFullState = JSON.parse(await page.getByLabel("Full state and column cache JSON").inputValue()) as {
+    layoutsByColumn: Record<string, unknown>;
+  };
+  expect(localizedFullState.layoutsByColumn).toEqual(savedLayoutsByColumn);
   await expect(page).toHaveURL(/\/examples\/layout$/);
   expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
   await expect(page.locator(".playground-header").getByText("Layout example", { exact: true })).toBeVisible();
@@ -434,7 +506,6 @@ test("localizes Layout copy and semantic status without resetting layout state",
     "Auto-arranged widgets in package order.",
   );
   await expect(page.getByLabel("Active layout JSON")).toHaveValue(invalidActiveLayout);
-  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(savedFullState);
   await expect(page.locator(".playground-grid-region")).toHaveAttribute("aria-label", "Layout dashboard");
   await expect(page.getByTestId("dashboard-widget-sales").getByRole("button", { name: "Sales maximize" })).toBeVisible();
   expect(await page.locator(".grid-stack-item").evaluateAll((elements) =>
@@ -478,6 +549,8 @@ test("localizes Advanced copy and semantic status without resetting engine state
   await page.getByRole("button", { name: "전체 상태 저장" }).click();
 
   const savedState = await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue();
+  const savedLayoutsByColumn = (JSON.parse(savedState) as { layoutsByColumn: Record<string, unknown> }).layoutsByColumn;
+  expect(Object.keys(savedLayoutsByColumn).sort()).toEqual(["12", "6"]);
   const queryDiagnostic = await page.getByRole("status", { name: "GridStack 읽기 전용 상태" }).textContent();
   const trafficGeometry = await page.getByTestId("dashboard-widget-traffic").evaluate((element) => ({
     h: element.getAttribute("data-layout-h"),
@@ -491,6 +564,12 @@ test("localizes Advanced copy and semantic status without resetting engine state
 
   await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
 
+  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(savedState);
+  await page.getByRole("button", { name: "Save full state" }).click();
+  const localizedState = JSON.parse(await page.getByLabel("Full state and column cache JSON").inputValue()) as {
+    layoutsByColumn: Record<string, unknown>;
+  };
+  expect(localizedState.layoutsByColumn).toEqual(savedLayoutsByColumn);
   await expect(page).toHaveURL(/\/examples\/advanced$/);
   expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
   await expect(page.locator(".playground-header").getByText("Development example", { exact: true })).toBeVisible();
@@ -512,7 +591,6 @@ test("localizes Advanced copy and semantic status without resetting engine state
   await expect(page.getByRole("status", { name: "Full state save and restore status" })).toHaveText(
     "Saved the full state and column cache.",
   );
-  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(savedState);
   await expect(page.getByRole("status", { name: "Read-only GridStack status" })).toHaveText(queryDiagnostic ?? "");
   await expect(page.getByRole("status", { name: "External drop status" })).toHaveText(externalDropDiagnostic ?? "");
   await expect(page.getByText("3 widgets", { exact: true })).toBeVisible();

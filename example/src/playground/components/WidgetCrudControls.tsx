@@ -233,6 +233,7 @@ export function WidgetCrudControls({
       dashboard.commands.addWidget(
         createWidget(id, draft.title, 0, 0, draft.width, draft.height, {
           description: "새 대시보드 위젯",
+          generatedDescriptionKey: "newWidget",
           value: draft.value,
         }),
       );
@@ -249,9 +250,14 @@ export function WidgetCrudControls({
     if (onEditWidget) {
       onEditWidget(draft);
     } else {
+      const generatedDescriptionKey = selectedWidget.data?.fixtureCopyKey
+        ? "editedWidget"
+        : selectedWidget.data?.generatedDescriptionKey;
+
       dashboard.commands.updateWidget(selectedWidget.id, {
         data: {
           description: selectedWidget.data?.description ?? `${draft.title} dashboard widget`,
+          ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
           value: draft.value,
         },
         title: draft.title,
@@ -324,7 +330,7 @@ export function WidgetCrudControls({
         onOpenChange={setAddDialogOpen}
       >
         <WidgetDialogForm
-          initialTitle={`위젯 ${nextNumber}`}
+          initialTitle={sharedPlaygroundCopy.generatedWidgetTitle[locale](nextNumber)}
           initialValue={String(nextNumber)}
           mode="add"
           open={resolvedAddDialogOpen}

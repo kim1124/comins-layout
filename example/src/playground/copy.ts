@@ -70,6 +70,10 @@ export const sharedPlaygroundCopy = {
     },
   },
   editSelectedWidget: defineLocalizedText("선택 위젯 수정", "Edit selected widget"),
+  generatedWidgetTitle: {
+    en: (number: number) => `Widget ${number}`,
+    ko: (number: number) => `위젯 ${number}`,
+  },
   newWidgetHeight: defineLocalizedText("새 위젯 높이", "New widget height"),
   newWidgetWidth: defineLocalizedText("새 위젯 너비", "New widget width"),
   saveChanges: defineLocalizedText("변경 저장", "Save changes"),
