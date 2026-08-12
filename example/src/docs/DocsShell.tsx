@@ -329,7 +329,7 @@ function DocsArticle({ apiFeatures, page }: { apiFeatures: ApiFeatureSection[]; 
       ) : null}
 
       {page.examples.map((example, index) => (
-        <section className="docs-example-case" id={`${page.path}-example-${index + 1}`} key={`${page.path}-${example.title}`}>
+        <section className="docs-example-case" id={`${page.path}-example-${index + 1}`} key={`${page.path}-${example.liveExampleId ?? index}`}>
           <header className="docs-example-case__header">
             <h2>
               {index + 1}. {example.title}

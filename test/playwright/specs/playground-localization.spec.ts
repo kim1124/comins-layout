@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Browser } from "@playwright/test";
 
 import { initializePlaygroundLocale, PLAYGROUND_LOCALE_STORAGE_KEY } from "../helpers/playground-locale";
 
@@ -74,11 +74,49 @@ test("searches resolved docs copy for each locale", async ({ page }) => {
   await expect(page.getByRole("option", { name: /Save and restore layout/ }).first()).toBeVisible();
 });
 
-test("leaves the readme demo output unchanged", async ({ page }) => {
+test("uses code notation without Korean connectors in the English API", async ({ page }) => {
   await initializePlaygroundLocale(page, "en");
+  await page.goto("/api");
+
+  const apiReference = page.locator(".docs-reference-list");
+  await expect(apiReference).not.toContainText("또는");
+  await expect(apiReference).not.toContainText("와");
+  await expect(apiReference).toContainText("widget | widget id");
+  await expect(apiReference).toContainText("void | DashboardColumnCount");
+});
+
+test("preserves the docs example DOM node while locale copy changes", async ({ page }) => {
+  const exampleId = "/docs/getting-started-example-1";
+  await page.goto("/docs/getting-started");
+
+  const originalExample = await page.locator(`[id="${exampleId}"]`).elementHandle();
+  expect(originalExample).not.toBeNull();
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page.locator(`[id="${exampleId}"]`)).toContainText("Basic dashboard setup");
+  expect(await originalExample!.evaluate((node, id) => node === document.getElementById(id), exampleId)).toBe(true);
+});
+
+async function getReadmeDemoOutput(browser: Browser, baseURL: string, locale: "en" | "ko") {
+  const context = await browser.newContext({ baseURL });
+  const page = await context.newPage();
+  await initializePlaygroundLocale(page, locale);
   await page.goto("/readme-demo");
 
   await expect(page.getByRole("heading", { name: "Interactive dashboards for React" })).toBeVisible();
-  await expect(page.getByLabel("Columns")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Add widget" })).toBeVisible();
+  const output = await page.locator(".readme-demo").innerText();
+  await context.close();
+
+  return output;
+}
+
+test("leaves the readme demo output unchanged for Korean and English storage", async ({ browser }, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL;
+  expect(typeof baseURL).toBe("string");
+
+  const koreanOutput = await getReadmeDemoOutput(browser, baseURL as string, "ko");
+  const englishOutput = await getReadmeDemoOutput(browser, baseURL as string, "en");
+
+  expect(englishOutput).toBe(koreanOutput);
 });

@@ -206,7 +206,7 @@ const localizedApiFeatures: LocalizedApiFeatureSection[] = [
     methods: [
       {
         name: "addWidget / removeWidget / clearWidgets",
-        params: "widget 또는 widget id",
+        params: "widget | widget id",
         returns: "void",
         description: text("widget 추가, 삭제, 전체 삭제 command입니다.", "Commands to add, remove, or clear widgets."),
         sample: { code: crudSample, language: "ts", title: text("Widget 추가 / 삭제 methods", "Widget add/remove methods") },
@@ -295,8 +295,8 @@ const localizedApiFeatures: LocalizedApiFeatureSection[] = [
     methods: [
       {
         name: "setColumns / autoArrangeWidgets / fitWidgetsToColumns / fitWidgetToColumns / clampDashboardColumnCount",
-        params: "columns number 또는 widget id",
-        returns: "void 또는 DashboardColumnCount",
+        params: "columns: number | widget id",
+        returns: "void | DashboardColumnCount",
         description: text("column 변경, 자동 정렬, 빈 공간 채우기, 단일 widget 확장, column clamp를 수행합니다.", "Changes columns, automatically arranges widgets, fills empty space, expands a widget, and clamps column counts."),
         sample: { code: columnMethodSample, language: "ts", title: text("Column / 정렬 methods", "Column arrangement methods") },
       },
@@ -336,7 +336,7 @@ const localizedApiFeatures: LocalizedApiFeatureSection[] = [
     methods: [
       {
         name: "updateWidget / refreshLayout",
-        params: "widget id와 interaction option patch",
+        params: "widget id | interaction option patch",
         returns: "void",
         description: text("개별 widget interaction option을 변경하고 layout 상태를 다시 동기화합니다.", "Changes individual widget interaction options and resynchronizes layout state."),
         sample: { code: widgetLockSample, language: "ts", title: text("이동 / 리사이즈 / 잠금 methods", "Move, resize, and lock methods") },
@@ -420,8 +420,8 @@ const localizedApiFeatures: LocalizedApiFeatureSection[] = [
     methods: [
       {
         name: "createDashboardResizeScheduler / mapDashboardGridOptions / mapDashboardWidgetOptions",
-        params: "resize callback 또는 Comins interaction options",
-        returns: "DashboardResizeScheduler 또는 GridStack option object",
+        params: "resize callback | Comins interaction options",
+        returns: "DashboardResizeScheduler | GridStack option object",
         description: text("resize event batch 처리와 Comins option to GridStack option mapping을 수행합니다.", "Batches resize events and maps Comins options to GridStack options."),
         sample: { code: utilityApiSample, language: "ts", title: text("Resize frame / Adapter utility methods", "Resize frame / adapter utility methods") },
       },
