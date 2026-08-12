@@ -34,6 +34,17 @@
 
 Before `1.0.0`, only the latest published version receives security fixes.
 
+## Playground
+
+Run `npm run dev`, then open `http://127.0.0.1:6001/docs/getting-started`.
+The Playground starts in Korean, and the `KO / EN` (한글 / English) control
+switches the documentation, API reference, and live examples between Korean
+and English.
+
+- Widget example: `/examples/widget`
+- Layout example: `/examples/layout`
+- Advanced example: `/examples/advanced`
+
 ## Installation
 
 ```bash

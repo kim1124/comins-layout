@@ -78,3 +78,63 @@ test("captures gridstack example visual typography screenshot", async ({
     });
   }
 });
+
+test("keeps every Widget header action inside its card at 360px", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/examples/widget");
+  await page.waitForLoadState("networkidle");
+
+  const widgets = page.locator(".grid-stack-item .comins-grid-layout-widget");
+  await expect(widgets).toHaveCount(3);
+
+  const tolerance = 1;
+
+  for (let index = 0; index < (await widgets.count()); index += 1) {
+    const widget = widgets.nth(index);
+    const header = widget.locator(".comins-grid-layout-widget__header");
+    const actions = widget.locator(".comins-grid-layout-widget__actions");
+    const buttons = actions.locator("button");
+    const [widgetBox, headerBox, actionsBox] = await Promise.all([
+      widget.boundingBox(),
+      header.boundingBox(),
+      actions.boundingBox(),
+    ]);
+
+    expect(widgetBox, `widget ${index + 1} card geometry`).not.toBeNull();
+    expect(headerBox, `widget ${index + 1} header geometry`).not.toBeNull();
+    expect(actionsBox, `widget ${index + 1} action geometry`).not.toBeNull();
+    await expect(buttons).toHaveCount(4);
+
+    const card = widgetBox!;
+    const headerGeometry = headerBox!;
+    const actionGeometry = actionsBox!;
+
+    expect(actionGeometry.x).toBeGreaterThanOrEqual(headerGeometry.x - tolerance);
+    expect(actionGeometry.y).toBeGreaterThanOrEqual(headerGeometry.y - tolerance);
+    expect(actionGeometry.x + actionGeometry.width).toBeLessThanOrEqual(
+      headerGeometry.x + headerGeometry.width + tolerance,
+    );
+    expect(actionGeometry.y + actionGeometry.height).toBeLessThanOrEqual(
+      headerGeometry.y + headerGeometry.height + tolerance,
+    );
+    expect(actionGeometry.x).toBeGreaterThanOrEqual(card.x - tolerance);
+    expect(actionGeometry.y).toBeGreaterThanOrEqual(card.y - tolerance);
+    expect(actionGeometry.x + actionGeometry.width).toBeLessThanOrEqual(card.x + card.width + tolerance);
+    expect(actionGeometry.y + actionGeometry.height).toBeLessThanOrEqual(card.y + card.height + tolerance);
+
+    for (let buttonIndex = 0; buttonIndex < (await buttons.count()); buttonIndex += 1) {
+      const buttonBox = await buttons.nth(buttonIndex).boundingBox();
+      expect(buttonBox, `widget ${index + 1} action ${buttonIndex + 1} geometry`).not.toBeNull();
+
+      const button = buttonBox!;
+      expect(button.x).toBeGreaterThanOrEqual(actionGeometry.x - tolerance);
+      expect(button.y).toBeGreaterThanOrEqual(actionGeometry.y - tolerance);
+      expect(button.x + button.width).toBeLessThanOrEqual(actionGeometry.x + actionGeometry.width + tolerance);
+      expect(button.y + button.height).toBeLessThanOrEqual(actionGeometry.y + actionGeometry.height + tolerance);
+      expect(button.x).toBeGreaterThanOrEqual(card.x - tolerance);
+      expect(button.y).toBeGreaterThanOrEqual(card.y - tolerance);
+      expect(button.x + button.width).toBeLessThanOrEqual(card.x + card.width + tolerance);
+      expect(button.y + button.height).toBeLessThanOrEqual(card.y + card.height + tolerance);
+    }
+  }
+});

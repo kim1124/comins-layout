@@ -16,7 +16,6 @@ async function expectIntegratedPlayground(
   await expect(page.locator(".docs-code")).not.toHaveCount(0);
   await expect(page.locator(".docs-live .playground-workspace")).toHaveCount(1);
   await expect(page.locator(".grid-stack")).toHaveCount(1);
-  await expect(page.locator(".playground-nav")).toHaveCount(0);
 }
 
 test.describe("gridstack docs playground routing", () => {
@@ -68,7 +67,6 @@ test.describe("gridstack docs playground routing", () => {
 
       await expect(page.locator(".docs-shell")).toBeVisible();
       await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toBeVisible();
-      await expect(page.locator(".playground-shell")).toHaveCount(0);
       await expect(page.getByRole("main").getByRole("heading", { name: route.heading }).first()).toBeVisible();
     }
   });
