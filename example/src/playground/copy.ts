@@ -110,7 +110,7 @@ export const widgetPlaygroundCopy = {
 
 export function toWidgetStatusTitle(widget: DashboardWidget<ExampleWidgetData>): WidgetStatusTitle {
   const fixtureCopyKey = widget.data?.fixtureCopyKey;
-  return fixtureCopyKey
+  return isExampleFixtureCopyKey(fixtureCopyKey)
     ? { kind: "fixture", key: fixtureCopyKey }
     : { kind: "literal", value: widget.title ?? widget.id };
 }
@@ -144,12 +144,29 @@ const generatedDescriptionPresentations: Record<ExampleGeneratedDescriptionKey, 
   newWidget: defineLocalizedText("새 대시보드 위젯", "New dashboard widget"),
 };
 
+function isExampleFixtureCopyKey(value: unknown): value is ExampleFixtureCopyKey {
+  return value === "alerts" || value === "orders" || value === "sales" || value === "traffic";
+}
+
+function isExampleGeneratedDescriptionKey(value: unknown): value is ExampleGeneratedDescriptionKey {
+  return value === "editedWidget" || value === "newWidget";
+}
+
+function getFixturePresentation(value: unknown): FixturePresentation | undefined {
+  return isExampleFixtureCopyKey(value) ? fixturePresentations[value] : undefined;
+}
+
+function getGeneratedDescriptionPresentation(value: unknown): LocalizedText | undefined {
+  return isExampleGeneratedDescriptionKey(value) ? generatedDescriptionPresentations[value] : undefined;
+}
+
 function resolveWidgetStatusTitle(title: WidgetStatusTitle, locale: PlaygroundLocale): string {
   if (title.kind === "literal") {
     return title.value;
   }
 
-  return resolveLocalizedText(fixturePresentations[title.key].title, locale);
+  const fixturePresentation = getFixturePresentation(title.key);
+  return fixturePresentation ? resolveLocalizedText(fixturePresentation.title, locale) : "";
 }
 
 export function formatWidgetStatus(status: WidgetStatus, locale: PlaygroundLocale): string {
@@ -185,8 +202,7 @@ export function resolveWidgetPresentation(
   widget: DashboardWidget<ExampleWidgetData>,
   locale: PlaygroundLocale,
 ): { description: string; title: string } {
-  const generatedDescriptionKey = widget.data?.generatedDescriptionKey;
-  const generatedDescription = generatedDescriptionKey ? generatedDescriptionPresentations[generatedDescriptionKey] : undefined;
+  const generatedDescription = getGeneratedDescriptionPresentation(widget.data?.generatedDescriptionKey);
 
   if (generatedDescription) {
     return {
@@ -195,8 +211,7 @@ export function resolveWidgetPresentation(
     };
   }
 
-  const fixtureCopyKey = widget.data?.fixtureCopyKey;
-  const fixturePresentation = fixtureCopyKey ? fixturePresentations[fixtureCopyKey] : undefined;
+  const fixturePresentation = getFixturePresentation(widget.data?.fixtureCopyKey);
 
   if (fixturePresentation) {
     return {

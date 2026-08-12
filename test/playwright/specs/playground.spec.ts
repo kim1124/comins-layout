@@ -690,6 +690,56 @@ test.describe("Advanced Playground", () => {
     await expect.poll(() => readDashboardLayouts(page)).toEqual(modifiedTwelve);
   });
 
+  test("ignores prototype-like presentation metadata while restoring valid Advanced state", async ({ page }) => {
+    const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    const stateStatus = page.getByRole("status", { name: "전체 상태 저장 복원 상태" });
+    const initialLayouts = await readDashboardLayouts(page);
+    const rawFixtureTitle = "RAW_FIXTURE_TITLE";
+    const rawFixtureDescription = "RAW_FIXTURE_DESCRIPTION";
+    const rawGeneratedTitle = "RAW_GENERATED_TITLE";
+    const rawGeneratedDescription = "RAW_GENERATED_DESCRIPTION";
+
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const restoredState = JSON.parse(await stateEditor.inputValue()) as {
+      widgets: Array<{ data?: Record<string, unknown>; id: string; title?: string }>;
+    };
+    const fixtureWidget = restoredState.widgets.find((widget) => widget.id === "sales");
+    const generatedWidget = restoredState.widgets.find((widget) => widget.id === "traffic");
+    expect(fixtureWidget).toBeDefined();
+    expect(generatedWidget).toBeDefined();
+    if (!fixtureWidget || !generatedWidget) {
+      throw new Error("Expected Advanced fixture widgets");
+    }
+
+    fixtureWidget.title = rawFixtureTitle;
+    fixtureWidget.data = {
+      ...fixtureWidget.data,
+      description: rawFixtureDescription,
+      fixtureCopyKey: "__proto__",
+    };
+    const generatedData = { ...generatedWidget.data };
+    delete generatedData.fixtureCopyKey;
+    generatedWidget.title = rawGeneratedTitle;
+    generatedWidget.data = {
+      ...generatedData,
+      description: rawGeneratedDescription,
+      generatedDescriptionKey: "__proto__",
+    };
+    const restoredStateJson = JSON.stringify(restoredState);
+
+    await stateEditor.fill(restoredStateJson);
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+
+    await expect(stateStatus).toHaveText("전체 상태와 컬럼 캐시를 복원했습니다.");
+    await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
+    await expect(page.getByTestId("dashboard-widget-sales")).toContainText(rawFixtureTitle);
+    await expect(page.getByTestId("dashboard-widget-sales")).toContainText(rawFixtureDescription);
+    await expect(page.getByTestId("dashboard-widget-traffic")).toContainText(rawGeneratedTitle);
+    await expect(page.getByTestId("dashboard-widget-traffic")).toContainText(rawGeneratedDescription);
+    await expect.poll(() => readDashboardLayouts(page)).toEqual(initialLayouts);
+    expect((await page.locator('[role="status"]').allTextContents()).join("\n")).not.toContain("RAW_");
+  });
+
   test("routes responsive viewport columns through the same reducer cache keys as manual selection", async ({ page }) => {
     const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
     const activeColumns = page.getByRole("status", { name: "활성 컬럼 상태" });
