@@ -1188,7 +1188,7 @@ test("adds widgets with user-selected size into horizontal free space", async ({
   await expect(secondAdded).toHaveAttribute("data-layout-w", "2");
   await expect(secondAdded).toHaveAttribute("data-layout-h", "3");
 
-  const saved = JSON.parse((await page.getByLabel("현재 위젯 상태 JSON").textContent()) ?? "{}");
+  const saved = JSON.parse((await page.locator('[data-example-mode="widget"] .example-state-output pre').textContent()) ?? "{}");
   expect(saved.widgets).toEqual(
     expect.arrayContaining([
       expect.objectContaining({

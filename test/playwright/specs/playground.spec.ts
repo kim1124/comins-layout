@@ -73,7 +73,7 @@ async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY:
 }
 
 async function readWidgetState(page: Page) {
-  const output = page.getByLabel("현재 위젯 상태 JSON");
+  const output = page.locator('[data-example-mode="widget"] .example-state-output pre');
   return JSON.parse((await output.textContent()) ?? "{}") as {
     widgets?: Array<{
       id: string;
@@ -202,7 +202,7 @@ test.describe("Widget Playground", () => {
 
     await expect(page.getByTestId("dashboard-widget-orders")).toBeHidden();
     await expect(selection).toHaveValue("sales");
-    await expect(page.getByRole("status", { name: "위젯 작업 상태" })).toContainText("매출 위젯을 선택했습니다.");
+    await expect(page.locator('[data-example-mode="widget"] [role="status"]')).toContainText("매출 위젯을 선택했습니다.");
 
     await selection.selectOption("traffic");
     await page.getByRole("button", { name: "선택 위젯 삭제" }).click();
@@ -217,7 +217,7 @@ test.describe("Widget Playground", () => {
     await expect(page.getByRole("button", { name: "이동 잠금" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "리사이즈 잠금" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "전체 잠금" })).toBeDisabled();
-    await expect(page.getByRole("status", { name: "위젯 작업 상태" })).toContainText("선택할 위젯이 없습니다.");
+    await expect(page.locator('[data-example-mode="widget"] [role="status"]')).toContainText("선택할 위젯이 없습니다.");
   });
 
   test("selects the first remaining widget when a different widget is deleted from its header", async ({ page }) => {
@@ -227,7 +227,7 @@ test.describe("Widget Playground", () => {
 
     await expect(page.getByTestId("dashboard-widget-orders")).toBeHidden();
     await expect(selection).toHaveValue("sales");
-    await expect(page.getByRole("status", { name: "위젯 작업 상태" })).toContainText("매출 위젯을 선택했습니다.");
+    await expect(page.locator('[data-example-mode="widget"] [role="status"]')).toContainText("매출 위젯을 선택했습니다.");
   });
 
   test("prevents and then permits a real drag through the move lock", async ({ page }) => {

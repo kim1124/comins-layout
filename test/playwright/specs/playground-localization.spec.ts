@@ -170,6 +170,53 @@ test("keeps Widget selection, geometry, dialog draft, and detail state across lo
   await expect(page.getByTestId("dashboard-widget-traffic")).toHaveAttribute("data-layout-x", before ?? "");
 });
 
+test("renders Widget status semantically in English without changing selected, locked, or serialized state", async ({ page }) => {
+  await page.goto("/examples/widget");
+  const traffic = page.getByTestId("dashboard-widget-traffic");
+  const geometryBeforeLocaleChange = await Promise.all([
+    traffic.getAttribute("data-layout-x"),
+    traffic.getAttribute("data-layout-y"),
+    traffic.getAttribute("data-layout-w"),
+    traffic.getAttribute("data-layout-h"),
+  ]);
+
+  await page.getByRole("combobox", { name: "위젯 선택" }).selectOption("traffic");
+  await page.getByRole("button", { name: "선택 위젯 수정" }).click();
+  const dialog = page.getByRole("dialog", { name: "위젯 수정" });
+  await dialog.getByLabel("위젯명").fill("사용자 트래픽");
+  await dialog.getByLabel("값").fill("사용자 값");
+  await dialog.getByRole("button", { name: "변경 저장" }).click();
+
+  await page.getByRole("button", { name: "이동 잠금" }).click();
+  await expect(page.getByRole("button", { name: "이동 잠금" })).toHaveAttribute("aria-pressed", "true");
+  const serializedBeforeLocaleChange = await page.getByLabel("현재 위젯 상태 JSON").textContent();
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page.locator(".playground-header").getByText("Widget example", { exact: true })).toBeVisible();
+  await expect(page.locator(".playground-header").getByRole("heading", { name: "Widget", exact: true })).toBeVisible();
+  await expect(page.getByText("Add, edit, and delete widgets, then verify individual movement and resize locks.")).toBeVisible();
+  await expect(page.locator(".playground-controls")).toHaveAttribute("aria-label", "Widget example controls");
+  await expect(page.locator(".example-interaction-actions")).toHaveAttribute("aria-label", "Widget interaction actions");
+  await expect(page.getByRole("combobox", { name: "Select widget" })).toHaveValue("traffic");
+  await expect(page.getByRole("button", { name: "Lock movement" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Lock resizing" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("button", { name: "Lock all" })).toHaveAttribute("aria-pressed", "false");
+  await expect(page.getByRole("status", { name: "Widget action status" })).toHaveText(
+    "Locked movement for the selected widget.",
+  );
+  await expect(page.locator("details.example-state-output").getByText("Current widget state", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Current widget state JSON")).toHaveText(serializedBeforeLocaleChange ?? "");
+  await expect(page.locator(".playground-grid-region")).toHaveAttribute("aria-label", "Widget dashboard");
+  await expect(traffic).toContainText("사용자 트래픽");
+  await expect(traffic).toContainText("사용자 값");
+  await expect(traffic).toHaveAttribute("data-layout-x", geometryBeforeLocaleChange[0] ?? "");
+  await expect(traffic).toHaveAttribute("data-layout-y", geometryBeforeLocaleChange[1] ?? "");
+  await expect(traffic).toHaveAttribute("data-layout-w", geometryBeforeLocaleChange[2] ?? "");
+  await expect(traffic).toHaveAttribute("data-layout-h", geometryBeforeLocaleChange[3] ?? "");
+  await expect(page.locator('[data-example-mode="widget"]')).toHaveCount(1);
+});
+
 test("keeps an edit draft and semantic validation error while the dialog changes locale", async ({ page }) => {
   await page.goto("/examples/widget");
   await page.getByRole("combobox", { name: "위젯 선택" }).selectOption("traffic");

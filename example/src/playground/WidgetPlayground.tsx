@@ -2,14 +2,18 @@ import { useRef, useState } from "react";
 import { Lock, Move, Settings2 } from "lucide-react";
 
 import { useDashboardGrid } from "../../../src";
+import { usePlaygroundLocale } from "../i18n/playground-locale";
 import { DashboardPreview, PlaygroundHeader, toggleStateProps } from "./components/DashboardPreview";
 import { WidgetCrudControls } from "./components/WidgetCrudControls";
 import type { EditedWidgetDraft, NewWidgetDraft } from "./components/WidgetCrudControls";
+import { formatWidgetStatus, toWidgetStatusTitle, widgetPlaygroundCopy } from "./copy";
 import { createWidgetPlaygroundFixture } from "./fixtures";
 import { createWidget } from "./fixtures";
 import type { ExampleWidgetData } from "./types";
+import type { WidgetStatus } from "./copy";
 
 export function WidgetPlayground() {
+  const { locale, text } = usePlaygroundLocale();
   const dashboard = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 6,
     initialWidgets: createWidgetPlaygroundFixture(),
@@ -17,7 +21,10 @@ export function WidgetPlayground() {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | undefined>("sales");
-  const [status, setStatus] = useState("매출 위젯을 선택했습니다.");
+  const [status, setStatus] = useState<WidgetStatus>(() => {
+    const selectedWidget = dashboard.widgets.find((widget) => widget.id === "sales");
+    return selectedWidget ? { type: "selected", title: toWidgetStatusTitle(selectedWidget) } : { type: "empty" };
+  });
   const nextWidgetNumber = useRef(dashboard.widgets.length + 1);
   const selectedWidget = dashboard.widgets.find((widget) => widget.id === selectedWidgetId);
   const moveLocked = selectedWidget?.locked === true || selectedWidget?.movable === false;
@@ -27,7 +34,7 @@ export function WidgetPlayground() {
   const selectWidget = (id: string | undefined) => {
     setSelectedWidgetId(id);
     const widget = dashboard.widgets.find((candidate) => candidate.id === id);
-    setStatus(widget ? `${widget.title ?? widget.id} 위젯을 선택했습니다.` : "선택할 위젯이 없습니다.");
+    setStatus(widget ? { type: "selected", title: toWidgetStatusTitle(widget) } : { type: "empty" });
   };
 
   const addWidget = (draft: NewWidgetDraft) => {
@@ -41,7 +48,7 @@ export function WidgetPlayground() {
       }),
     );
     setSelectedWidgetId(id);
-    setStatus(`${draft.title} 위젯을 추가했습니다.`);
+    setStatus({ type: "added", title: draft.title });
   };
 
   const editWidget = (draft: EditedWidgetDraft) => {
@@ -56,7 +63,7 @@ export function WidgetPlayground() {
       },
       title: draft.title,
     });
-    setStatus(`${draft.title} 위젯을 수정했습니다.`);
+    setStatus({ type: "edited", title: draft.title });
   };
 
   const removeWidget = (id: string) => {
@@ -68,7 +75,7 @@ export function WidgetPlayground() {
     const nextWidget = dashboard.widgets.find((widget) => widget.id !== id);
     dashboard.commands.removeWidget(id);
     setSelectedWidgetId(nextWidget?.id);
-    setStatus(nextWidget ? `${nextWidget.title ?? nextWidget.id} 위젯을 선택했습니다.` : "선택할 위젯이 없습니다.");
+    setStatus(nextWidget ? { type: "selected", title: toWidgetStatusTitle(nextWidget) } : { type: "empty" });
   };
 
   const deleteWidget = () => {
@@ -80,7 +87,7 @@ export function WidgetPlayground() {
   const clearWidgets = () => {
     dashboard.commands.clearWidgets();
     setSelectedWidgetId(undefined);
-    setStatus("선택할 위젯이 없습니다.");
+    setStatus({ type: "empty" });
   };
 
   const toggleMoveLock = () => {
@@ -91,7 +98,7 @@ export function WidgetPlayground() {
     dashboard.commands.updateWidget(selectedWidget.id, {
       movable: moveLocked,
     });
-    setStatus(moveLocked ? "선택 위젯의 이동 잠금을 해제했습니다." : "선택 위젯의 이동을 잠갔습니다.");
+    setStatus({ type: "moveLock", active: !moveLocked });
   };
 
   const toggleResizeLock = () => {
@@ -102,7 +109,7 @@ export function WidgetPlayground() {
     dashboard.commands.updateWidget(selectedWidget.id, {
       resizable: resizeLocked,
     });
-    setStatus(resizeLocked ? "선택 위젯의 리사이즈 잠금을 해제했습니다." : "선택 위젯의 리사이즈를 잠갔습니다.");
+    setStatus({ type: "resizeLock", active: !resizeLocked });
   };
 
   const toggleFullLock = () => {
@@ -111,7 +118,7 @@ export function WidgetPlayground() {
     }
 
     dashboard.commands.updateWidget(selectedWidget.id, { locked: !fullyLocked });
-    setStatus(fullyLocked ? "선택 위젯의 전체 잠금을 해제했습니다." : "선택 위젯을 전체 잠금했습니다.");
+    setStatus({ type: "fullLock", active: !fullyLocked });
   };
 
   const serializedState = JSON.stringify(dashboard.commands.serializeState(), null, 2);
@@ -119,11 +126,11 @@ export function WidgetPlayground() {
   return (
     <section className="playground-workspace" data-example-mode="widget">
       <PlaygroundHeader
-        description="위젯을 추가·수정·삭제하고 개별 이동 및 크기 조절 잠금을 확인합니다."
-        kicker="위젯 예제"
-        title="위젯"
+        description={text(widgetPlaygroundCopy.description)}
+        kicker={text(widgetPlaygroundCopy.kicker)}
+        title={text(widgetPlaygroundCopy.title)}
       />
-      <section aria-label="위젯 예제 컨트롤" className="playground-controls">
+      <section aria-label={text(widgetPlaygroundCopy.controls)} className="playground-controls">
         <WidgetCrudControls
           addDialogOpen={addDialogOpen}
           canEdit
@@ -140,14 +147,18 @@ export function WidgetPlayground() {
           onEditWidget={editWidget}
           onSelectedWidgetIdChange={selectWidget}
         />
-        <fieldset className="example-actions example-interaction-actions" disabled={!selectedWidget} aria-label="widget interaction actions">
+        <fieldset
+          aria-label={text(widgetPlaygroundCopy.interactionActions)}
+          className="example-actions example-interaction-actions"
+          disabled={!selectedWidget}
+        >
           <button className="example-toggle-button" disabled={!selectedWidget || fullyLocked} type="button" onClick={toggleMoveLock} {...toggleStateProps(moveLocked)}>
             <Move aria-hidden="true" size={14} />
-            이동 잠금
+            {text(widgetPlaygroundCopy.moveLock)}
           </button>
           <button className="example-toggle-button" disabled={!selectedWidget || fullyLocked} type="button" onClick={toggleResizeLock} {...toggleStateProps(resizeLocked)}>
             <Settings2 aria-hidden="true" size={14} />
-            리사이즈 잠금
+            {text(widgetPlaygroundCopy.resizeLock)}
           </button>
           <button
             className="example-toggle-button"
@@ -157,18 +168,18 @@ export function WidgetPlayground() {
             {...toggleStateProps(fullyLocked)}
           >
             <Lock aria-hidden="true" size={14} />
-            전체 잠금
+            {text(widgetPlaygroundCopy.fullLock)}
           </button>
         </fieldset>
-        <p aria-label="위젯 작업 상태" aria-live="polite" className="example-status" role="status">
-          {status}
+        <p aria-label={text(widgetPlaygroundCopy.status.label)} aria-live="polite" className="example-status" role="status">
+          {formatWidgetStatus(status, locale)}
         </p>
         <details className="example-state-output">
-          <summary>현재 위젯 상태</summary>
-          <pre aria-label="현재 위젯 상태 JSON">{serializedState}</pre>
+          <summary>{text(widgetPlaygroundCopy.state.summary)}</summary>
+          <pre aria-label={text(widgetPlaygroundCopy.state.jsonLabel)}>{serializedState}</pre>
         </details>
       </section>
-      <section aria-label="위젯 dashboard" className="playground-grid-region">
+      <section aria-label={text(widgetPlaygroundCopy.dashboard)} className="playground-grid-region">
         <DashboardPreview
           dashboard={dashboard}
           selectedWidgetId={selectedWidgetId}
