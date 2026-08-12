@@ -4,6 +4,7 @@ import type { Root } from "react-dom/client";
 import { BrowserRouter, useLocation } from "react-router";
 
 import { DocsShell } from "./docs/DocsShell";
+import { PlaygroundLocaleProvider } from "./i18n/playground-locale";
 import { AdvancedPlayground } from "./playground/AdvancedPlayground";
 import { LayoutPlayground } from "./playground/LayoutPlayground";
 import { PlaygroundShell } from "./playground/PlaygroundShell";
@@ -109,8 +110,10 @@ window.__cominsGridLayoutExampleRoot = root;
 
 root.render(
   <StrictMode>
-    <BrowserRouter>
-      <ExampleApp />
-    </BrowserRouter>
+    <PlaygroundLocaleProvider>
+      <BrowserRouter>
+        <ExampleApp />
+      </BrowserRouter>
+    </PlaygroundLocaleProvider>
   </StrictMode>,
 );
