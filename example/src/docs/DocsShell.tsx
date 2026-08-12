@@ -3,10 +3,34 @@ import { NavLink, useLocation, useNavigate } from "react-router";
 import { Highlight, themes } from "prism-react-renderer";
 import { PanelLeft, Search } from "lucide-react";
 
-import { apiFeatures, docsNavGroups, docsPages, searchDocs } from "./content";
-import type { DocsCodeSample, DocsPage, DocsSearchItem } from "./types";
+import { createDocsContent, createDocsNavGroups, searchDocs } from "./content";
+import type { ApiFeatureSection, DocsCodeSample, DocsNavGroup, DocsPage, DocsSearchItem, DocsSearchKind } from "./types";
+import { defineLocalizedText, usePlaygroundLocale } from "../i18n/playground-locale";
+import { playgroundMessages } from "../i18n/messages";
 
-function ApiReference() {
+const docsMessages = {
+  documentation: defineLocalizedText("문서", "Documentation"),
+  exampleCode: defineLocalizedText("예제 코드", "Example code"),
+  events: defineLocalizedText("Events", "Events"),
+  methods: defineLocalizedText("Methods", "Methods"),
+  parameters: defineLocalizedText("파라미터:", "Parameters:"),
+  payload: defineLocalizedText("페이로드:", "Payload:"),
+  props: defineLocalizedText("Props", "Props"),
+  returns: defineLocalizedText("리턴값:", "Returns:"),
+  sidebar: defineLocalizedText("GridStack 문서", "GridStack documentation"),
+  when: defineLocalizedText("발생 시점:", "When:"),
+  searchResults: defineLocalizedText("전체 문서 검색 결과", "All docs search results"),
+  searchKinds: {
+    api: defineLocalizedText("API", "API"),
+    code: defineLocalizedText("코드", "Code"),
+    document: defineLocalizedText("문서", "Document"),
+    example: defineLocalizedText("예제", "Example"),
+  } satisfies Record<DocsSearchKind, ReturnType<typeof defineLocalizedText>>,
+} as const;
+
+function ApiReference({ apiFeatures }: { apiFeatures: ApiFeatureSection[] }) {
+  const { text } = usePlaygroundLocale();
+
   return (
     <div className="docs-reference-list">
       {apiFeatures.map((section, index) => (
@@ -16,8 +40,8 @@ function ApiReference() {
           </h2>
           <p>{section.summary}</p>
           {section.props.length ? (
-            <section className="docs-reference-list__subsection" aria-label={`${section.title} Props`}>
-              <h3>Props</h3>
+            <section className="docs-reference-list__subsection" aria-label={`${section.title} ${text(docsMessages.props)}`}>
+              <h3>{text(docsMessages.props)}</h3>
               <dl>
                 {section.props.map((prop) => (
                   <div className="docs-reference-list__item" key={prop.name}>
@@ -35,8 +59,8 @@ function ApiReference() {
             </section>
           ) : null}
           {section.methods?.length ? (
-            <section className="docs-reference-list__subsection" aria-label={`${section.title} Methods`}>
-              <h3>Methods</h3>
+            <section className="docs-reference-list__subsection" aria-label={`${section.title} ${text(docsMessages.methods)}`}>
+              <h3>{text(docsMessages.methods)}</h3>
               <dl>
                 {section.methods.map((method) => (
                   <div className="docs-reference-list__item" key={method.name}>
@@ -47,10 +71,10 @@ function ApiReference() {
                     <dd>
                       <p>{method.description}</p>
                       <small>
-                        <strong>파라미터:</strong> {method.params}
+                        <strong>{text(docsMessages.parameters)}</strong> {method.params}
                       </small>
                       <small>
-                        <strong>리턴값:</strong> {method.returns}
+                        <strong>{text(docsMessages.returns)}</strong> {method.returns}
                       </small>
                     </dd>
                   </div>
@@ -59,7 +83,7 @@ function ApiReference() {
               {section.methods.map((method) =>
                 method.sample ? (
                   <div className="docs-reference-list__sample" key={method.sample.title}>
-                    <h4>간단한 예제 코드</h4>
+                    <h4>{text(docsMessages.exampleCode)}</h4>
                     <CodeExample sample={method.sample} />
                   </div>
                 ) : null,
@@ -67,8 +91,8 @@ function ApiReference() {
             </section>
           ) : null}
           {section.events?.length ? (
-            <section className="docs-reference-list__subsection" aria-label={`${section.title} Events`}>
-              <h3>Events</h3>
+            <section className="docs-reference-list__subsection" aria-label={`${section.title} ${text(docsMessages.events)}`}>
+              <h3>{text(docsMessages.events)}</h3>
               <dl>
                 {section.events.map((event) => (
                   <div className="docs-reference-list__item" key={event.name}>
@@ -79,10 +103,10 @@ function ApiReference() {
                     <dd>
                       <p>{event.description}</p>
                       <small>
-                        <strong>발생 시점:</strong> {event.when}
+                        <strong>{text(docsMessages.when)}</strong> {event.when}
                       </small>
                       <small>
-                        <strong>페이로드:</strong> {event.payload}
+                        <strong>{text(docsMessages.payload)}</strong> {event.payload}
                       </small>
                     </dd>
                   </div>
@@ -90,8 +114,8 @@ function ApiReference() {
               </dl>
             </section>
           ) : null}
-          <section className="docs-reference-list__subsection" aria-label={`${section.title} 예제 코드`}>
-            <h3>예제 코드</h3>
+          <section className="docs-reference-list__subsection" aria-label={`${section.title} ${text(docsMessages.exampleCode)}`}>
+            <h3>{text(docsMessages.exampleCode)}</h3>
             {section.samples.map((sample) => (
               <div className="docs-reference-list__sample" key={sample.title}>
                 <CodeExample sample={sample} />
@@ -105,8 +129,11 @@ function ApiReference() {
 }
 
 export function DocsShell() {
+  const { locale } = usePlaygroundLocale();
   const location = useLocation();
-  const page = docsPages.find((candidate) => candidate.path === location.pathname) ?? docsPages[0]!;
+  const content = useMemo(() => createDocsContent(locale), [locale]);
+  const navGroups = useMemo(() => createDocsNavGroups(content.pages), [content.pages]);
+  const page = content.pages.find((candidate) => candidate.path === location.pathname) ?? content.pages[0]!;
 
   useEffect(() => {
     if (!location.hash) {
@@ -122,12 +149,12 @@ export function DocsShell() {
 
   return (
     <div className="docs-shell">
-      <DocsTopNav />
+      <DocsTopNav pages={content.pages} />
       <div className="docs-shell__body">
-        <DocsSidebar />
+        <DocsSidebar navGroups={navGroups} />
         <main className="docs-shell__content">
           <RouteLifecycleBoundary key={location.pathname} routePath={location.pathname}>
-            <DocsArticle page={page} />
+            <DocsArticle apiFeatures={content.apiFeatures} page={page} />
           </RouteLifecycleBoundary>
         </main>
       </div>
@@ -135,28 +162,49 @@ export function DocsShell() {
   );
 }
 
-function DocsTopNav() {
+function DocsTopNav({ pages }: { pages: DocsPage[] }) {
+  const { text } = usePlaygroundLocale();
+
   return (
     <header className="docs-topnav">
       <div className="docs-topnav__brand">
         <p className="docs-topnav__eyebrow">Comins Playground</p>
         <h1>comins-grid-layout</h1>
       </div>
-      <GlobalDocsSearch />
+      <GlobalDocsSearch pages={pages} />
+      <div aria-label={text(playgroundMessages.localeToggle)} data-testid="playground-locale-toggle" role="group">
+        <LocaleToggle />
+      </div>
     </header>
   );
 }
 
-function GlobalDocsSearch() {
+function LocaleToggle() {
+  const { locale, setLocale } = usePlaygroundLocale();
+
+  return (
+    <>
+      <button aria-pressed={locale === "ko"} type="button" onClick={() => setLocale("ko")}>
+        KO
+      </button>
+      <button aria-pressed={locale === "en"} type="button" onClick={() => setLocale("en")}>
+        EN
+      </button>
+    </>
+  );
+}
+
+function GlobalDocsSearch({ pages }: { pages: DocsPage[] }) {
+  const { locale, text } = usePlaygroundLocale();
   const location = useLocation();
   const navigate = useNavigate();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [query, setQuery] = useState("");
-  const results = useMemo(() => searchDocs(query), [query]);
+  const results = useMemo(() => searchDocs(query, pages), [pages, query]);
 
   useEffect(() => {
     setQuery("");
-  }, [location.key]);
+  }, [locale, location.key]);
 
   useEffect(() => {
     const handlePointerDown = (event: PointerEvent) => {
@@ -188,8 +236,8 @@ function GlobalDocsSearch() {
         <input
           aria-controls={query.trim() ? "global-docs-search-results" : undefined}
           aria-expanded={Boolean(query.trim())}
-          aria-label="전체 문서 검색"
-          placeholder="전체 문서 검색"
+          aria-label={text(playgroundMessages.search)}
+          placeholder={text(playgroundMessages.search)}
           role="searchbox"
           type="search"
           value={query}
@@ -202,26 +250,29 @@ function GlobalDocsSearch() {
         />
       </div>
       {query.trim() ? (
-        <div aria-label="전체 문서 검색 결과" className="global-search-popup" id="global-docs-search-results" role="listbox">
+        <div aria-label={text(docsMessages.searchResults)} className="global-search-popup" id="global-docs-search-results" role="listbox">
           {results.length ? (
-            results.map((item) => (
-              <button
-                aria-label={`${item.kind} ${item.title} ${item.description}`}
-                className="global-search-popup__item"
-                key={item.id}
-                role="option"
-                type="button"
-                onClick={() => selectResult(item)}
-              >
-                <span className="global-search-popup__badge">{item.kind}</span>
-                <span>
-                  <strong>{item.title}</strong>
-                  <small>{item.description}</small>
-                </span>
-              </button>
-            ))
+            results.map((item) => {
+              const kind = text(docsMessages.searchKinds[item.kind]);
+              return (
+                <button
+                  aria-label={`${kind} ${item.title} ${item.description}`}
+                  className="global-search-popup__item"
+                  key={item.id}
+                  role="option"
+                  type="button"
+                  onClick={() => selectResult(item)}
+                >
+                  <span className="global-search-popup__badge">{kind}</span>
+                  <span>
+                    <strong>{item.title}</strong>
+                    <small>{item.description}</small>
+                  </span>
+                </button>
+              );
+            })
           ) : (
-            <p className="global-search-popup__empty">검색된 결과가 없습니다.</p>
+            <p className="global-search-popup__empty">{text(playgroundMessages.noSearchResults)}</p>
           )}
         </div>
       ) : null}
@@ -229,15 +280,17 @@ function GlobalDocsSearch() {
   );
 }
 
-function DocsSidebar() {
+function DocsSidebar({ navGroups }: { navGroups: DocsNavGroup[] }) {
+  const { text } = usePlaygroundLocale();
+
   return (
-    <aside aria-label="GridStack 문서" className="docs-sidebar">
+    <aside aria-label={text(docsMessages.sidebar)} className="docs-sidebar">
       <div className="docs-sidebar__heading">
         <PanelLeft aria-hidden="true" size={16} />
-        <strong>문서</strong>
+        <strong>{text(docsMessages.documentation)}</strong>
       </div>
-      <nav aria-label="문서 메뉴">
-        {docsNavGroups.map((group) => (
+      <nav aria-label={text(playgroundMessages.docsNavigation)}>
+        {navGroups.map((group) => (
           <section className="docs-sidebar__group" key={group.category}>
             <h2>{group.category}</h2>
             <div className="docs-sidebar__links">
@@ -254,7 +307,7 @@ function DocsSidebar() {
   );
 }
 
-function DocsArticle({ page }: { page: DocsPage }) {
+function DocsArticle({ apiFeatures, page }: { apiFeatures: ApiFeatureSection[]; page: DocsPage }) {
   return (
     <article className="docs-article">
       <header className="docs-article__header">
@@ -265,10 +318,14 @@ function DocsArticle({ page }: { page: DocsPage }) {
 
       {page.path === "/api" ? (
         <section className="docs-article__body">
-          <ApiReference />
+          <ApiReference apiFeatures={apiFeatures} />
         </section>
       ) : page.body ? (
-        <section className="docs-article__body">{page.body}</section>
+        <section className="docs-article__body">
+          {page.body.map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </section>
       ) : null}
 
       {page.examples.map((example, index) => (

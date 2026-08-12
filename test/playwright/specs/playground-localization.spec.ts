@@ -1,0 +1,84 @@
+import { expect, test } from "@playwright/test";
+
+import { initializePlaygroundLocale, PLAYGROUND_LOCALE_STORAGE_KEY } from "../helpers/playground-locale";
+
+test("switches the docs shell and locale search without changing the route", async ({ page }) => {
+  await page.goto("/docs/getting-started");
+  await expect(page.locator("html")).toHaveAttribute("lang", "ko");
+  await expect(page.getByRole("searchbox", { name: "전체 문서 검색" })).toBeVisible();
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page).toHaveURL(/\/docs\/getting-started$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("searchbox", { name: "Search all docs" })).toBeVisible();
+  await expect(page.getByRole("article").getByRole("heading", { name: "Getting started" })).toBeVisible();
+});
+
+test("restores the English docs locale after reload", async ({ page }) => {
+  await initializePlaygroundLocale(page, "en");
+  await page.goto("/docs/getting-started");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+
+  await page.reload();
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await expect(page.getByRole("article").getByRole("heading", { name: "Getting started" })).toBeVisible();
+});
+
+test("falls back to Korean when stored locale is invalid", async ({ page }) => {
+  await page.addInitScript((key) => window.localStorage.setItem(key, "unsupported"), PLAYGROUND_LOCALE_STORAGE_KEY);
+  await page.goto("/docs/getting-started");
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "ko");
+  await expect(page.getByRole("article").getByRole("heading", { name: "시작하기" })).toBeVisible();
+});
+
+test("keeps the default Korean locale when locale storage reads throw", async ({ page }) => {
+  await page.addInitScript(() => {
+    Storage.prototype.getItem = () => {
+      throw new Error("storage read blocked");
+    };
+  });
+  await page.goto("/docs/getting-started");
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "ko");
+  await expect(page.getByRole("searchbox", { name: "전체 문서 검색" })).toBeVisible();
+});
+
+test("keeps the in-memory locale when locale storage writes throw", async ({ page }) => {
+  await initializePlaygroundLocale(page, "en");
+  await page.goto("/docs/getting-started");
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+
+  await page.evaluate(() => {
+    Storage.prototype.setItem = () => {
+      throw new Error("storage write blocked");
+    };
+  });
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "KO" }).click();
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "ko");
+  await expect(page.getByRole("article").getByRole("heading", { name: "시작하기" })).toBeVisible();
+});
+
+test("searches resolved docs copy for each locale", async ({ page }) => {
+  await page.goto("/docs/getting-started");
+
+  await page.getByRole("searchbox", { name: "전체 문서 검색" }).fill("직렬화");
+  await expect(page.getByRole("option", { name: /Layout 저장 \/ 복원/ }).first()).toBeVisible();
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  await page.getByRole("searchbox", { name: "Search all docs" }).fill("serialization");
+  await expect(page.getByRole("option", { name: /Save and restore layout/ }).first()).toBeVisible();
+});
+
+test("leaves the readme demo output unchanged", async ({ page }) => {
+  await initializePlaygroundLocale(page, "en");
+  await page.goto("/readme-demo");
+
+  await expect(page.getByRole("heading", { name: "Interactive dashboards for React" })).toBeVisible();
+  await expect(page.getByLabel("Columns")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add widget" })).toBeVisible();
+});
