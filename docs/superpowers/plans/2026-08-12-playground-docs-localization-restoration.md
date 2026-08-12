@@ -751,19 +751,16 @@ git commit -m "feat: localize layout and advanced playgrounds"
 - Consumes: completed DocsShell, locale and Playground copy contracts
 - Produces: verification report and clean local implementation branch
 
-- [ ] **Step 1: stale contract와 untranslated visible copy 검사 작성/실행**
+- [ ] **Step 1: README 정렬과 public surface 동작 증거 확인**
 
-`test/vitest/readme.test.ts` 또는 focused policy test에 다음을 고정한다.
+README에 Playground 기본 URL, current three example routes, 기본 Korean 및 `한 / EN`
+전환을 사용자 안내로 추가한다. 문서 문구나 제거된 심볼을 소스 문자열 assertion으로
+고정하지 않는다. 기본 locale·전환·route는 Task 2와 Task 3의 E2E가 검증한다.
 
-- Playground 기본 URL과 current three example routes
-- 기본 Korean 및 `한 / EN` toggle 설명
-- locale storage key는 Playground-only 문서에만 존재
-- `src/`와 exported package surface에 locale module이 없음
-- runtime import에서 `PlaygroundShell`이 제거됨
+Run: `git diff --exit-code origin/main -- src/ && npm run build`
 
-Run: `npm run test:run -- test/vitest/readme.test.ts test/vitest/playground-locale.test.ts`
-
-Expected: RED for stale docs if README has not been aligned; GREEN after minimal docs update.
+Expected: library `src/` diff 없음; package build PASS. Playground-only locale module이
+exported package surface에 포함되지 않는다.
 
 - [ ] **Step 2: 미사용 shell과 code hygiene 정리**
 
