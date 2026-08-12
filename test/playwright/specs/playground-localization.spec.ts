@@ -120,3 +120,85 @@ test("leaves the readme demo output unchanged for Korean and English storage", a
 
   expect(englishOutput).toBe(koreanOutput);
 });
+
+test("resolves shared Widget controls, validation, and fixture presentation immediately", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByRole("button", { name: "위젯 추가" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "위젯 추가" });
+  await dialog.getByLabel("위젯명").fill("");
+  await dialog.getByLabel("값").fill("");
+  await dialog.getByRole("button", { name: "위젯 저장" }).click();
+  await expect(dialog.getByText("위젯명을 입력해 주세요.")).toBeVisible();
+  await expect(dialog.getByText("값을 입력해 주세요.")).toBeVisible();
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page.getByRole("button", { name: "Add widget" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Select widget" })).toHaveValue("sales");
+  await expect(page.getByRole("option", { name: "Traffic" })).toBeAttached();
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("Traffic");
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("Active sessions");
+  const localizedDialog = page.getByRole("dialog", { name: "Add widget" });
+  await expect(localizedDialog).toBeVisible();
+  await expect(page.getByLabel("Widget name")).toHaveAttribute("aria-invalid", "true");
+  await expect(localizedDialog.getByText("Enter a widget name.")).toBeVisible();
+  await expect(localizedDialog.getByText("Enter a value.")).toBeVisible();
+  await expect(localizedDialog.getByRole("button", { name: "Save widget" })).toBeVisible();
+  await expect(localizedDialog.getByRole("button", { name: "Close dialog" }).last()).toBeVisible();
+});
+
+test("keeps Widget selection, geometry, dialog draft, and detail state across locale changes", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByRole("combobox", { name: "위젯 선택" }).selectOption("traffic");
+  const before = await page.getByTestId("dashboard-widget-traffic").getAttribute("data-layout-x");
+  await page.locator("summary", { hasText: "현재 위젯 상태" }).click();
+  await page.getByRole("button", { name: "위젯 추가" }).click();
+  await page.getByLabel("위젯명").fill("사용자 지표");
+  await page.evaluate(() => {
+    window.__cominsGridLayoutLastUnmount = undefined;
+  });
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page).toHaveURL(/\/examples\/widget$/);
+  expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
+  await expect(page.getByRole("combobox", { name: "Select widget" })).toHaveValue("traffic");
+  await expect(page.getByRole("dialog", { name: "Add widget" })).toBeVisible();
+  await expect(page.getByLabel("Widget name")).toHaveValue("사용자 지표");
+  await expect(page.locator("details.example-state-output")).toHaveAttribute("open", "");
+  await expect(page.getByTestId("dashboard-widget-traffic")).toHaveAttribute("data-layout-x", before ?? "");
+});
+
+test("uses fixture presentation until an edited Widget has user-owned data", async ({ page }) => {
+  await page.goto("/examples/widget");
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("Traffic");
+
+  await page.getByRole("combobox", { name: "Select widget" }).selectOption("traffic");
+  await page.getByRole("button", { name: "Edit selected widget" }).click();
+  const dialog = page.getByRole("dialog", { name: "Edit widget" });
+  await dialog.getByLabel("Widget name").fill("사용자 트래픽");
+  await dialog.getByLabel("Value").fill("사용자 값");
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("사용자 트래픽");
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("사용자 값");
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "KO" }).click();
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("사용자 트래픽");
+  await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("사용자 값");
+});
+
+test("keeps Layout JSON draft data while its shared labels change locale", async ({ page }) => {
+  const draft = '{"columns":12,"widgets":[]}';
+  await page.goto("/examples/layout");
+  await page.getByLabel("활성 레이아웃 JSON").fill(draft);
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page.getByLabel("Active layout JSON")).toHaveValue(draft);
+  await expect(page.locator(".example-layout-json").first()).toHaveAttribute("aria-label", "Layout JSON controls");
+  await expect(page.getByRole("status", { name: "Active layout save and restore status" })).toBeVisible();
+});

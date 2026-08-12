@@ -1316,7 +1316,7 @@ test("does not fill empty row space when a widget action button is double-clicke
   await expect(sales).toHaveAttribute("data-layout-w", "3");
   await expect(traffic).toHaveAttribute("data-layout-x", "3");
 
-  await sales.getByRole("button", { name: "Sales 복원" }).dblclick();
+  await sales.getByRole("button", { name: "매출 복원" }).dblclick();
 
   await expect(sales).toHaveAttribute("data-layout-w", "3");
   await expect(traffic).toHaveAttribute("data-layout-x", "3");
@@ -1642,15 +1642,15 @@ test("executes the complete feature set through explicit playground routes", asy
   await expect(page.getByTestId("dashboard-widget-widget-5")).toBeVisible();
   await expect(page.getByText("위젯 5개")).toBeVisible();
 
-  await page.getByRole("button", { name: "Sales 최대화" }).click();
+  await page.getByRole("button", { name: "매출 최대화" }).click();
   await expect(sales).toHaveAttribute("data-maximized", "true");
   await expect(sales).toHaveAttribute("data-layout-w", "12");
 
-  await page.getByRole("button", { name: "Sales 최소화" }).click();
+  await page.getByRole("button", { name: "매출 최소화" }).click();
   await expect(sales).toHaveAttribute("data-minimized", "true");
   await expect(sales).toHaveAttribute("data-layout-h", "1");
 
-  await page.getByRole("button", { name: "Sales 복원" }).click();
+  await page.getByRole("button", { name: "매출 복원" }).click();
   await expect(sales).toHaveAttribute("data-maximized", "false");
   await expect(sales).toHaveAttribute("data-minimized", "false");
 
@@ -1662,7 +1662,7 @@ test("executes the complete feature set through explicit playground routes", asy
   await expect(sales).toHaveAttribute("data-layout-x", "0");
   await expect(sales).toHaveAttribute("data-layout-w", "4");
 
-  await page.getByRole("button", { name: "Sales 삭제" }).click();
+  await page.getByRole("button", { name: "매출 삭제" }).click();
   await expect(sales).toBeHidden();
   await expect(page.getByText("위젯 3개")).toBeVisible();
 

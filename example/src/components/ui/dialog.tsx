@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 
+import { usePlaygroundLocale } from "../../i18n/playground-locale";
+import { sharedPlaygroundCopy } from "../../playground/copy";
+
 type DialogProps = {
   children: ReactNode;
   description?: string;
@@ -9,6 +12,8 @@ type DialogProps = {
 };
 
 export function Dialog({ children, description, open, title, onOpenChange }: DialogProps) {
+  const { text } = usePlaygroundLocale();
+
   if (!open) {
     return null;
   }
@@ -16,7 +21,7 @@ export function Dialog({ children, description, open, title, onOpenChange }: Dia
   return (
     <div className="example-dialog" role="presentation">
       <button
-        aria-label="팝업 닫기"
+        aria-label={text(sharedPlaygroundCopy.closeDialog)}
         className="example-dialog__backdrop"
         type="button"
         onClick={() => onOpenChange(false)}
@@ -27,7 +32,7 @@ export function Dialog({ children, description, open, title, onOpenChange }: Dia
             <h2>{title}</h2>
             {description ? <p id="example-dialog-description">{description}</p> : null}
           </div>
-          <button aria-label="팝업 닫기" className="example-dialog__close" type="button" onClick={() => onOpenChange(false)}>
+          <button aria-label={text(sharedPlaygroundCopy.closeDialog)} className="example-dialog__close" type="button" onClick={() => onOpenChange(false)}>
             ×
           </button>
         </header>

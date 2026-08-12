@@ -5,6 +5,8 @@ import { DASHBOARD_COLUMN_COUNTS } from "../../../../src";
 import { Dialog } from "../../components/ui/dialog";
 import { Select } from "../../components/ui/select";
 import type { SelectOption } from "../../components/ui/select";
+import { usePlaygroundLocale } from "../../i18n/playground-locale";
+import { resolveWidgetPresentation, sharedPlaygroundCopy } from "../copy";
 import { createWidget } from "../fixtures";
 import type { DashboardRuntime } from "../types";
 
@@ -26,6 +28,8 @@ export type NewWidgetDraft = {
 };
 
 export type EditedWidgetDraft = Pick<NewWidgetDraft, "title" | "value">;
+
+type WidgetValidationError = "titleRequired" | "valueRequired" | null;
 
 type WidgetCrudControlsProps = {
   addDialogOpen?: boolean;
@@ -64,11 +68,12 @@ function WidgetDialogForm({
   onCancel,
   onSubmit,
 }: WidgetDialogFormProps) {
+  const { text } = usePlaygroundLocale();
   const [draftTitle, setDraftTitle] = useState(initialTitle);
   const [draftValue, setDraftValue] = useState(initialValue);
   const [height, setHeight] = useState(2);
-  const [titleError, setTitleError] = useState("");
-  const [valueError, setValueError] = useState("");
+  const [titleError, setTitleError] = useState<WidgetValidationError>(null);
+  const [valueError, setValueError] = useState<WidgetValidationError>(null);
   const [width, setWidth] = useState(2);
 
   useEffect(() => {
@@ -79,16 +84,16 @@ function WidgetDialogForm({
     setDraftTitle(initialTitle);
     setDraftValue(initialValue);
     setHeight(2);
-    setTitleError("");
-    setValueError("");
+    setTitleError(null);
+    setValueError(null);
     setWidth(2);
   }, [initialTitle, initialValue, open]);
 
   const submit = () => {
     const title = draftTitle.trim();
     const value = draftValue.trim();
-    const nextTitleError = title ? "" : "위젯명을 입력해 주세요.";
-    const nextValueError = value ? "" : "값을 입력해 주세요.";
+    const nextTitleError: WidgetValidationError = title ? null : "titleRequired";
+    const nextValueError: WidgetValidationError = value ? null : "valueRequired";
     setTitleError(nextTitleError);
     setValueError(nextValueError);
     if (nextTitleError || nextValueError) {
@@ -101,7 +106,7 @@ function WidgetDialogForm({
   return (
     <div className="example-dialog-form">
       <label className="example-input" htmlFor={`${scope}-widget-title`}>
-        <span>위젯명</span>
+        <span>{text(sharedPlaygroundCopy.widgetName)}</span>
         <input
           aria-describedby={titleError ? `${scope}-widget-title-error` : undefined}
           aria-invalid={Boolean(titleError)}
@@ -109,10 +114,10 @@ function WidgetDialogForm({
           value={draftTitle}
           onChange={(event) => setDraftTitle(event.target.value)}
         />
-        {titleError ? <span className="example-input-error" id={`${scope}-widget-title-error`}>{titleError}</span> : null}
+        {titleError ? <span className="example-input-error" id={`${scope}-widget-title-error`}>{text(sharedPlaygroundCopy.validation[titleError])}</span> : null}
       </label>
       <label className="example-input" htmlFor={`${scope}-widget-value`}>
-        <span>값</span>
+        <span>{text(sharedPlaygroundCopy.value)}</span>
         <input
           aria-describedby={valueError ? `${scope}-widget-value-error` : undefined}
           aria-invalid={Boolean(valueError)}
@@ -120,20 +125,20 @@ function WidgetDialogForm({
           value={draftValue}
           onChange={(event) => setDraftValue(event.target.value)}
         />
-        {valueError ? <span className="example-input-error" id={`${scope}-widget-value-error`}>{valueError}</span> : null}
+        {valueError ? <span className="example-input-error" id={`${scope}-widget-value-error`}>{text(sharedPlaygroundCopy.validation[valueError])}</span> : null}
       </label>
       {mode === "add" ? (
         <>
           <Select
             id={`${scope}-widget-width`}
-            label="새 위젯 너비"
+            label={text(sharedPlaygroundCopy.newWidgetWidth)}
             options={columnOptions}
             value={String(width)}
             onChange={(value) => setWidth(Number(value))}
           />
           <Select
             id={`${scope}-widget-height`}
-            label="새 위젯 높이"
+            label={text(sharedPlaygroundCopy.newWidgetHeight)}
             options={heightOptions}
             value={String(height)}
             onChange={(value) => setHeight(Number(value))}
@@ -142,10 +147,10 @@ function WidgetDialogForm({
       ) : null}
       <div className="example-dialog__footer">
         <button type="button" onClick={onCancel}>
-          취소
+          {text(sharedPlaygroundCopy.cancel)}
         </button>
         <button className="example-action-button example-action-button--add" type="button" onClick={submit}>
-          {mode === "add" ? "위젯 저장" : "변경 저장"}
+          {text(mode === "add" ? sharedPlaygroundCopy.saveWidget : sharedPlaygroundCopy.saveChanges)}
         </button>
       </div>
     </div>
@@ -169,6 +174,7 @@ export function WidgetCrudControls({
   onEditWidget,
   onSelectedWidgetIdChange,
 }: WidgetCrudControlsProps) {
+  const { locale, text } = usePlaygroundLocale();
   const [internalAddDialogOpen, setInternalAddDialogOpen] = useState(false);
   const [internalEditDialogOpen, setInternalEditDialogOpen] = useState(false);
   const [internalSelectedWidgetId, setInternalSelectedWidgetId] = useState("sales");
@@ -179,7 +185,7 @@ export function WidgetCrudControls({
     dashboard.widgets.find((widget) => widget.id === activeSelectedId) ??
     (controlledSelection ? undefined : dashboard.widgets[0]);
   const widgetOptions = dashboard.widgets.map((widget) => ({
-    label: widget.title ?? widget.id,
+    label: resolveWidgetPresentation(widget, locale).title,
     value: widget.id,
   }));
   const resolvedAddDialogOpen = onAddDialogOpenChange ? Boolean(addDialogOpen) : internalAddDialogOpen;
@@ -272,15 +278,15 @@ export function WidgetCrudControls({
 
   return (
     <>
-      <div className="example-actions example-crud-actions" aria-label={`${mode} widget actions`}>
+      <div className="example-actions example-crud-actions" aria-label={text(sharedPlaygroundCopy.widgetActions)}>
         <button className="example-action-button example-action-button--add" type="button" onClick={() => setAddDialogOpen(true)}>
           <Plus aria-hidden="true" size={14} />
-          위젯 추가
+          {text(sharedPlaygroundCopy.addWidget)}
         </button>
         <fieldset className="example-control-fieldset" disabled={dashboard.widgets.length === 0}>
           <Select
             id={`${mode}-widget-select`}
-            label="위젯 선택"
+            label={text(sharedPlaygroundCopy.selectWidget)}
             options={widgetOptions}
             value={selectedWidget?.id ?? ""}
             onChange={(id) => setSelectedWidgetId(id)}
@@ -289,24 +295,24 @@ export function WidgetCrudControls({
         {canEdit ? (
           <button type="button" disabled={!selectedWidget} onClick={() => setEditDialogOpen(true)}>
             <Pencil aria-hidden="true" size={14} />
-            선택 위젯 수정
+            {text(sharedPlaygroundCopy.editSelectedWidget)}
           </button>
         ) : null}
         <button className="example-action-button example-action-button--danger" disabled={!selectedWidget} type="button" onClick={deleteWidget}>
           <Trash2 aria-hidden="true" size={14} />
-          선택 위젯 삭제
+          {text(sharedPlaygroundCopy.deleteSelectedWidget)}
         </button>
         {canClear || onClearWidgets ? (
           <button className="example-action-button example-action-button--danger" disabled={dashboard.widgets.length === 0} type="button" onClick={clearWidgets}>
-            전체 삭제
+            {text(sharedPlaygroundCopy.clearAll)}
           </button>
         ) : null}
       </div>
 
       <Dialog
-        description="추가할 위젯의 제목, 값, 너비와 높이를 입력합니다."
+        description={text(sharedPlaygroundCopy.dialog.add.description)}
         open={resolvedAddDialogOpen}
-        title="위젯 추가"
+        title={text(sharedPlaygroundCopy.dialog.add.title)}
         onOpenChange={setAddDialogOpen}
       >
         <WidgetDialogForm
@@ -322,13 +328,13 @@ export function WidgetCrudControls({
 
       {canEdit ? (
         <Dialog
-          description="선택한 위젯의 제목과 값을 변경합니다."
+          description={text(sharedPlaygroundCopy.dialog.edit.description)}
           open={resolvedEditDialogOpen}
-          title="위젯 수정"
+          title={text(sharedPlaygroundCopy.dialog.edit.title)}
           onOpenChange={setEditDialogOpen}
         >
           <WidgetDialogForm
-            initialTitle={selectedWidget?.title ?? ""}
+            initialTitle={selectedWidget ? resolveWidgetPresentation(selectedWidget, locale).title : ""}
             initialValue={selectedWidget?.data?.value ?? ""}
             mode="edit"
             open={resolvedEditDialogOpen}

@@ -1,7 +1,9 @@
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import type { DashboardGridProps } from "../../../../src";
 import { DashboardGrid } from "../../../../src";
 
+import { usePlaygroundLocale } from "../../i18n/playground-locale";
+import { resolveWidgetPresentation, sharedPlaygroundCopy } from "../copy";
 import type { DashboardRuntime, ExampleWidgetData } from "../types";
 
 type DashboardPreviewProps = {
@@ -29,9 +31,23 @@ export function DashboardPreview({
   selectedWidgetId,
   showControls = true,
 }: DashboardPreviewProps) {
+  const { locale, text } = usePlaygroundLocale();
+  const widgets = useMemo(
+    () =>
+      dashboard.widgets.map((widget) => {
+        const presentation = resolveWidgetPresentation(widget, locale);
+        return {
+          ...widget,
+          data: widget.data ? { ...widget.data, description: presentation.description } : widget.data,
+          title: presentation.title,
+        };
+      }),
+    [dashboard.widgets, locale],
+  );
+
   return (
     <>
-      <p className="example-widget-count">위젯 {dashboard.widgets.length}개</p>
+      <p className="example-widget-count">{text(sharedPlaygroundCopy.widgetCount).replace("{count}", String(dashboard.widgets.length))}</p>
       <DashboardGrid
         columns={dashboard.columns}
         externalDropTargets={externalDropTargets}
@@ -39,7 +55,7 @@ export function DashboardPreview({
         refreshKey={dashboard.refreshVersion}
         resizable={resizable}
         showControls={showControls}
-        widgets={dashboard.widgets}
+        widgets={widgets}
         onMaximizeWidget={dashboard.commands.maximizeWidget}
         onMinimizeWidget={dashboard.commands.minimizeWidget}
         onRemoveWidget={onWidgetRemove ?? dashboard.commands.removeWidget}
@@ -58,7 +74,7 @@ export function DashboardPreview({
 
           return onWidgetSelect ? (
             <button
-              aria-label={`${widget.title ?? widget.id} 위젯 선택`}
+              aria-label={`${widget.title ?? widget.id} ${text(sharedPlaygroundCopy.widgetSelect)}`}
               aria-pressed={selectedWidgetId === widget.id}
               className="dashboard-widget-body"
               data-selected={selectedWidgetId === widget.id ? "true" : "false"}

@@ -14,6 +14,7 @@ import type { SelectOption } from "../components/ui/select";
 import { PlaygroundHeader, toggleStateProps } from "./components/DashboardPreview";
 import { LayoutJson } from "./components/LayoutJson";
 import { WidgetCrudControls } from "./components/WidgetCrudControls";
+import { sharedPlaygroundCopy } from "./copy";
 import { createAdvancedPlaygroundFixture } from "./fixtures";
 import { sanitizeDashboardStateSnapshot } from "./state-snapshot";
 import type { ExampleWidgetData } from "./types";
@@ -248,9 +249,9 @@ export function AdvancedPlayground() {
           </div>
           <LayoutJson
             id="advanced-layout-json"
-            label="전체 상태 및 컬럼 캐시 JSON"
+            label={sharedPlaygroundCopy.layoutJson.fullState.label}
             status={layoutStatus}
-            statusLabel="전체 상태 저장 복원 상태"
+            statusLabel={sharedPlaygroundCopy.layoutJson.fullState.statusLabel}
             value={layoutJson}
             onChange={setLayoutJson}
           />

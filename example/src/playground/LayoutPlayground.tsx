@@ -8,6 +8,7 @@ import type { SelectOption } from "../components/ui/select";
 import { DashboardPreview, PlaygroundHeader } from "./components/DashboardPreview";
 import { LayoutJson } from "./components/LayoutJson";
 import { WidgetCrudControls } from "./components/WidgetCrudControls";
+import { sharedPlaygroundCopy } from "./copy";
 import { createLayoutPlaygroundFixture } from "./fixtures";
 import { sanitizeDashboardStateSnapshot } from "./state-snapshot";
 import type { ExampleWidgetData } from "./types";
@@ -174,9 +175,9 @@ export function LayoutPlayground() {
           </div>
           <LayoutJson
             id="layout-active-json"
-            label="활성 레이아웃 JSON"
+            label={sharedPlaygroundCopy.layoutJson.active.label}
             status={activeLayoutStatus}
-            statusLabel="활성 레이아웃 저장 복원 상태"
+            statusLabel={sharedPlaygroundCopy.layoutJson.active.statusLabel}
             value={activeLayoutJson}
             onChange={setActiveLayoutJson}
           />
@@ -193,9 +194,9 @@ export function LayoutPlayground() {
           </div>
           <LayoutJson
             id="layout-full-state-json"
-            label="전체 상태 및 컬럼 캐시 JSON"
+            label={sharedPlaygroundCopy.layoutJson.fullState.label}
             status={fullStateStatus}
-            statusLabel="전체 상태 저장 복원 상태"
+            statusLabel={sharedPlaygroundCopy.layoutJson.fullState.statusLabel}
             value={fullStateJson}
             onChange={setFullStateJson}
           />
