@@ -1112,11 +1112,27 @@ test("drops a widget on a plain div with mobile touch", async ({ page }, testInf
   const dragHandle = widget.locator(".grid-stack-item-content");
   const target = page.locator("[data-dashboard-drop-target='trash']");
   await waitForWidgetGridEngine(widget);
-  await performTouchGestureToTarget(page, dragHandle, target, 12);
+  const expectedColumns = Number(await page.getByTestId("dashboard-grid").getAttribute("data-columns"));
+  let expectedLayout: WidgetLayout | undefined;
+  await performTouchGestureToTarget(page, dragHandle, target, 12, async () => {
+    expectedLayout = await widget.evaluate((element) => {
+      const node = (element as HTMLElement & {
+        gridstackNode?: { h?: number; w?: number; x?: number; y?: number };
+      }).gridstackNode;
+      if (!node) throw new Error("Dragged widget GridStack node is unavailable before touch release");
+      return {
+        h: node.h ?? 1,
+        w: node.w ?? 1,
+        x: node.x ?? 0,
+        y: node.y ?? 0,
+      };
+    });
+  });
 
   await expect(widget).toHaveCount(0);
+  expect(expectedLayout).toBeDefined();
   await expect(page.getByRole("log", { name: "외부 드롭 이벤트 로그" })).toContainText(
-    /onWidgetExternalDrop target=trash widget=widget-1 columns=12 x=\d+ y=\d+ w=2 h=2/,
+    `onWidgetExternalDrop target=trash widget=widget-1 columns=${expectedColumns} x=${expectedLayout!.x} y=${expectedLayout!.y} w=${expectedLayout!.w} h=${expectedLayout!.h}`,
   );
   const targetBox = await target.boundingBox();
   expect(targetBox?.width).toBeLessThanOrEqual(300);

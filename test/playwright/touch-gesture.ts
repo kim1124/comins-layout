@@ -10,6 +10,7 @@ async function dispatchTouchGesture(
   start: Point,
   delta: Point,
   steps: number,
+  beforeRelease?: () => Promise<void>,
 ) {
   const session = await page.context().newCDPSession(page);
 
@@ -34,6 +35,7 @@ async function dispatchTouchGesture(
       await page.waitForTimeout(16);
     }
 
+    await beforeRelease?.();
     await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   } finally {
     await session.detach();
@@ -63,6 +65,7 @@ export async function performTouchGestureToTarget(
   source: Locator,
   target: Locator,
   steps = 12,
+  beforeRelease?: () => Promise<void>,
 ) {
   await source.scrollIntoViewIfNeeded();
   const [sourceBox, targetBox] = await Promise.all([
@@ -81,5 +84,5 @@ export async function performTouchGestureToTarget(
   await dispatchTouchGesture(page, start, {
     x: targetBox.x + targetBox.width / 2 - start.x,
     y: targetBox.y + targetBox.height / 2 - start.y,
-  }, steps);
+  }, steps, beforeRelease);
 }
