@@ -4,9 +4,9 @@ import { isDesktopBrowserProject } from "../project-policy";
 
 async function expectIntegratedPlayground(
   page: Page,
-  path: "/examples/widget" | "/examples/layout" | "/examples/advanced",
-  heading: "위젯" | "레이아웃" | "고급 예제",
-  navLabel: "위젯" | "저장·복원" | "반응형·엔진 옵션",
+  path: "/examples/widget" | "/examples/layout" | "/examples/layout/columns" | "/examples/advanced",
+  heading: "위젯" | "레이아웃" | "컬럼 레이아웃 동적 수정" | "고급 예제",
+  navLabel: "위젯" | "저장·복원" | "동적 컬럼" | "반응형·엔진 옵션",
 ) {
   await page.goto(path);
 
@@ -37,12 +37,13 @@ test.describe("gridstack docs playground routing", () => {
     }
   });
 
-  test("navigates docs users to the current widget, layout, and advanced playgrounds", async ({ page }) => {
+  test("navigates docs users to the current widget, layout, dynamic column, and advanced playgrounds", async ({ page }) => {
     await page.goto("/docs/getting-started");
 
     const navigation = page.getByRole("navigation", { name: "문서 메뉴" });
     await expect(navigation.getByRole("link", { name: "위젯" })).toHaveAttribute("href", "/examples/widget");
     await expect(navigation.getByRole("link", { name: "저장·복원" })).toHaveAttribute("href", "/examples/layout");
+    await expect(navigation.getByRole("link", { name: "동적 컬럼" })).toHaveAttribute("href", "/examples/layout/columns");
     await expect(navigation.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
     await expect(navigation.getByRole("link", { name: "추가 / 삭제" })).toHaveCount(0);
     await expect(navigation.getByRole("link", { name: "종합 예제" })).toHaveCount(0);
@@ -59,8 +60,10 @@ test.describe("gridstack docs playground routing", () => {
     const nav = page.getByRole("navigation", { name: "문서 메뉴" });
     const rootLink = nav.getByRole("link", { name: "위젯" });
     const layoutChildLink = nav.getByRole("link", { name: "저장·복원" });
+    const columnChildLink = nav.getByRole("link", { name: "동적 컬럼" });
     await expect(nav.getByText("레이아웃", { exact: true })).toBeVisible();
     await expect(layoutChildLink).toHaveAttribute("href", "/examples/layout");
+    await expect(columnChildLink).toHaveAttribute("href", "/examples/layout/columns");
     await expect(nav.getByText("고급 예제", { exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
 
@@ -69,12 +72,28 @@ test.describe("gridstack docs playground routing", () => {
     expect(rootBox).not.toBeNull();
     expect(childBox).not.toBeNull();
     expect(childBox!.x).toBeGreaterThan(rootBox!.x);
+    const columnChildBox = await columnChildLink.boundingBox();
+    expect(columnChildBox).not.toBeNull();
+    expect(columnChildBox!.x).toBe(childBox!.x);
   });
 
   test("renders an integrated docs shell with one live playground for every example route", async ({ page }) => {
     await expectIntegratedPlayground(page, "/examples/widget", "위젯", "위젯");
     await expectIntegratedPlayground(page, "/examples/layout", "레이아웃", "저장·복원");
+    await expectIntegratedPlayground(page, "/examples/layout/columns", "컬럼 레이아웃 동적 수정", "동적 컬럼");
     await expectIntegratedPlayground(page, "/examples/advanced", "고급 예제", "반응형·엔진 옵션");
+  });
+
+  test("searches the dynamic column child route", async ({ page }) => {
+    await page.goto("/docs/getting-started");
+
+    await page.getByRole("searchbox", { name: "전체 문서 검색" }).fill("동적 컬럼");
+    const result = page.getByRole("option", { name: /^문서 컬럼 레이아웃 동적 수정/ });
+    await expect(result).toBeVisible();
+    await result.click();
+
+    await expect(page).toHaveURL(/\/examples\/layout\/columns$/);
+    await expect(page.getByRole("combobox", { name: "레이아웃 컬럼" })).toHaveValue("12");
   });
 
   test("keeps the getting started and API pages in the docs shell", async ({ page }) => {

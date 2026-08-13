@@ -503,6 +503,28 @@ const localizedDocsPages: LocalizedDocsPage[] = [
     category: text("예제", "Examples"),
     examples: [
       {
+        codeSamples: [{ code: `dashboard.commands.setColumns(6);`, language: "ts", title: text("동적 컬럼", "Dynamic columns") }],
+        description: text(
+          "1부터 12까지 컬럼을 직접 선택하고 여섯 위젯의 배치가 범위 안에서 바뀌는지 확인합니다.",
+          "Select columns from 1 through 12 and observe six widgets adapt within the active column range.",
+        ),
+        liveExampleId: "layout-columns",
+        title: text("컬럼 레이아웃 동적 수정", "Dynamic column layout"),
+      },
+    ],
+    label: text("동적 컬럼", "Dynamic columns"),
+    navParent: text("레이아웃", "Layout"),
+    path: "/examples/layout/columns",
+    summary: text(
+      "1~12 컬럼을 직접 변경하며 위젯 배치가 범위 안에서 바뀌고 원래 12컬럼 배치로 돌아오는지 확인합니다.",
+      "Change between 1 and 12 columns to observe widget fitting and the return to the original 12-column geometry.",
+    ),
+    title: text("컬럼 레이아웃 동적 수정", "Dynamic column layout"),
+  },
+  {
+    category: text("예제", "Examples"),
+    examples: [
+      {
         codeSamples: [{ code: `${layoutSample}\n\n${widgetLockSample}`, language: "ts", title: text("고급 제어 상태", "Advanced controlled state") }],
         description: text("responsive column, public handle query, external drop, 전체 상태와 컬럼 cache 복원을 제어된 React state로 확인합니다.", "Review responsive columns, public handle queries, external drops, whole state, and column cache restoration with controlled React state."),
         liveExampleId: "advanced",

@@ -120,3 +120,26 @@ test("locale changes do not discard the saved snapshot", async ({ page }) => {
   await page.getByRole("button", { name: "Restore layout", exact: true }).click();
   await expect.poll(() => readDashboardGeometry(page)).toEqual(saved);
 });
+
+test("renders one Grid on the dynamic column child route", async ({ page }) => {
+  await page.goto("/examples/layout/columns");
+
+  await expect(page.getByRole("combobox", { name: "레이아웃 컬럼" })).toHaveValue("12");
+  await expect(page.locator(".grid-stack")).toHaveCount(1);
+  await expect(page.locator(".grid-stack-item")).toHaveCount(6);
+});
+
+test("keeps six widgets in bounds through 12 to 6 to 3 to 12", async ({ page }) => {
+  await page.goto("/examples/layout/columns");
+  const original = await readDashboardGeometry(page);
+
+  for (const columns of ["6", "3", "12"]) {
+    await page.getByRole("combobox", { name: "레이아웃 컬럼" }).selectOption(columns);
+    await expect(page.locator(".grid-stack")).toHaveAttribute("data-columns", columns);
+    const layouts = await readDashboardGeometry(page);
+    expect(layouts).toHaveLength(6);
+    expect(layouts.every(({ x, w }) => x + w <= Number(columns))).toBe(true);
+  }
+
+  expect(await readDashboardGeometry(page)).toEqual(original);
+});

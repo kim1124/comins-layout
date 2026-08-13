@@ -8,6 +8,7 @@ import type { ApiFeatureSection, DocsCodeSample, DocsNavGroup, DocsPage, DocsSea
 import { defineLocalizedText, usePlaygroundLocale } from "../i18n/playground-locale";
 import { playgroundMessages } from "../i18n/messages";
 import { AdvancedPlayground } from "../playground/AdvancedPlayground";
+import { LayoutColumnsPlayground } from "../playground/LayoutColumnsPlayground";
 import { LayoutPlayground } from "../playground/LayoutPlayground";
 import { WidgetPlayground } from "../playground/WidgetPlayground";
 
@@ -368,6 +369,8 @@ function LivePlayground({ id }: { id: PlaygroundExampleId }) {
       return <AdvancedPlayground />;
     case "layout":
       return <LayoutPlayground />;
+    case "layout-columns":
+      return <LayoutColumnsPlayground />;
     case "widget":
       return <WidgetPlayground />;
   }

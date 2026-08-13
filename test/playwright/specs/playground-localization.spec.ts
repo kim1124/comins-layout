@@ -511,6 +511,26 @@ test("localizes the Layout toolbar without resetting its saved snapshot", async 
   await expect.poll(() => readDashboardGeometry(page)).toEqual(savedGeometry);
 });
 
+test("localizes the dynamic column route without resetting its live state", async ({ page }) => {
+  await page.goto("/examples/layout/columns");
+  const columns = page.getByRole("combobox", { name: "레이아웃 컬럼" });
+  await columns.selectOption("6");
+  await expect(page.locator(".grid-stack")).toHaveAttribute("data-columns", "6");
+  const sixColumnGeometry = await readDashboardGeometry(page);
+  await page.evaluate(() => {
+    window.__cominsGridLayoutLastUnmount = undefined;
+  });
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page).toHaveURL(/\/examples\/layout\/columns$/);
+  await expect(page.getByRole("combobox", { name: "Layout columns" })).toHaveValue("6");
+  await expect(page.getByRole("navigation", { name: "Docs menu" }).getByRole("link", { name: "Dynamic columns" }))
+    .toHaveAttribute("aria-current", "page");
+  expect(await readDashboardGeometry(page)).toEqual(sixColumnGeometry);
+  expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
+});
+
 test("localizes Advanced copy and semantic status without resetting engine state", async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1100 });
   await page.goto("/examples/advanced");

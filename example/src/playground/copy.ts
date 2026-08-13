@@ -184,6 +184,18 @@ export const layoutPlaygroundCopy = {
   },
 } as const;
 
+export const layoutColumnsCopy = {
+  controls: defineLocalizedText("동적 컬럼 컨트롤", "Dynamic column controls"),
+  dashboard: defineLocalizedText("동적 컬럼 dashboard", "Dynamic column dashboard"),
+  description: defineLocalizedText(
+    "1부터 12까지 컬럼을 직접 변경하여 여섯 위젯의 배치 변화를 확인합니다.",
+    "Change between 1 and 12 columns to observe how six widgets adapt.",
+  ),
+  kicker: defineLocalizedText("레이아웃 예제", "Layout example"),
+  select: defineLocalizedText("레이아웃 컬럼", "Layout columns"),
+  title: defineLocalizedText("컬럼 레이아웃 동적 수정", "Dynamic column layout"),
+} as const;
+
 export const advancedPlaygroundCopy = {
   controls: defineLocalizedText("고급 예제 컨트롤", "Advanced example controls"),
   dashboard: defineLocalizedText("고급 예제 dashboard", "Advanced example dashboard"),

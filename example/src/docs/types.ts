@@ -1,6 +1,6 @@
 import type { LocalizedText } from "../i18n/types";
 
-export type PlaygroundExampleId = "advanced" | "layout" | "widget";
+export type PlaygroundExampleId = "advanced" | "layout" | "layout-columns" | "widget";
 export type DocsSearchKind = "api" | "code" | "document" | "example";
 export type DocsCodeLanguage = "bash" | "css" | "ts" | "tsx";
 
