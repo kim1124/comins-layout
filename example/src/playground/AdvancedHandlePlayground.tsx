@@ -129,6 +129,7 @@ export function AdvancedHandlePlayground() {
           engineOptions={{ cellHeight: 60, float: true }}
           showControls={false}
           widgets={presentedWidgets}
+          onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
           renderWidget={(widget) => {
             const colors = pastelColor(widget.data?.colorKey ?? "mint");
             return (

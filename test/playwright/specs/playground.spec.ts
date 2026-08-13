@@ -257,9 +257,9 @@ test.describe("Widget Playground", () => {
 
 });
 
-// The approved split routes migrate these exact regression contracts in Tasks 9, 10, and 12.
-// Keep the invalid-state and fail-closed assertions visible here until Task 10 moves and re-enables them.
-test.describe.skip("Advanced child-route migration contracts (Tasks 9, 10, and 12)", () => {
+// Task 9 Handle contracts now run on /examples/advanced/handle in playground-advanced-examples.spec.ts.
+// Keep the state, invalid-state, fail-closed, and external-drop contracts visible here until Tasks 10 and 12 move them.
+test.describe.skip("Advanced child-route migration contracts (Tasks 10 and 12)", () => {
   const diagnosticsByTest = new Map<string, string[]>();
 
   test.beforeEach(async ({ page }, testInfo) => {
@@ -285,7 +285,7 @@ test.describe.skip("Advanced child-route migration contracts (Tasks 9, 10, and 1
   test("deletes only through the configured 300x300 typed external target callback", async ({ page }) => {
     await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
     await expect(page.locator(".grid-stack")).toHaveCount(1);
-    await expect(page.getByText("반응형 컬럼, 안전한 GridStack handle, 외부 드롭을 제어 상태와 함께 검증합니다.")).toBeVisible();
+    await expect(page.getByText("드래그한 위젯을 여기에 놓으세요.")).toBeVisible();
 
     const target = page.locator("[data-dashboard-drop-target='trash']");
     await expect(target).toBeVisible();
@@ -568,50 +568,4 @@ test.describe.skip("Advanced child-route migration contracts (Tasks 9, 10, and 1
     expect(Object.keys(restoredState.layoutsByColumn).sort()).toEqual(["12", "6"]);
   });
 
-  test("clears the initial not-ready handle status after a successful query", async ({ page }) => {
-    const handleStatus = page.getByRole("status", { name: "handle 작업 상태" });
-    const queryStatus = page.getByRole("status", { name: "GridStack 읽기 전용 상태" });
-
-    await expect(queryStatus).toContainText("column=12; row=");
-    await expect(handleStatus).not.toContainText("GridStack이 아직 준비되지 않았습니다.");
-  });
-
-  test("uses only supported compact list commit and read-only handle queries with controlled float", async ({ page }) => {
-    const queryStatus = page.getByRole("status", { name: "GridStack 읽기 전용 상태" });
-    const commitStatus = page.getByRole("status", { name: "제어 레이아웃 커밋 상태" });
-    const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
-
-    await expect(queryStatus).toContainText("column=12; row=");
-    await expect(queryStatus).toContainText("float=false");
-
-    await page.getByRole("button", { name: "compact 정렬 후 커밋" }).click();
-    await expect(page.getByRole("status", { name: "handle 작업 상태" })).toHaveText(
-      "compact 정렬을 커밋했습니다.",
-    );
-    await expect(commitStatus).toContainText("12컬럼 레이아웃을 React 상태에 커밋했습니다.");
-    await page.getByRole("button", { name: "전체 상태 저장" }).click();
-    let savedState = JSON.parse(await stateEditor.inputValue()) as {
-      layoutsByColumn: Record<string, { widgets: IdentifiedWidgetLayout[] }>;
-    };
-    expect(savedState.layoutsByColumn["12"]?.widgets).toEqual(await readDashboardLayouts(page));
-
-    await page.getByRole("button", { name: "list 정렬 후 커밋" }).click();
-    await expect(page.getByRole("status", { name: "handle 작업 상태" })).toHaveText(
-      "list 정렬을 커밋했습니다.",
-    );
-    await page.getByRole("button", { name: "전체 상태 저장" }).click();
-    savedState = JSON.parse(await stateEditor.inputValue()) as typeof savedState;
-    expect(savedState.layoutsByColumn["12"]?.widgets).toEqual(await readDashboardLayouts(page));
-
-    await page.getByRole("button", { name: "Float 사용" }).click();
-    await expect(page.getByRole("button", { name: "Float 사용" })).toHaveAttribute("aria-pressed", "true");
-    await expect(queryStatus).toContainText("float=true");
-
-    const beforeFloatLayout = await readWidgetLayout(page.getByTestId("dashboard-widget-sales"));
-    await resizeWidget(page, page.getByTestId("dashboard-widget-sales"), 0, 110);
-    await expect.poll(() => readWidgetLayout(page.getByTestId("dashboard-widget-sales"))).not.toEqual(beforeFloatLayout);
-    await page.getByRole("button", { name: "전체 상태 저장" }).click();
-    savedState = JSON.parse(await stateEditor.inputValue()) as typeof savedState;
-    expect(savedState.layoutsByColumn["12"]?.widgets).toEqual(await readDashboardLayouts(page));
-  });
 });

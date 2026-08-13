@@ -131,12 +131,25 @@ test.describe("gridstack docs playground routing", () => {
     const koreanNavigation = page.getByRole("navigation", { name: "문서 메뉴" });
     await expect(koreanNavigation.getByRole("link", { name: "공식 API Handle" })).toHaveAttribute("aria-current", "page");
     await expect(page.locator(".docs-code")).toHaveCount(2);
-    await expect(page.getByText("raw grid API는 controlled React 상태와 컬럼 캐시를 우회할 수 있습니다. 관리되는 변경에는 안전한 Comins method를 우선 사용하세요.")).toBeVisible();
+    const koreanWarning = page.getByText(
+      "raw addWidget(), removeWidget(), destroy() API를 호출하면 controlled React 상태와 컬럼 캐시가 GridStack 배치와 달라질 수 있습니다. 관리되는 변경에는 안전한 Comins method를 우선 사용하세요.",
+    );
+    await expect(koreanWarning).toBeVisible();
+    await expect(koreanWarning).toContainText("addWidget()");
+    await expect(koreanWarning).toContainText("removeWidget()");
+    await expect(koreanWarning).toContainText("destroy()");
 
     await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
     const englishNavigation = page.getByRole("navigation", { name: "Docs menu" });
     await expect(englishNavigation.getByRole("link", { name: "Official API Handle" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("button", { name: "Query Grid information" })).toBeVisible();
+    const englishWarning = page.getByText(
+      "Calling raw addWidget(), removeWidget(), or destroy() APIs can make controlled React state and the column cache diverge from the GridStack layout. Prefer safe Comins methods for managed mutations.",
+    );
+    await expect(englishWarning).toBeVisible();
+    await expect(englishWarning).toContainText("addWidget()");
+    await expect(englishWarning).toContainText("removeWidget()");
+    await expect(englishWarning).toContainText("destroy()");
   });
 
   test("searches the dynamic column child route", async ({ page }) => {

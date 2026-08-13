@@ -171,14 +171,20 @@ test.describe("Official API Handle", () => {
   test("runs safe Comins methods and official read APIs", async ({ page }) => {
     await page.goto("/examples/advanced/handle");
     await expect.poll(() => page.evaluate(() => window.__cominsGridLayoutHandleExample?.getHandle()?.grid?.getColumn() ?? null)).toBe(12);
+    await expect.poll(() => page.evaluate(() => window.__cominsGridLayoutHandleExample?.getHandle()?.grid?.opts.float ?? null)).toBe(true);
 
+    const queryStatus = page.getByRole("status", { name: "GridStack 조회 결과" });
+    const handleStatus = page.getByRole("status", { name: "Handle 실행 결과" });
+    await expect(queryStatus).toHaveText("Grid 정보를 조회하세요.");
+    await expect(queryStatus).not.toContainText("GridStack이 아직 준비되지 않았습니다.");
     await page.getByRole("button", { name: "Grid 정보 조회" }).click();
-    await expect(page.getByRole("status", { name: "GridStack 조회 결과" })).toHaveText(/^column=12; row=\d+$/);
+    await expect(queryStatus).toHaveText(/^column=12; row=\d+$/);
+    await expect(handleStatus).not.toContainText("GridStack이 아직 준비되지 않았습니다.");
 
     const target = page.getByTestId("dashboard-widget-alerts");
     const beforeY = Number(await target.getAttribute("gs-y"));
     await page.getByRole("button", { name: "compact 후 commit" }).click();
-    await expect(page.getByRole("status", { name: "Handle 실행 결과" })).toHaveText("committed");
+    await expect(handleStatus).toHaveText("committed");
     await expect.poll(async () => Number(await target.getAttribute("data-layout-y"))).toBeLessThan(beforeY);
     await expect(target).toHaveAttribute("gs-y", await target.getAttribute("data-layout-y") ?? "");
 
@@ -196,6 +202,32 @@ test.describe("Official API Handle", () => {
     await page.getByRole("button", { name: "공식 API로 셀 높이 80 적용" }).click();
     await expect.poll(async () => (await firstWidget.boundingBox())?.height).not.toBe(before?.height);
     await expect(page.getByRole("status", { name: "Handle 실행 결과" })).toHaveText("cell-height-80");
+  });
+
+  test("keeps list compact supported through the safe Handle and controlled React state", async ({ page }) => {
+    await page.goto("/examples/advanced/handle");
+    await expect.poll(() => page.evaluate(() => window.__cominsGridLayoutHandleExample?.getHandle()?.grid?.getColumn() ?? null)).toBe(12);
+
+    const result = await page.evaluate(() => {
+      const handle = window.__cominsGridLayoutHandleExample?.getHandle();
+      return {
+        float: handle?.grid?.opts.float ?? null,
+        snapshot: handle?.compact("list", true) ?? null,
+      };
+    });
+    expect(result.float).toBe(true);
+    const alertsLayout = result.snapshot?.widgets.find((widget) => widget.id === "alerts");
+    expect(alertsLayout).toBeDefined();
+    if (!alertsLayout) {
+      throw new Error("Expected alerts layout in list compact snapshot");
+    }
+
+    const alerts = page.getByTestId("dashboard-widget-alerts");
+    await expect(alerts).toHaveAttribute("data-layout-x", String(alertsLayout.x));
+    await expect(alerts).toHaveAttribute("data-layout-y", String(alertsLayout.y));
+    await expect(alerts).toHaveAttribute("data-layout-w", String(alertsLayout.w));
+    await expect(alerts).toHaveAttribute("data-layout-h", String(alertsLayout.h));
+    await expect(page.getByRole("button", { name: /list/i })).toHaveCount(0);
   });
 
   test("keeps controlled state unchanged when GridStack is not ready", async ({ page }) => {
