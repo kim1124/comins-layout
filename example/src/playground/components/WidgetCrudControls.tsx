@@ -22,15 +22,16 @@ export function applyDefaultWidgetEdit(
   selectedWidget: DashboardWidget<ExampleWidgetData>,
   draft: WidgetDraft,
 ) {
-  const generatedDescriptionKey = selectedWidget.data?.fixtureCopyKey
+  const { fixtureCopyKey: _fixtureCopyKey, ...userData } = (selectedWidget.data ?? {}) as Partial<ExampleWidgetData>;
+  const generatedDescriptionKey = _fixtureCopyKey
     ? "editedWidget"
-    : selectedWidget.data?.generatedDescriptionKey;
+    : userData.generatedDescriptionKey;
 
   commands.updateWidgetLayout(selectedWidget.id, { h: draft.height, w: draft.width });
   commands.updateWidget(selectedWidget.id, {
     data: {
-      ...selectedWidget.data,
-      description: selectedWidget.data?.description ?? `${draft.title} dashboard widget`,
+      ...userData,
+      description: userData.description ?? `${draft.title} dashboard widget`,
       ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
       colorKey: draft.colorKey,
       contentRevision: (selectedWidget.data?.contentRevision ?? 0) + 1,

@@ -57,16 +57,17 @@ export function WidgetPlayground() {
       return;
     }
 
-    const generatedDescriptionKey = selectedWidget.data?.fixtureCopyKey
+    const { fixtureCopyKey: _fixtureCopyKey, ...userData } = (selectedWidget.data ?? {}) as Partial<ExampleWidgetData>;
+    const generatedDescriptionKey = _fixtureCopyKey
       ? "editedWidget"
-      : selectedWidget.data?.generatedDescriptionKey;
+      : userData.generatedDescriptionKey;
 
     dashboard.commands.updateWidget(selectedWidget.id, {
       data: {
-        ...selectedWidget.data,
-        colorKey: selectedWidget.data?.colorKey ?? "mint",
-        contentRevision: (selectedWidget.data?.contentRevision ?? 0) + 1,
-        description: selectedWidget.data?.description ?? `${draft.title} dashboard widget`,
+        ...userData,
+        colorKey: userData.colorKey ?? "mint",
+        contentRevision: (userData.contentRevision ?? 0) + 1,
+        description: userData.description ?? `${draft.title} dashboard widget`,
         ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
         value: draft.value,
       },

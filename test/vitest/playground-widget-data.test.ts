@@ -64,6 +64,7 @@ describe("playground widget data", () => {
       layout: { id: "sales", x: 0, y: 0, w: 7, h: 4 },
       data: { colorKey: "rose", contentRevision: 1, value: "200M" },
     });
+    expect(state.widgets[0]?.data).not.toHaveProperty("fixtureCopyKey");
     expect(state.layoutsByColumn[12]?.widgets[0]).toEqual({ id: "sales", x: 0, y: 0, w: 7, h: 4 });
   });
 });
