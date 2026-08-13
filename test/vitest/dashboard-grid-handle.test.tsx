@@ -1,5 +1,6 @@
 import { createRef } from "react";
-import { describe, expect, it } from "vitest";
+import type { GridStack } from "gridstack";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import {
   DashboardGrid,
   type DashboardGridHandle,
@@ -34,17 +35,11 @@ describe("DashboardGridHandle", () => {
     expect(element.type).toBe(DashboardGrid);
   });
 
-  it("preserves generic widget inference while accepting a public ref", () => {
+  it("exposes the current GridStack instance through a readonly property", () => {
     const ref = createRef<DashboardGridHandle>();
-    const element = (
-      <DashboardGrid<MetricData>
-        ref={ref}
-        widgets={widgets}
-        renderWidget={(widget) => <span>{widget.data?.value}</span>}
-      />
-    );
+    const element = <DashboardGrid ref={ref} widgets={widgets} renderWidget={() => null} />;
 
     expect(element.type).toBe(DashboardGrid);
-    expect(ref.current).toBeNull();
+    expectTypeOf<DashboardGridHandle["grid"]>().toEqualTypeOf<GridStack | null>();
   });
 });

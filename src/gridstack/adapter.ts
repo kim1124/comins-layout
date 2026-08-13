@@ -41,6 +41,7 @@ export type DashboardGridAdapter<TData = unknown> = {
 };
 
 export interface DashboardGridHandle {
+  readonly grid: GridStack | null;
   getGridStack(): GridStack | null;
   refresh(): void;
   compact(layout?: CompactOptions, doSort?: boolean): DashboardLayoutSnapshot | null;

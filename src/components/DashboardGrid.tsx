@@ -33,6 +33,7 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   showControls?: boolean;
   actionLabels?: Partial<DashboardWidgetActionLabels>;
   renderWidget: (widget: DashboardWidgetModel<TData>) => ReactNode;
+  renderWidgetActions?: (widget: DashboardWidgetModel<TData>) => ReactNode;
   onColumnsChange?: (columns: DashboardColumnCount) => void;
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetModel<TData>["layout"]) => void;
@@ -67,6 +68,7 @@ function DashboardGridInner<TData = unknown>(
     showControls = true,
     actionLabels,
     renderWidget,
+    renderWidgetActions,
     onColumnsChange,
     onLayoutCommit,
     onWidgetLayoutChange,
@@ -103,6 +105,9 @@ function DashboardGridInner<TData = unknown>(
   useImperativeHandle(
     ref,
     () => ({
+      get grid() {
+        return adapterRef.current?.grid ?? null;
+      },
       getGridStack: () => adapterRef.current?.grid ?? null,
       refresh: () => adapterRef.current?.refresh(),
       compact: (layout, doSort) => adapterRef.current?.compact(layout, doSort) ?? null,
@@ -261,6 +266,7 @@ function DashboardGridInner<TData = unknown>(
                 remove: actionLabels?.remove ?? "삭제",
               }}
               showControls={showControls}
+              actions={renderWidgetActions ? renderWidgetActions(widget) : undefined}
               onMaximize={onMaximizeWidget}
               onMinimize={onMinimizeWidget}
               onRestore={onRestoreWidget}

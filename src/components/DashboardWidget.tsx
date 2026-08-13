@@ -7,6 +7,7 @@ export type DashboardWidgetShellProps<TData = unknown> = {
   children: ReactNode;
   showControls?: boolean;
   labels?: DashboardWidgetActionLabels;
+  actions?: ReactNode;
   onMaximize?: (id: string) => void;
   onMinimize?: (id: string) => void;
   onRestore?: (id: string) => void;
@@ -33,6 +34,7 @@ export function DashboardWidgetShell<TData = unknown>({
   children,
   showControls = true,
   labels = DEFAULT_ACTION_LABELS,
+  actions,
   onMaximize,
   onMinimize,
   onRestore,
@@ -40,30 +42,36 @@ export function DashboardWidgetShell<TData = unknown>({
   onHeaderDoubleClick,
 }: DashboardWidgetShellProps<TData>) {
   const title = widget.title ?? widget.id;
+  const defaultActions = (
+    <>
+      <button type="button" aria-label={`${title} ${labels.maximize}`} onClick={() => onMaximize?.(widget.id)}>
+        <Maximize2 aria-hidden="true" size={16} strokeWidth={2} />
+      </button>
+      <button type="button" aria-label={`${title} ${labels.minimize}`} onClick={() => onMinimize?.(widget.id)}>
+        <Minimize2 aria-hidden="true" size={16} strokeWidth={2} />
+      </button>
+      <button type="button" aria-label={`${title} ${labels.restore}`} onClick={() => onRestore?.(widget.id)}>
+        <RotateCcw aria-hidden="true" size={16} strokeWidth={2} />
+      </button>
+      <button
+        type="button"
+        aria-label={`${title} ${labels.remove}`}
+        className="comins-grid-layout-widget__action--danger"
+        onClick={() => onRemove?.(widget.id)}
+      >
+        <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
+      </button>
+    </>
+  );
+  const actionContent = actions === undefined ? defaultActions : actions;
 
   return (
     <div className="comins-grid-layout-widget">
       <header className="comins-grid-layout-widget__header" onDoubleClick={() => onHeaderDoubleClick?.(widget.id)}>
         <strong className="comins-grid-layout-widget__title">{title}</strong>
-        {showControls ? (
+        {showControls && actionContent !== null ? (
           <div className="comins-grid-layout-widget__actions" onDoubleClick={(event) => event.stopPropagation()}>
-            <button type="button" aria-label={`${title} ${labels.maximize}`} onClick={() => onMaximize?.(widget.id)}>
-              <Maximize2 aria-hidden="true" size={16} strokeWidth={2} />
-            </button>
-            <button type="button" aria-label={`${title} ${labels.minimize}`} onClick={() => onMinimize?.(widget.id)}>
-              <Minimize2 aria-hidden="true" size={16} strokeWidth={2} />
-            </button>
-            <button type="button" aria-label={`${title} ${labels.restore}`} onClick={() => onRestore?.(widget.id)}>
-              <RotateCcw aria-hidden="true" size={16} strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              aria-label={`${title} ${labels.remove}`}
-              className="comins-grid-layout-widget__action--danger"
-              onClick={() => onRemove?.(widget.id)}
-            >
-              <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
-            </button>
+            {actionContent}
           </div>
         ) : null}
       </header>
