@@ -36,4 +36,16 @@ describe("DashboardGrid widget actions", () => {
 
     expect(markup).not.toContain("Custom");
   });
+
+  it("removes the action container when consumer actions are null", () => {
+    const markup = renderToStaticMarkup(
+      <DashboardGrid
+        widgets={widgets}
+        renderWidget={() => null}
+        renderWidgetActions={() => null}
+      />,
+    );
+
+    expect(markup).not.toContain("comins-grid-layout-widget__actions");
+  });
 });
