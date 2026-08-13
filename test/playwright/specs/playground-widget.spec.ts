@@ -6,6 +6,18 @@ async function widgetGeometry(widget: Locator) {
   );
 }
 
+async function expectHorizontallyContained(container: Locator, targets: Locator) {
+  const containerBox = await container.boundingBox();
+  expect(containerBox).not.toBeNull();
+
+  for (const target of await targets.all()) {
+    const targetBox = await target.boundingBox();
+    expect(targetBox).not.toBeNull();
+    expect(targetBox!.x).toBeGreaterThanOrEqual(containerBox!.x - 1);
+    expect(targetBox!.x + targetBox!.width).toBeLessThanOrEqual(containerBox!.x + containerBox!.width + 1);
+  }
+}
+
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto("/examples/widget");
@@ -101,6 +113,20 @@ test("keeps user edit literals while changing the dialog locale", async ({ page 
   await expect(dialog.getByLabel("값")).toHaveValue("사용자 값");
 });
 
+test("keeps all widget toolbar groups on one row at iPad width", async ({ page }) => {
+  await page.setViewportSize({ width: 768, height: 1024 });
+  await page.reload();
+
+  const root = page.locator('[data-example-mode="widget"]');
+  const toolbar = root.locator(".example-toolbar-groups");
+  const groups = toolbar.locator(":scope > .example-toolbar-group");
+  const groupBoxes = await groups.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()));
+  expect(Math.max(...groupBoxes.map((box) => box.y)) - Math.min(...groupBoxes.map((box) => box.y))).toBeLessThanOrEqual(1);
+  expect(await toolbar.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(0);
+  expect(await root.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(0);
+  await expectHorizontallyContained(toolbar, groups);
+});
+
 test("changes lock labels and keeps toolbar groups inside the viewport", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.reload();
@@ -114,8 +140,19 @@ test("changes lock labels and keeps toolbar groups inside the viewport", async (
   await page.getByRole("button", { name: "전체 잠금" }).click();
   await expect(page.getByRole("button", { name: "전체 잠금 해제" })).toHaveAttribute("aria-pressed", "true");
 
-  const overflow = await page.locator(".example-toolbar-groups").evaluate((node) => node.scrollWidth - node.clientWidth);
-  expect(overflow).toBeLessThanOrEqual(0);
-  await expect(page.locator(".example-toolbar-group")).toHaveCount(3);
+  const root = page.locator('[data-example-mode="widget"]');
+  const toolbar = root.locator(".example-toolbar-groups");
+  const groups = toolbar.locator(":scope > .example-toolbar-group");
+  expect(await toolbar.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(0);
+  expect(await root.evaluate((node) => node.scrollWidth - node.clientWidth)).toBeLessThanOrEqual(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+  await expect(groups).toHaveCount(3);
+  await expectHorizontallyContained(toolbar, groups);
+  await expectHorizontallyContained(toolbar, groups.locator("button"));
+
+  for (const group of await groups.filter({ has: page.locator("button") }).all()) {
+    const buttonBoxes = await group.locator("button").evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()));
+    expect(Math.max(...buttonBoxes.map((box) => box.y)) - Math.min(...buttonBoxes.map((box) => box.y))).toBeLessThanOrEqual(1);
+  }
   await expect(page.getByText("위젯 3개", { exact: true })).toBeVisible();
 });

@@ -2,6 +2,30 @@ import { expect, test, type Page } from "@playwright/test";
 
 import { isDesktopBrowserProject } from "../project-policy";
 
+async function expectNonApiSearchResultsToResolveTo(
+  page: Page,
+  query: string,
+  expectedPath: "/examples/layout/columns" | "/examples/layout/lock",
+  currentLabel: string,
+) {
+  const search = page.getByRole("searchbox");
+  await search.fill(query);
+  const results = page.getByRole("option").filter({ hasNotText: /^API/ });
+  const resultCount = await results.count();
+  expect(resultCount).toBeGreaterThan(0);
+
+  for (let index = 0; index < resultCount; index += 1) {
+    if (index > 0) {
+      await page.goto("/docs/getting-started");
+      await search.fill(query);
+    }
+
+    await results.nth(index).click();
+    expect(new URL(page.url()).pathname).toBe(expectedPath);
+    await expect(page.getByRole("navigation").locator('a[aria-current="page"]')).toHaveText(currentLabel);
+  }
+}
+
 async function expectIntegratedPlayground(
   page: Page,
   path: "/examples/widget" | "/examples/layout" | "/examples/layout/columns" | "/examples/layout/lock" | "/examples/advanced" | "/examples/advanced/external-drop" | "/examples/advanced/handle",
@@ -123,6 +147,20 @@ test.describe("gridstack docs playground routing", () => {
     await expectIntegratedPlayground(page, "/examples/advanced/external-drop", "외부 드롭", "외부 드롭");
   });
 
+  test("keeps only the save and restore example on the layout root route", async ({ page }) => {
+    await page.goto("/examples/layout");
+
+    const article = page.locator(".docs-article");
+    const example = article.locator(".docs-example-case");
+    await expect(example).toHaveCount(1);
+    await expect(example.getByRole("heading", { level: 2 })).toHaveText("1. 레이아웃 저장 / 불러오기");
+    await expect(article.locator(".grid-stack")).toHaveCount(1);
+    await expect(example).not.toContainText("컬럼 레이아웃 동적 수정");
+    await expect(example).not.toContainText("레이아웃 잠금 / 해제");
+    await expect(example.locator(".docs-code__pre")).not.toContainText("setColumns(4)");
+    await expect(example.locator(".docs-code__pre")).not.toContainText("layoutLocked");
+  });
+
   test("searches and localizes the external drop child route", async ({ page }) => {
     await page.goto("/docs/getting-started");
 
@@ -176,25 +214,25 @@ test.describe("gridstack docs playground routing", () => {
   test("searches the dynamic column child route", async ({ page }) => {
     await page.goto("/docs/getting-started");
 
-    await page.getByRole("searchbox", { name: "전체 문서 검색" }).fill("동적 컬럼");
-    const result = page.getByRole("option", { name: /^문서 컬럼 레이아웃 동적 수정/ });
-    await expect(result).toBeVisible();
-    await result.click();
-
-    await expect(page).toHaveURL(/\/examples\/layout\/columns$/);
+    await expectNonApiSearchResultsToResolveTo(page, "동적 컬럼", "/examples/layout/columns", "동적 컬럼");
     await expect(page.getByRole("combobox", { name: "레이아웃 컬럼" })).toHaveValue("12");
+
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    await page.goto("/docs/getting-started");
+    await expectNonApiSearchResultsToResolveTo(page, "Dynamic columns", "/examples/layout/columns", "Dynamic columns");
+    await expect(page.getByRole("combobox", { name: "Layout columns" })).toHaveValue("12");
   });
 
   test("searches the layout lock child route", async ({ page }) => {
     await page.goto("/docs/getting-started");
 
-    await page.getByRole("searchbox", { name: "전체 문서 검색" }).fill("잠금 해제");
-    const result = page.getByRole("option", { name: /^문서 레이아웃 잠금 \/ 해제/ });
-    await expect(result).toBeVisible();
-    await result.click();
-
-    await expect(page).toHaveURL(/\/examples\/layout\/lock$/);
+    await expectNonApiSearchResultsToResolveTo(page, "잠금 해제", "/examples/layout/lock", "잠금·해제");
     await expect(page.getByRole("button", { name: "레이아웃 잠금", exact: true })).toHaveAttribute("aria-pressed", "false");
+
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    await page.goto("/docs/getting-started");
+    await expectNonApiSearchResultsToResolveTo(page, "Lock and unlock layout", "/examples/layout/lock", "Lock and unlock");
+    await expect(page.getByRole("button", { name: "Lock layout", exact: true })).toHaveAttribute("aria-pressed", "false");
   });
 
   test("keeps the getting started and API pages in the docs shell", async ({ page }) => {

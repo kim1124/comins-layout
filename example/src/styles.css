@@ -1461,6 +1461,26 @@ button.dashboard-widget-body[data-selected="true"] {
     margin-left: 0;
   }
 
+  [data-example-mode="widget"] .example-toolbar-groups {
+    align-items: flex-start;
+    flex-wrap: nowrap;
+  }
+
+  [data-example-mode="widget"] .example-toolbar-group {
+    align-items: center;
+    flex-wrap: nowrap;
+    width: auto;
+  }
+
+  [data-example-mode="widget"] .example-toolbar-group > button {
+    flex: 0 1 auto;
+  }
+
+  [data-example-mode="widget"] .example-toolbar-group--count {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
   .playground-controls .example-actions > button,
   .playground-controls .playground-advanced-control > button,
   .playground-controls .example-select,
@@ -1495,6 +1515,28 @@ button.dashboard-widget-body[data-selected="true"] {
 }
 
 @media (max-width: 480px) {
+  [data-example-mode="widget"] .example-toolbar-groups {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  [data-example-mode="widget"] .example-toolbar-group {
+    align-items: stretch;
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  [data-example-mode="widget"] .example-toolbar-group > button {
+    flex: 1 1 0;
+    justify-content: center;
+    min-width: 0;
+  }
+
+  [data-example-mode="widget"] .example-toolbar-group--count {
+    margin-left: 0;
+  }
+
   .docs-live .comins-grid-layout-widget__header {
     align-items: stretch;
     flex-direction: column;

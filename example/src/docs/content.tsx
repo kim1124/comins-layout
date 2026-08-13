@@ -52,6 +52,11 @@ dashboard.commands.setColumns(12); // restores the cached 12-column geometry
 const snapshot = dashboard.commands.serializeState();
 dashboard.commands.restoreLayout(snapshot);`;
 
+const layoutSaveRestoreSample = `const savedLayout = dashboard.commands.serializeLayout();
+
+// Restore the saved positions and sizes after the current geometry changes.
+dashboard.commands.applyLayoutSnapshot(savedLayout);`;
+
 const lockSample = `<DashboardGrid
   movable={!layoutLocked}
   resizable={!layoutLocked}
@@ -540,26 +545,19 @@ const localizedDocsPages: LocalizedDocsPage[] = [
     category: text("예제", "Examples"),
     examples: [
       {
-        codeSamples: [{ code: layoutSample, language: "ts", title: text("저장 및 복원", "Save and restore") }],
-        description: text("현재 dashboard state를 JSON으로 저장하고 column 변경 후 다시 복원합니다.", "Save the current dashboard state as JSON and restore it after column changes."),
+        codeSamples: [{ code: layoutSaveRestoreSample, language: "ts", title: text("저장 및 복원", "Save and restore") }],
+        description: text(
+          "현재 레이아웃의 위치와 크기를 저장하고 배치가 변경된 뒤 저장 시점으로 복원합니다.",
+          "Save the current layout positions and sizes, then restore them after the geometry changes.",
+        ),
         liveExampleId: "layout",
         title: text("레이아웃 저장 / 불러오기", "Save and load layout"),
-      },
-      {
-        codeSamples: [{ code: `dashboard.commands.setColumns(4);`, language: "ts", title: text("동적 컬럼", "Dynamic columns") }],
-        description: text("1부터 12까지 column option을 선택하고 12개 위젯 배치가 동적으로 바뀌는지 확인합니다.", "Select column options from 1 through 12 and check that the twelve-widget arrangement changes dynamically."),
-        title: text("컬럼 레이아웃 동적 수정", "Dynamic column layout"),
-      },
-      {
-        codeSamples: [{ code: lockSample, language: "tsx", title: text("전체 잠금", "Global lock") }],
-        description: text("전체 레이아웃 잠금 시 등록된 위젯의 이동과 리사이즈를 모두 금지합니다.", "When the whole layout is locked, blocks moving and resizing every registered widget."),
-        title: text("레이아웃 잠금 / 해제", "Lock and unlock layout"),
       },
     ],
     label: text("저장·복원", "Save and restore"),
     navParent: text("레이아웃", "Layout"),
     path: "/examples/layout",
-    summary: text("저장/복원, column 변경, 전체 잠금 흐름입니다.", "Save/restore, column changes, and whole-layout locking."),
+    summary: text("현재 레이아웃 배치를 저장하고 복원하는 흐름입니다.", "Save and restore the current layout geometry."),
     title: text("레이아웃", "Layout"),
   },
   {
