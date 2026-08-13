@@ -1,5 +1,6 @@
 import { expect, test, type Browser } from "@playwright/test";
 
+import { dragWidget, readDashboardGeometry } from "../helpers/dashboard-interactions";
 import { initializePlaygroundLocale, PLAYGROUND_LOCALE_STORAGE_KEY } from "../helpers/playground-locale";
 
 test("switches the docs shell and locale search without changing the route", async ({ page }) => {
@@ -443,17 +444,6 @@ test("uses indexed fixture presentation until an edited Widget has user-owned da
   await expect(widget).toContainText("사용자 값");
 });
 
-test("keeps Layout JSON draft data while its shared labels change locale", async ({ page }) => {
-  const draft = '{"columns":12,"widgets":[]}';
-  await page.goto("/examples/layout");
-  await page.getByLabel("활성 레이아웃 JSON").fill(draft);
-
-  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
-
-  await expect(page.getByLabel("Active layout JSON")).toHaveValue(draft);
-  await expect(page.locator(".example-layout-json").first()).toHaveAttribute("aria-label", "Layout JSON controls");
-  await expect(page.getByRole("status", { name: "Active layout save and restore status" })).toBeVisible();
-});
 
 test("localizes shared fallback CRUD generated add copy in Layout and Advanced", async ({ page }) => {
   await initializePlaygroundLocale(page, "en");
@@ -491,128 +481,34 @@ test("localizes shared fallback CRUD generated add copy in Layout and Advanced",
   }
 });
 
-test("localizes shared fallback CRUD fixture edits in Layout", async ({ page }) => {
-  await initializePlaygroundLocale(page, "en");
+test("localizes the Layout toolbar without resetting its saved snapshot", async ({ page }) => {
   await page.goto("/examples/layout");
-  await page.getByRole("combobox", { name: "Select widget" }).selectOption("traffic");
-  await page.getByRole("button", { name: "Edit selected widget" }).click();
-
-  const dialog = page.getByRole("dialog", { name: "Edit widget" });
-  await expect(dialog.getByLabel("Widget name")).toHaveValue("Traffic");
-  await dialog.getByLabel("Widget name").fill("사용자 수정 제목");
-  await dialog.getByLabel("Value").fill("사용자 수정 값");
-  await dialog.getByRole("button", { name: "Save changes" }).click();
-
-  const traffic = page.getByTestId("dashboard-widget-traffic");
-  await expect(traffic).toContainText("Updated dashboard widget");
-  await expect(traffic).toContainText("사용자 수정 제목");
-  await expect(traffic).toContainText("사용자 수정 값");
-
-  await page.getByRole("button", { name: "Save full state" }).click();
-  const state = JSON.parse(await page.getByLabel("Full state and column cache JSON").inputValue()) as {
-    widgets: Array<{ data?: Record<string, unknown>; id: string }>;
-  };
-  expect(state.widgets.find((widget) => widget.id === "traffic")?.data).toMatchObject({
-    generatedDescriptionKey: "editedWidget",
-  });
-  expect(state.widgets.find((widget) => widget.id === "traffic")?.data).not.toHaveProperty("fixtureCopyKey");
-
-  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "한" }).click();
-  await expect(traffic).toContainText("수정된 대시보드 위젯");
-  await expect(traffic).toContainText("사용자 수정 제목");
-  await expect(traffic).toContainText("사용자 수정 값");
-});
-
-test("localizes Layout copy and semantic status without resetting layout state", async ({ page }) => {
-  const invalidActiveLayout = '{"private-layout":"LAYOUT_DO_NOT_ECHO"';
-  await page.goto("/examples/layout");
-  await page.getByRole("combobox", { name: "컬럼 선택" }).selectOption("6");
-
-  const activeLayout = {
-    columns: 6,
-    widgets: [
-      { id: "sales", x: 4, y: 0, w: 2, h: 2 },
-      { id: "traffic", x: 0, y: 0, w: 4, h: 2 },
-      { id: "orders", x: 3, y: 2, w: 3, h: 2 },
-      { id: "alerts", x: 0, y: 2, w: 3, h: 2 },
-    ],
-  };
-  await page.getByLabel("활성 레이아웃 JSON").fill(JSON.stringify(activeLayout));
-  await page.getByRole("button", { name: "활성 레이아웃 복원" }).click();
-  await page.getByRole("button", { name: "자동 정렬" }).click();
-  await expect(page.getByRole("status", { name: "레이아웃 작업 상태" })).toHaveText(
-    "패키지 순서로 위젯을 자동 정렬했습니다.",
-  );
-
-  await page.getByRole("button", { name: "전체 상태 저장" }).click();
-  const savedFullState = await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue();
-  const savedLayoutsByColumn = (JSON.parse(savedFullState) as { layoutsByColumn: Record<string, unknown> }).layoutsByColumn;
-  const savedCacheKeys = Object.keys(savedLayoutsByColumn).sort();
-  expect(savedCacheKeys).toEqual(["12", "6"]);
-  const geometryBeforeLocaleChange = await page.locator(".grid-stack-item").evaluateAll((elements) =>
-    elements.map((element) => ({
-      h: element.getAttribute("data-layout-h"),
-      id: element.getAttribute("data-widget-id"),
-      w: element.getAttribute("data-layout-w"),
-      x: element.getAttribute("data-layout-x"),
-      y: element.getAttribute("data-layout-y"),
-    })),
-  );
-
-  await page.getByLabel("활성 레이아웃 JSON").fill(invalidActiveLayout);
-  await page.getByRole("button", { name: "활성 레이아웃 복원" }).click();
-  await expect(page.getByRole("status", { name: "활성 레이아웃 저장 복원 상태" })).toHaveText(
-    "JSON 형식 또는 레이아웃 값을 확인해 주세요.",
-  );
+  await page.getByRole("button", { name: "레이아웃 저장", exact: true }).click();
+  const savedGeometry = await readDashboardGeometry(page);
+  await dragWidget(page, page.getByTestId("dashboard-widget-sales"), 180, 120);
+  await expect.poll(() => readDashboardGeometry(page)).not.toEqual(savedGeometry);
   await page.evaluate(() => {
     window.__cominsGridLayoutLastUnmount = undefined;
   });
 
   await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
 
-  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(savedFullState);
-  await page.getByRole("button", { name: "Save full state" }).click();
-  const localizedFullState = JSON.parse(await page.getByLabel("Full state and column cache JSON").inputValue()) as {
-    layoutsByColumn: Record<string, unknown>;
-  };
-  expect(localizedFullState.layoutsByColumn).toEqual(savedLayoutsByColumn);
   await expect(page).toHaveURL(/\/examples\/layout$/);
   expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
   await expect(page.locator(".playground-header").getByText("Layout example", { exact: true })).toBeVisible();
   await expect(page.locator(".playground-header").getByRole("heading", { name: "Layout", exact: true })).toBeVisible();
-  await expect(page.getByText("Save and restore layouts by column, then compare arranging and filling empty space.")).toBeVisible();
+  await expect(page.getByText("Save and restore a layout, then compare auto arrange and fill space.")).toBeVisible();
   await expect(page.locator(".playground-controls")).toHaveAttribute("aria-label", "Layout example controls");
-  await expect(page.getByRole("combobox", { name: "Select columns" })).toHaveValue("6");
-  await expect(page.getByRole("status", { name: "Active column status" })).toHaveText("Currently using 6 columns.");
-  await expect(page.getByRole("button", { name: "Save active layout" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Restore active layout" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Save full state" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Restore full state" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Auto arrange" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Fill empty space" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Reset layout" })).toBeVisible();
-  await expect(page.getByRole("status", { name: "Active layout save and restore status" })).toHaveText(
-    "Check the JSON format or layout values.",
-  );
-  await expect(page.getByRole("status", { name: "Full state save and restore status" })).toHaveText(
-    "Saved the full state and column cache.",
-  );
-  await expect(page.getByRole("status", { name: "Layout operation status" })).toHaveText(
-    "Auto-arranged widgets in package order.",
-  );
-  await expect(page.getByLabel("Active layout JSON")).toHaveValue(invalidActiveLayout);
+  for (const name of ["Add widget", "Clear all", "Save layout", "Restore layout", "Auto arrange", "Fill space", "Reset"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
+  }
+  await expect(page.getByRole("textbox", { name: /JSON/ })).toHaveCount(0);
+  await expect(page.getByRole("combobox", { name: "Select columns" })).toHaveCount(0);
   await expect(page.locator(".playground-grid-region")).toHaveAttribute("aria-label", "Layout dashboard");
-  await expect(page.getByTestId("dashboard-widget-sales").getByRole("button", { name: "Sales maximize" })).toBeVisible();
-  expect(await page.locator(".grid-stack-item").evaluateAll((elements) =>
-    elements.map((element) => ({
-      h: element.getAttribute("data-layout-h"),
-      id: element.getAttribute("data-widget-id"),
-      w: element.getAttribute("data-layout-w"),
-      x: element.getAttribute("data-layout-x"),
-      y: element.getAttribute("data-layout-y"),
-    })),
-  )).toEqual(geometryBeforeLocaleChange);
-  expect((await page.locator('[role="status"]').allTextContents()).join("\n")).not.toContain("LAYOUT_DO_NOT_ECHO");
+  await expect(page.getByTestId("dashboard-widget-sales").getByRole("button", { name: "Sales remove" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Restore layout", exact: true }).click();
+  await expect.poll(() => readDashboardGeometry(page)).toEqual(savedGeometry);
 });
 
 test("localizes Advanced copy and semantic status without resetting engine state", async ({ page }) => {

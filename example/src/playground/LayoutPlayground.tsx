@@ -1,62 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import { Boxes, Columns3, RotateCcw, Save } from "lucide-react";
+import { useRef, useState } from "react";
+import { Boxes, Columns3, Plus, RotateCcw, Save, Trash2, Undo2 } from "lucide-react";
 
-import { DASHBOARD_COLUMN_COUNTS, useDashboardGrid } from "../../../src";
-import type { DashboardLayoutSnapshot, DashboardWidgetLayout } from "../../../src";
-import { Select } from "../components/ui/select";
-import type { SelectOption } from "../components/ui/select";
+import { useDashboardGrid } from "../../../src";
+import type { DashboardLayoutSnapshot } from "../../../src";
+import { Dialog } from "../components/ui/dialog";
 import { usePlaygroundLocale } from "../i18n/playground-locale";
 import { DashboardPreview, PlaygroundHeader } from "./components/DashboardPreview";
-import { LayoutJson } from "./components/LayoutJson";
-import { WidgetCrudControls } from "./components/WidgetCrudControls";
-import {
-  formatLayoutJsonStatus,
-  formatLayoutOperationStatus,
-  layoutPlaygroundCopy,
-  sharedPlaygroundCopy,
-} from "./copy";
-import type { LayoutJsonStatus, LayoutOperationStatus } from "./copy";
-import { createLayoutPlaygroundFixture } from "./fixtures";
-import { sanitizeExampleDashboardStateSnapshot } from "./state-snapshot";
+import { WidgetFormDialog } from "./components/WidgetFormDialog";
+import type { WidgetDraft } from "./components/WidgetFormDialog";
+import { layoutPlaygroundCopy, sharedPlaygroundCopy } from "./copy";
+import { createLayoutPlaygroundFixture, createWidget } from "./fixtures";
+import { pastelKeyForIndex } from "./palette";
 import type { ExampleWidgetData } from "./types";
-
-const columnOptions: SelectOption[] = DASHBOARD_COLUMN_COUNTS.map((column) => ({
-  label: String(column),
-  value: String(column),
-}));
-
-const layoutLimitKeys = ["minW", "minH", "maxW", "maxH"] as const;
-
-type PendingLayoutOperation = {
-  before: string;
-  type: "arrange" | "fill";
-};
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isLayout(value: unknown): value is DashboardWidgetLayout {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.id === "string" &&
-    [value.x, value.y, value.w, value.h].every((coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate)) &&
-    layoutLimitKeys.every((key) => value[key] === undefined || (typeof value[key] === "number" && Number.isFinite(value[key]))) &&
-    (value.w as number) > 0 &&
-    (value.h as number) > 0
-  );
-}
-
-function isSupportedColumns(value: unknown): value is DashboardLayoutSnapshot["columns"] {
-  return typeof value === "number" && DASHBOARD_COLUMN_COUNTS.includes(value as DashboardLayoutSnapshot["columns"]);
-}
-
-function isLayoutSnapshot(value: unknown): value is DashboardLayoutSnapshot {
-  return isRecord(value) && isSupportedColumns(value.columns) && Array.isArray(value.widgets) && value.widgets.every(isLayout);
-}
 
 export function LayoutPlayground() {
   const { locale, text } = usePlaygroundLocale();
@@ -64,77 +19,35 @@ export function LayoutPlayground() {
     initialColumns: 12,
     initialWidgets: createLayoutPlaygroundFixture(),
   });
-  const [activeLayoutJson, setActiveLayoutJson] = useState("");
-  const [activeLayoutStatus, setActiveLayoutStatus] = useState<LayoutJsonStatus>({ type: "activeMissing" });
-  const [fullStateJson, setFullStateJson] = useState("");
-  const [fullStateStatus, setFullStateStatus] = useState<LayoutJsonStatus>({ type: "fullMissing" });
-  const [operationStatus, setOperationStatus] = useState<LayoutOperationStatus>({ type: "initial" });
-  const pendingOperation = useRef<PendingLayoutOperation | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [savedLayout, setSavedLayout] = useState<DashboardLayoutSnapshot | null>(null);
+  const addDialogTriggerRef = useRef<HTMLButtonElement>(null);
+  const nextWidgetNumber = useRef(dashboard.widgets.length + 1);
 
-  useEffect(() => {
-    const pending = pendingOperation.current;
-    if (!pending) {
-      return;
-    }
-
-    pendingOperation.current = null;
-    const changed = pending.before !== JSON.stringify(dashboard.commands.serializeLayout());
-    setOperationStatus({ type: pending.type, changed });
-  }, [dashboard.state]);
-
-  const saveActiveLayout = () => {
-    setActiveLayoutJson(JSON.stringify(dashboard.commands.serializeLayout(), null, 2));
-    setActiveLayoutStatus({ type: "activeSaved" });
+  const addWidget = (draft: WidgetDraft) => {
+    const number = nextWidgetNumber.current;
+    nextWidgetNumber.current += 1;
+    dashboard.commands.addWidget(
+      createWidget(`widget-${number}`, draft.title, 0, 0, draft.width, draft.height, {
+        colorKey: draft.colorKey,
+        contentRevision: 0,
+        description: "새 대시보드 위젯",
+        generatedDescriptionKey: "newWidget",
+        value: draft.value,
+      }),
+    );
+    setAddDialogOpen(false);
   };
 
-  const restoreActiveLayout = () => {
-    try {
-      const parsed: unknown = JSON.parse(activeLayoutJson);
-      if (!isLayoutSnapshot(parsed)) {
-        throw new Error("invalid layout snapshot");
-      }
-      dashboard.commands.applyLayoutSnapshot(parsed);
-      setActiveLayoutStatus({ type: "activeRestored" });
-    } catch {
-      setActiveLayoutStatus({ type: "invalidLayout" });
+  const restoreLayout = () => {
+    if (savedLayout) {
+      dashboard.commands.applyLayoutSnapshot(savedLayout);
     }
-  };
-
-  const saveFullState = () => {
-    setFullStateJson(JSON.stringify(dashboard.commands.serializeState(), null, 2));
-    setFullStateStatus({ type: "fullSaved" });
-  };
-
-  const restoreFullState = () => {
-    try {
-      const parsed: unknown = JSON.parse(fullStateJson);
-      const snapshot = sanitizeExampleDashboardStateSnapshot(parsed);
-      if (!snapshot) {
-        throw new Error("invalid state snapshot");
-      }
-      dashboard.commands.restoreLayout(snapshot);
-      setFullStateStatus({ type: "fullRestored" });
-    } catch {
-      setFullStateStatus({ type: "invalidLayout" });
-    }
-  };
-
-  const runLayoutOperation = (type: PendingLayoutOperation["type"]) => {
-    pendingOperation.current = {
-      before: JSON.stringify(dashboard.commands.serializeLayout()),
-      type,
-    };
-    if (type === "fill") {
-      dashboard.commands.fitWidgetsToColumns();
-      return;
-    }
-    dashboard.commands.autoArrangeWidgets();
   };
 
   const resetLayout = () => {
-    pendingOperation.current = null;
     dashboard.commands.resetLayout();
-    setOperationStatus({ type: "reset" });
+    setSavedLayout(null);
   };
 
   return (
@@ -144,93 +57,100 @@ export function LayoutPlayground() {
         kicker={text(layoutPlaygroundCopy.kicker)}
         title={text(layoutPlaygroundCopy.title)}
       />
-      <section aria-label={text(layoutPlaygroundCopy.controls)} className="playground-controls playground-layout-controls">
-        <section aria-label={text(layoutPlaygroundCopy.groups.widgetCrud)} className="example-control-group">
-          <h2>{text(layoutPlaygroundCopy.headings.widgetCrud)}</h2>
-          <WidgetCrudControls canClear canEdit dashboard={dashboard} mode="layout" />
-        </section>
-
-        <section aria-label={text(layoutPlaygroundCopy.groups.columns)} className="example-control-group">
-          <h2>{text(layoutPlaygroundCopy.headings.columns)}</h2>
-          <div className="example-actions">
-            <Select
-              id="layout-columns"
-              label={text(sharedPlaygroundCopy.columns.select)}
-              options={columnOptions}
-              value={String(dashboard.columns)}
-              onChange={(value) => dashboard.commands.setColumns(Number(value))}
-            />
-          </div>
-          <p aria-label={text(sharedPlaygroundCopy.columns.activeStatusLabel)} className="example-status" role="status">
-            {sharedPlaygroundCopy.columns.status[locale](dashboard.columns)}
-          </p>
-        </section>
-
-        <section aria-label={text(layoutPlaygroundCopy.groups.activeLayout)} className="example-control-group">
-          <h2>{text(layoutPlaygroundCopy.headings.activeLayout)}</h2>
-          <div className="example-actions">
-            <button type="button" onClick={saveActiveLayout}>
-              <Save aria-hidden="true" size={14} />
-              {text(layoutPlaygroundCopy.actions.saveActive)}
+      <section aria-label={text(layoutPlaygroundCopy.controls)} className="playground-controls">
+        <div className="example-toolbar-groups playground-layout-toolbar">
+          <div aria-label={text(layoutPlaygroundCopy.groups.widgetCrud)} className="example-toolbar-group" role="group">
+            <button
+              ref={addDialogTriggerRef}
+              className="example-action-button example-action-button--add"
+              type="button"
+              onClick={() => setAddDialogOpen(true)}
+            >
+              <Plus aria-hidden="true" size={14} />
+              {text(sharedPlaygroundCopy.addWidget)}
             </button>
-            <button type="button" onClick={restoreActiveLayout}>{text(layoutPlaygroundCopy.actions.restoreActive)}</button>
-          </div>
-          <LayoutJson
-            id="layout-active-json"
-            label={sharedPlaygroundCopy.layoutJson.active.label}
-            status={formatLayoutJsonStatus(activeLayoutStatus, locale)}
-            statusLabel={sharedPlaygroundCopy.layoutJson.active.statusLabel}
-            value={activeLayoutJson}
-            onChange={setActiveLayoutJson}
-          />
-        </section>
-
-        <section aria-label={text(layoutPlaygroundCopy.groups.fullState)} className="example-control-group">
-          <h2>{text(layoutPlaygroundCopy.headings.fullState)}</h2>
-          <div className="example-actions">
-            <button type="button" onClick={saveFullState}>
-              <Save aria-hidden="true" size={14} />
-              {text(layoutPlaygroundCopy.actions.saveFull)}
+            <button
+              className="example-action-button example-action-button--danger"
+              disabled={dashboard.widgets.length === 0}
+              type="button"
+              onClick={dashboard.commands.clearWidgets}
+            >
+              {text(sharedPlaygroundCopy.clearAll)}
             </button>
-            <button type="button" onClick={restoreFullState}>{text(layoutPlaygroundCopy.actions.restoreFull)}</button>
           </div>
-          <LayoutJson
-            id="layout-full-state-json"
-            label={sharedPlaygroundCopy.layoutJson.fullState.label}
-            status={formatLayoutJsonStatus(fullStateStatus, locale)}
-            statusLabel={sharedPlaygroundCopy.layoutJson.fullState.statusLabel}
-            value={fullStateJson}
-            onChange={setFullStateJson}
-          />
-        </section>
-
-        <section aria-label={text(layoutPlaygroundCopy.groups.rearrange)} className="example-control-group">
-          <h2>{text(layoutPlaygroundCopy.headings.arrangeReset)}</h2>
-          <p className="example-control-description">
-            {text(layoutPlaygroundCopy.operationDescription)}
-          </p>
-          <div className="example-actions">
-            <button type="button" onClick={() => runLayoutOperation("arrange")}>
+          <div aria-label={text(layoutPlaygroundCopy.groups.saveRestore)} className="example-toolbar-group" role="group">
+            <button type="button" onClick={() => setSavedLayout(dashboard.commands.serializeLayout())}>
+              <Save aria-hidden="true" size={14} />
+              {text(layoutPlaygroundCopy.actions.save)}
+            </button>
+            <button disabled={savedLayout === null} type="button" onClick={restoreLayout}>
+              <Undo2 aria-hidden="true" size={14} />
+              {text(layoutPlaygroundCopy.actions.restore)}
+            </button>
+          </div>
+          <div aria-label={text(layoutPlaygroundCopy.groups.rearrange)} className="example-toolbar-group" role="group">
+            <button type="button" onClick={dashboard.commands.autoArrangeWidgets}>
               <Boxes aria-hidden="true" size={14} />
               {text(layoutPlaygroundCopy.actions.arrange)}
             </button>
-            <button type="button" onClick={() => runLayoutOperation("fill")}>
+            <button type="button" onClick={dashboard.commands.fitWidgetsToColumns}>
               <Columns3 aria-hidden="true" size={14} />
               {text(layoutPlaygroundCopy.actions.fill)}
             </button>
+          </div>
+          <div aria-label={text(layoutPlaygroundCopy.groups.reset)} className="example-toolbar-group" role="group">
             <button type="button" onClick={resetLayout}>
               <RotateCcw aria-hidden="true" size={14} />
               {text(layoutPlaygroundCopy.actions.reset)}
             </button>
           </div>
-          <p aria-label={text(layoutPlaygroundCopy.operationStatusLabel)} className="example-status" role="status">
-            {formatLayoutOperationStatus(operationStatus, locale)}
-          </p>
-        </section>
+        </div>
       </section>
       <section aria-label={text(layoutPlaygroundCopy.dashboard)} className="playground-grid-region">
-        <DashboardPreview dashboard={dashboard} onLayoutCommit={dashboard.commands.applyLayoutSnapshot} />
+        <DashboardPreview
+          dashboard={dashboard}
+          showWidgetCount={false}
+          onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+          renderWidgetActions={(widget) => {
+            const title = widget.title ?? widget.id;
+            return (
+              <button
+                aria-label={`${title} ${text(sharedPlaygroundCopy.dashboardActions.remove)}`}
+                className="comins-grid-layout-widget__action--danger"
+                type="button"
+                onClick={() => dashboard.commands.removeWidget(widget.id)}
+              >
+                <Trash2 aria-hidden="true" size={14} />
+                <span>{text(sharedPlaygroundCopy.dashboardActions.remove)}</span>
+              </button>
+            );
+          }}
+        />
       </section>
+
+      <Dialog
+        description={text(sharedPlaygroundCopy.dialog.add.description)}
+        open={addDialogOpen}
+        returnFocusRef={addDialogTriggerRef}
+        title={text(sharedPlaygroundCopy.dialog.add.title)}
+        onOpenChange={setAddDialogOpen}
+      >
+        <WidgetFormDialog
+          initialDraft={{
+            colorKey: pastelKeyForIndex(nextWidgetNumber.current - 1),
+            height: 2,
+            title: sharedPlaygroundCopy.generatedWidgetTitle[locale](nextWidgetNumber.current),
+            value: String(nextWidgetNumber.current),
+            width: 2,
+          }}
+          mode="add"
+          open={addDialogOpen}
+          resetKey={`layout-add-${nextWidgetNumber.current}`}
+          scope="layout-new"
+          onCancel={() => setAddDialogOpen(false)}
+          onSubmit={addWidget}
+        />
+      </Dialog>
     </section>
   );
 }

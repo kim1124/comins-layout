@@ -1150,13 +1150,25 @@ button.dashboard-widget-body[data-selected="true"] {
   margin: 0;
 }
 
-.playground-layout-controls {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.playground-layout-toolbar {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 2px;
 }
 
-.playground-layout-controls > .example-control-group:first-child,
-.playground-layout-controls > .example-control-group:last-child {
-  grid-column: 1 / -1;
+.playground-layout-toolbar .example-toolbar-group {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  width: auto;
+}
+
+.playground-layout-toolbar .example-toolbar-group + .example-toolbar-group {
+  border-left: 1px solid var(--comins-color-border);
+  padding-left: 16px;
+}
+
+.playground-layout-toolbar .example-toolbar-group > button {
+  flex: 0 0 auto;
 }
 
 .example-state-output {
@@ -1240,14 +1252,6 @@ button.dashboard-widget-body[data-selected="true"] {
 
   .playground-controls {
     padding: 0 12px;
-  }
-
-  .playground-layout-controls {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .playground-layout-controls > .example-control-group {
-    grid-column: auto;
   }
 
   .playground-controls .example-actions {
