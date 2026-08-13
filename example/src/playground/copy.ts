@@ -196,6 +196,19 @@ export const layoutColumnsCopy = {
   title: defineLocalizedText("컬럼 레이아웃 동적 수정", "Dynamic column layout"),
 } as const;
 
+export const layoutLockCopy = {
+  controls: defineLocalizedText("레이아웃 잠금 컨트롤", "Layout lock controls"),
+  dashboard: defineLocalizedText("잠금 예제 dashboard", "Lock example dashboard"),
+  description: defineLocalizedText(
+    "하나의 토글로 여섯 위젯의 이동, 크기 조절과 삭제를 함께 잠그고 해제합니다.",
+    "Use one toggle to lock and unlock movement, resizing, and deletion for six widgets.",
+  ),
+  kicker: defineLocalizedText("레이아웃 예제", "Layout example"),
+  lockLayout: defineLocalizedText("레이아웃 잠금", "Lock layout"),
+  title: defineLocalizedText("레이아웃 잠금 / 해제", "Layout lock and unlock"),
+  unlockLayout: defineLocalizedText("레이아웃 잠금 해제", "Unlock layout"),
+} as const;
+
 export const advancedPlaygroundCopy = {
   controls: defineLocalizedText("고급 예제 컨트롤", "Advanced example controls"),
   dashboard: defineLocalizedText("고급 예제 dashboard", "Advanced example dashboard"),
@@ -433,20 +446,20 @@ export function resolveWidgetPresentation(
     };
   }
 
+  if (indexedFixture && widget.data?.fixtureIndex !== undefined) {
+    const fixtureIndex = widget.data.fixtureIndex;
+    return {
+      description: locale === "ko" ? `위젯 ${fixtureIndex} 콘텐츠` : `Widget ${fixtureIndex} content`,
+      title: sharedPlaygroundCopy.generatedWidgetTitle[locale](fixtureIndex),
+    };
+  }
+
   const fixturePresentation = getFixturePresentation(widget.data?.fixtureCopyKey);
 
   if (fixturePresentation) {
     return {
       description: resolveLocalizedText(fixturePresentation.description, locale),
       title: resolveLocalizedText(fixturePresentation.title, locale),
-    };
-  }
-
-  if (indexedFixture && widget.data?.fixtureIndex !== undefined) {
-    const fixtureIndex = widget.data.fixtureIndex;
-    return {
-      description: locale === "ko" ? `위젯 ${fixtureIndex} 콘텐츠` : `Widget ${fixtureIndex} content`,
-      title: sharedPlaygroundCopy.generatedWidgetTitle[locale](fixtureIndex),
     };
   }
 

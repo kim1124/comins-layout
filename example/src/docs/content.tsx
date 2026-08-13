@@ -525,6 +525,28 @@ const localizedDocsPages: LocalizedDocsPage[] = [
     category: text("예제", "Examples"),
     examples: [
       {
+        codeSamples: [{ code: lockSample, language: "tsx", title: text("전체 잠금", "Global lock") }],
+        description: text(
+          "하나의 토글로 여섯 위젯의 이동, 크기 조절과 삭제를 함께 잠그고 다시 활성화합니다.",
+          "Use one toggle to lock movement, resizing, and deletion for six widgets, then enable them again.",
+        ),
+        liveExampleId: "layout-lock",
+        title: text("레이아웃 잠금 / 해제", "Layout lock and unlock"),
+      },
+    ],
+    label: text("잠금·해제", "Lock and unlock"),
+    navParent: text("레이아웃", "Layout"),
+    path: "/examples/layout/lock",
+    summary: text(
+      "하나의 action-labelled toggle로 전체 레이아웃 잠금과 잠금 해제를 제어합니다.",
+      "Lock and unlock all layout interactions with one action-labelled toggle.",
+    ),
+    title: text("레이아웃 잠금 / 해제", "Layout lock and unlock"),
+  },
+  {
+    category: text("예제", "Examples"),
+    examples: [
+      {
         codeSamples: [{ code: `${layoutSample}\n\n${widgetLockSample}`, language: "ts", title: text("고급 제어 상태", "Advanced controlled state") }],
         description: text("responsive column, public handle query, external drop, 전체 상태와 컬럼 cache 복원을 제어된 React state로 확인합니다.", "Review responsive columns, public handle queries, external drops, whole state, and column cache restoration with controlled React state."),
         liveExampleId: "advanced",

@@ -9,6 +9,7 @@ import { defineLocalizedText, usePlaygroundLocale } from "../i18n/playground-loc
 import { playgroundMessages } from "../i18n/messages";
 import { AdvancedPlayground } from "../playground/AdvancedPlayground";
 import { LayoutColumnsPlayground } from "../playground/LayoutColumnsPlayground";
+import { LayoutLockPlayground } from "../playground/LayoutLockPlayground";
 import { LayoutPlayground } from "../playground/LayoutPlayground";
 import { WidgetPlayground } from "../playground/WidgetPlayground";
 
@@ -371,6 +372,8 @@ function LivePlayground({ id }: { id: PlaygroundExampleId }) {
       return <LayoutPlayground />;
     case "layout-columns":
       return <LayoutColumnsPlayground />;
+    case "layout-lock":
+      return <LayoutLockPlayground />;
     case "widget":
       return <WidgetPlayground />;
   }

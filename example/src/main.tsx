@@ -23,6 +23,7 @@ const canonicalPaths = new Set([
   "/examples/advanced",
   "/examples/layout",
   "/examples/layout/columns",
+  "/examples/layout/lock",
   "/examples/widget",
   "/readme-demo",
 ]);
@@ -71,6 +72,7 @@ function ExampleApp() {
     case "/examples/advanced":
     case "/examples/layout":
     case "/examples/layout/columns":
+    case "/examples/layout/lock":
     case "/examples/widget":
       return <DocsShell />;
     case "/readme-demo":

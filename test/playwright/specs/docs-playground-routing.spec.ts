@@ -4,9 +4,9 @@ import { isDesktopBrowserProject } from "../project-policy";
 
 async function expectIntegratedPlayground(
   page: Page,
-  path: "/examples/widget" | "/examples/layout" | "/examples/layout/columns" | "/examples/advanced",
-  heading: "위젯" | "레이아웃" | "컬럼 레이아웃 동적 수정" | "고급 예제",
-  navLabel: "위젯" | "저장·복원" | "동적 컬럼" | "반응형·엔진 옵션",
+  path: "/examples/widget" | "/examples/layout" | "/examples/layout/columns" | "/examples/layout/lock" | "/examples/advanced",
+  heading: "위젯" | "레이아웃" | "컬럼 레이아웃 동적 수정" | "레이아웃 잠금 / 해제" | "고급 예제",
+  navLabel: "위젯" | "저장·복원" | "동적 컬럼" | "잠금·해제" | "반응형·엔진 옵션",
 ) {
   await page.goto(path);
 
@@ -44,6 +44,7 @@ test.describe("gridstack docs playground routing", () => {
     await expect(navigation.getByRole("link", { name: "위젯" })).toHaveAttribute("href", "/examples/widget");
     await expect(navigation.getByRole("link", { name: "저장·복원" })).toHaveAttribute("href", "/examples/layout");
     await expect(navigation.getByRole("link", { name: "동적 컬럼" })).toHaveAttribute("href", "/examples/layout/columns");
+    await expect(navigation.getByRole("link", { name: "잠금·해제" })).toHaveAttribute("href", "/examples/layout/lock");
     await expect(navigation.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
     await expect(navigation.getByRole("link", { name: "추가 / 삭제" })).toHaveCount(0);
     await expect(navigation.getByRole("link", { name: "종합 예제" })).toHaveCount(0);
@@ -61,9 +62,11 @@ test.describe("gridstack docs playground routing", () => {
     const rootLink = nav.getByRole("link", { name: "위젯" });
     const layoutChildLink = nav.getByRole("link", { name: "저장·복원" });
     const columnChildLink = nav.getByRole("link", { name: "동적 컬럼" });
+    const lockChildLink = nav.getByRole("link", { name: "잠금·해제" });
     await expect(nav.getByText("레이아웃", { exact: true })).toBeVisible();
     await expect(layoutChildLink).toHaveAttribute("href", "/examples/layout");
     await expect(columnChildLink).toHaveAttribute("href", "/examples/layout/columns");
+    await expect(lockChildLink).toHaveAttribute("href", "/examples/layout/lock");
     await expect(nav.getByText("고급 예제", { exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
 
@@ -75,6 +78,9 @@ test.describe("gridstack docs playground routing", () => {
     const columnChildBox = await columnChildLink.boundingBox();
     expect(columnChildBox).not.toBeNull();
     expect(columnChildBox!.x).toBe(childBox!.x);
+    const lockChildBox = await lockChildLink.boundingBox();
+    expect(lockChildBox).not.toBeNull();
+    expect(lockChildBox!.x).toBe(childBox!.x);
   });
 
   test("marks exactly one current navigation link for every canonical docs route", async ({ page }) => {
@@ -83,6 +89,7 @@ test.describe("gridstack docs playground routing", () => {
       { label: "위젯", path: "/examples/widget" },
       { label: "저장·복원", path: "/examples/layout" },
       { label: "동적 컬럼", path: "/examples/layout/columns" },
+      { label: "잠금·해제", path: "/examples/layout/lock" },
       { label: "반응형·엔진 옵션", path: "/examples/advanced" },
       { label: "API", path: "/api" },
     ] as const;
@@ -105,6 +112,7 @@ test.describe("gridstack docs playground routing", () => {
     await expectIntegratedPlayground(page, "/examples/widget", "위젯", "위젯");
     await expectIntegratedPlayground(page, "/examples/layout", "레이아웃", "저장·복원");
     await expectIntegratedPlayground(page, "/examples/layout/columns", "컬럼 레이아웃 동적 수정", "동적 컬럼");
+    await expectIntegratedPlayground(page, "/examples/layout/lock", "레이아웃 잠금 / 해제", "잠금·해제");
     await expectIntegratedPlayground(page, "/examples/advanced", "고급 예제", "반응형·엔진 옵션");
   });
 
@@ -118,6 +126,18 @@ test.describe("gridstack docs playground routing", () => {
 
     await expect(page).toHaveURL(/\/examples\/layout\/columns$/);
     await expect(page.getByRole("combobox", { name: "레이아웃 컬럼" })).toHaveValue("12");
+  });
+
+  test("searches the layout lock child route", async ({ page }) => {
+    await page.goto("/docs/getting-started");
+
+    await page.getByRole("searchbox", { name: "전체 문서 검색" }).fill("잠금 해제");
+    const result = page.getByRole("option", { name: /^문서 레이아웃 잠금 \/ 해제/ });
+    await expect(result).toBeVisible();
+    await result.click();
+
+    await expect(page).toHaveURL(/\/examples\/layout\/lock$/);
+    await expect(page.getByRole("button", { name: "레이아웃 잠금", exact: true })).toHaveAttribute("aria-pressed", "false");
   });
 
   test("keeps the getting started and API pages in the docs shell", async ({ page }) => {

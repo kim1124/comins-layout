@@ -724,6 +724,14 @@ button {
   color: var(--comins-color-accent-foreground);
 }
 
+.playground-layout-lock-grid--locked .grid-stack-item-content {
+  cursor: default;
+}
+
+.playground-layout-lock-grid--locked .ui-resizable-handle {
+  display: none !important;
+}
+
 .example-action-button--add {
   background: #2fbf9b;
   border-color: #2aa889;
