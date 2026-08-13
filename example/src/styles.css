@@ -892,6 +892,29 @@ button.dashboard-widget-body[data-selected="true"] {
   line-height: 1.1;
 }
 
+.dashboard-widget-loader {
+  align-items: center;
+  display: inline-flex;
+  font-weight: 700;
+  gap: 8px;
+  margin: auto;
+}
+
+.dashboard-widget-loader__spinner {
+  animation: dashboard-widget-loader-spin 700ms linear infinite;
+  border: 2px solid currentColor;
+  border-radius: 999px;
+  border-right-color: transparent;
+  height: 16px;
+  width: 16px;
+}
+
+@keyframes dashboard-widget-loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .example-dialog {
   inset: 0;
   position: fixed;
@@ -1061,6 +1084,33 @@ button.dashboard-widget-body[data-selected="true"] {
   padding: 0;
 }
 
+.example-toolbar-groups {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.example-toolbar-group {
+  align-items: center;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+
+.example-toolbar-group--count {
+  color: #536674;
+  font-size: 13px;
+  margin-left: auto;
+}
+
 .example-control-fieldset {
   border: 0;
   margin: 0;
@@ -1203,6 +1253,20 @@ button.dashboard-widget-body[data-selected="true"] {
   .playground-controls .example-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .example-toolbar-groups,
+  .example-toolbar-group {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .example-toolbar-group > button {
+    flex: 1 1 auto;
+  }
+
+  .example-toolbar-group--count {
+    margin-left: 0;
   }
 
   .playground-controls .example-actions > button,

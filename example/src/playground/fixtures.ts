@@ -30,9 +30,9 @@ export function createWidget(
 
 export function createWidgetPlaygroundFixture(): DashboardWidget<ExampleWidgetData>[] {
   return [
-    createWidget("sales", "매출", 0, 0, 2, 2, { colorKey: pastelKeyForIndex(0), contentRevision: 0, description: "월간 반복 매출", fixtureCopyKey: "sales", fixtureIndex: 1, value: "1.28억" }),
-    createWidget("traffic", "트래픽", 2, 0, 2, 2, { colorKey: pastelKeyForIndex(1), contentRevision: 0, description: "활성 세션", fixtureCopyKey: "traffic", fixtureIndex: 2, value: "4.28만" }),
-    createWidget("orders", "주문", 4, 0, 2, 2, { colorKey: pastelKeyForIndex(2), contentRevision: 0, description: "완료 주문", fixtureCopyKey: "orders", fixtureIndex: 3, value: "1,284" }),
+    createWidget("widget-1", "위젯 1", 0, 0, 2, 2, { colorKey: pastelKeyForIndex(0), contentRevision: 0, description: "위젯 1 콘텐츠", fixtureIndex: 1, value: "1" }),
+    createWidget("widget-2", "위젯 2", 2, 0, 2, 2, { colorKey: pastelKeyForIndex(1), contentRevision: 0, description: "위젯 2 콘텐츠", fixtureIndex: 2, value: "2" }),
+    createWidget("widget-3", "위젯 3", 4, 0, 2, 2, { colorKey: pastelKeyForIndex(2), contentRevision: 0, description: "위젯 3 콘텐츠", fixtureIndex: 3, value: "3" }),
   ];
 }
 

@@ -3,7 +3,8 @@ import type { DashboardGridProps } from "../../../../src";
 import { DashboardGrid } from "../../../../src";
 
 import { usePlaygroundLocale } from "../../i18n/playground-locale";
-import { createPresentedWidgets, resolveDashboardActionLabels, sharedPlaygroundCopy } from "../copy";
+import { createPresentedWidgets, resolveDashboardActionLabels, sharedPlaygroundCopy, widgetPlaygroundCopy } from "../copy";
+import { pastelColor } from "../palette";
 import type { DashboardRuntime, ExampleWidgetData } from "../types";
 
 type DashboardPreviewProps = {
@@ -14,9 +15,12 @@ type DashboardPreviewProps = {
   onLayoutCommit?: DashboardGridProps<ExampleWidgetData>["onLayoutCommit"];
   onWidgetRemove?: DashboardGridProps<ExampleWidgetData>["onRemoveWidget"];
   onWidgetSelect?: (id: string) => void;
+  isWidgetRefreshing?: (id: string) => boolean;
+  renderWidgetActions?: NonNullable<DashboardGridProps<ExampleWidgetData>["renderWidgetActions"]>;
   resizable?: boolean;
   selectedWidgetId?: string;
   showControls?: boolean;
+  showWidgetCount?: boolean;
 };
 
 export function DashboardPreview({
@@ -27,16 +31,21 @@ export function DashboardPreview({
   onWidgetExternalDrop,
   onWidgetRemove,
   onWidgetSelect,
+  isWidgetRefreshing,
+  renderWidgetActions,
   resizable = true,
   selectedWidgetId,
   showControls = true,
+  showWidgetCount = true,
 }: DashboardPreviewProps) {
   const { locale, text } = usePlaygroundLocale();
   const widgets = useMemo(() => createPresentedWidgets(dashboard.widgets, locale), [dashboard.widgets, locale]);
 
   return (
     <>
-      <p className="example-widget-count">{text(sharedPlaygroundCopy.widgetCount).replace("{count}", String(dashboard.widgets.length))}</p>
+      {showWidgetCount ? (
+        <p className="example-widget-count">{text(sharedPlaygroundCopy.widgetCount).replace("{count}", String(dashboard.widgets.length))}</p>
+      ) : null}
       <DashboardGrid
         actionLabels={resolveDashboardActionLabels(locale)}
         columns={dashboard.columns}
@@ -44,6 +53,7 @@ export function DashboardPreview({
         movable={movable}
         refreshKey={dashboard.refreshVersion}
         resizable={resizable}
+        renderWidgetActions={renderWidgetActions}
         showControls={showControls}
         widgets={widgets}
         onMaximizeWidget={dashboard.commands.maximizeWidget}
@@ -55,11 +65,27 @@ export function DashboardPreview({
         onWidgetHeaderDoubleClick={dashboard.commands.fitWidgetToColumns}
         onWidgetLayoutChange={onLayoutCommit ? undefined : dashboard.commands.updateWidgetLayout}
         renderWidget={(widget) => {
+          const refreshing = isWidgetRefreshing?.(widget.id) ?? false;
+          const colors = pastelColor(widget.data?.colorKey ?? "mint");
           const content = (
-            <>
-              <span>{widget.data?.description}</span>
-              <strong>{widget.data?.value}</strong>
-            </>
+            refreshing ? (
+              <span
+                aria-label={widgetPlaygroundCopy.refreshStatus[locale](widget.title ?? widget.id)}
+                className="dashboard-widget-loader"
+                role="status"
+              >
+                <span aria-hidden="true" className="dashboard-widget-loader__spinner" />
+                {widgetPlaygroundCopy.refreshStatus[locale](widget.title ?? widget.id)}
+              </span>
+            ) : (
+              <>
+                <span>{widget.data?.description}</span>
+                <strong>
+                  {widget.data?.value}
+                  {widget.data?.contentRevision ? ` · ${widget.data.contentRevision}` : ""}
+                </strong>
+              </>
+            )
           );
 
           return onWidgetSelect ? (
@@ -68,13 +94,14 @@ export function DashboardPreview({
               aria-pressed={selectedWidgetId === widget.id}
               className="dashboard-widget-body"
               data-selected={selectedWidgetId === widget.id ? "true" : "false"}
+              style={{ background: colors.background, color: colors.foreground }}
               type="button"
               onClick={() => onWidgetSelect(widget.id)}
             >
               {content}
             </button>
           ) : (
-            <div className="dashboard-widget-body">{content}</div>
+            <div className="dashboard-widget-body" style={{ background: colors.background, color: colors.foreground }}>{content}</div>
           );
         }}
       />

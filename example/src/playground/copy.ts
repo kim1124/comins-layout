@@ -4,19 +4,6 @@ import type { LocalizedText, PlaygroundLocale } from "../i18n/types";
 import type { PastelColorKey } from "./palette";
 import type { ExampleFixtureCopyKey, ExampleGeneratedDescriptionKey, ExampleWidgetData } from "./types";
 
-export type WidgetStatusTitle =
-  | { kind: "fixture"; key: ExampleFixtureCopyKey }
-  | { kind: "literal"; value: string };
-
-export type WidgetStatus =
-  | { type: "added"; title: WidgetStatusTitle }
-  | { type: "edited"; title: WidgetStatusTitle }
-  | { type: "empty" }
-  | { type: "fullLock"; active: boolean }
-  | { type: "moveLock"; active: boolean }
-  | { type: "resizeLock"; active: boolean }
-  | { type: "selected"; title: WidgetStatusTitle };
-
 export type LayoutJsonStatus =
   | { type: "activeMissing" }
   | { type: "activeRestored" }
@@ -67,7 +54,7 @@ export const sharedPlaygroundCopy = {
       title: defineLocalizedText("위젯 추가", "Add widget"),
     },
     edit: {
-      description: defineLocalizedText("선택한 위젯의 제목과 값을 변경합니다.", "Change the selected widget's title and value."),
+      description: defineLocalizedText("선택한 위젯의 제목, 값, 너비, 높이와 색상을 변경합니다.", "Change the selected widget's title, value, width, height, and color."),
       title: defineLocalizedText("위젯 수정", "Edit widget"),
     },
   },
@@ -76,8 +63,8 @@ export const sharedPlaygroundCopy = {
     en: (number: number) => `Widget ${number}`,
     ko: (number: number) => `위젯 ${number}`,
   },
-  newWidgetHeight: defineLocalizedText("새 위젯 높이", "New widget height"),
-  newWidgetWidth: defineLocalizedText("새 위젯 너비", "New widget width"),
+  newWidgetHeight: defineLocalizedText("높이", "Height"),
+  newWidgetWidth: defineLocalizedText("너비", "Width"),
   saveChanges: defineLocalizedText("변경 저장", "Save changes"),
   saveWidget: defineLocalizedText("위젯 저장", "Save widget"),
   selectWidget: defineLocalizedText("위젯 선택", "Select widget"),
@@ -279,52 +266,31 @@ export const widgetPlaygroundCopy = {
     "위젯을 추가·수정·삭제하고 개별 이동 및 크기 조절 잠금을 확인합니다.",
     "Add, edit, and delete widgets, then verify individual movement and resize locks.",
   ),
-  fullLock: defineLocalizedText("전체 잠금", "Lock all"),
+  actions: {
+    delete: defineLocalizedText("삭제", "Delete"),
+    edit: defineLocalizedText("수정", "Edit"),
+    refresh: defineLocalizedText("새로고침", "Refresh"),
+  },
+  fullLock: {
+    lock: defineLocalizedText("전체 잠금", "Lock all"),
+    unlock: defineLocalizedText("전체 잠금 해제", "Unlock all"),
+  },
   interactionActions: defineLocalizedText("위젯 상호작용 작업", "Widget interaction actions"),
   kicker: defineLocalizedText("위젯 예제", "Widget example"),
-  moveLock: defineLocalizedText("이동 잠금", "Lock movement"),
-  resizeLock: defineLocalizedText("리사이즈 잠금", "Lock resizing"),
-  state: {
-    jsonLabel: defineLocalizedText("현재 위젯 상태 JSON", "Current widget state JSON"),
-    summary: defineLocalizedText("현재 위젯 상태", "Current widget state"),
+  moveLock: {
+    lock: defineLocalizedText("이동 잠금", "Lock movement"),
+    unlock: defineLocalizedText("이동 잠금 해제", "Unlock movement"),
   },
-  status: {
-    added: {
-      en: (title: string) => `Added the ${title} widget.`,
-      ko: (title: string) => `${title} 위젯을 추가했습니다.`,
-    },
-    edited: {
-      en: (title: string) => `Updated the ${title} widget.`,
-      ko: (title: string) => `${title} 위젯을 수정했습니다.`,
-    },
-    empty: defineLocalizedText("선택할 위젯이 없습니다.", "There are no widgets to select."),
-    fullLock: {
-      en: (active: boolean) => active ? "Fully locked the selected widget." : "Unlocked the selected widget.",
-      ko: (active: boolean) => active ? "선택 위젯을 전체 잠금했습니다." : "선택 위젯의 전체 잠금을 해제했습니다.",
-    },
-    label: defineLocalizedText("위젯 작업 상태", "Widget action status"),
-    moveLock: {
-      en: (active: boolean) => active ? "Locked movement for the selected widget." : "Unlocked movement for the selected widget.",
-      ko: (active: boolean) => active ? "선택 위젯의 이동을 잠갔습니다." : "선택 위젯의 이동 잠금을 해제했습니다.",
-    },
-    resizeLock: {
-      en: (active: boolean) => active ? "Locked resizing for the selected widget." : "Unlocked resizing for the selected widget.",
-      ko: (active: boolean) => active ? "선택 위젯의 리사이즈를 잠갔습니다." : "선택 위젯의 리사이즈 잠금을 해제했습니다.",
-    },
-    selected: {
-      en: (title: string) => `Selected the ${title} widget.`,
-      ko: (title: string) => `${title} 위젯을 선택했습니다.`,
-    },
+  refreshStatus: {
+    en: (title: string) => `Refreshing ${title} content`,
+    ko: (title: string) => `${title} 콘텐츠 새로고침 중`,
+  },
+  resizeLock: {
+    lock: defineLocalizedText("리사이즈 잠금", "Lock resizing"),
+    unlock: defineLocalizedText("리사이즈 잠금 해제", "Unlock resizing"),
   },
   title: defineLocalizedText("위젯", "Widget"),
 } as const;
-
-export function toWidgetStatusTitle(widget: DashboardWidget<ExampleWidgetData>): WidgetStatusTitle {
-  const fixtureCopyKey = widget.data?.fixtureCopyKey;
-  return isExampleFixtureCopyKey(fixtureCopyKey)
-    ? { kind: "fixture", key: fixtureCopyKey }
-    : { kind: "literal", value: widget.title ?? widget.id };
-}
 
 type FixturePresentation = {
   description: LocalizedText;
@@ -371,29 +337,6 @@ function getGeneratedDescriptionPresentation(value: unknown): LocalizedText | un
   return isExampleGeneratedDescriptionKey(value) ? generatedDescriptionPresentations[value] : undefined;
 }
 
-function resolveWidgetStatusTitle(title: WidgetStatusTitle, locale: PlaygroundLocale): string {
-  if (title.kind === "literal") {
-    return title.value;
-  }
-
-  const fixturePresentation = getFixturePresentation(title.key);
-  return fixturePresentation ? resolveLocalizedText(fixturePresentation.title, locale) : "";
-}
-
-export function formatWidgetStatus(status: WidgetStatus, locale: PlaygroundLocale): string {
-  switch (status.type) {
-    case "added":
-    case "edited":
-    case "selected":
-      return widgetPlaygroundCopy.status[status.type][locale](resolveWidgetStatusTitle(status.title, locale));
-    case "empty":
-      return resolveLocalizedText(widgetPlaygroundCopy.status.empty, locale);
-    case "fullLock":
-    case "moveLock":
-    case "resizeLock":
-      return widgetPlaygroundCopy.status[status.type][locale](status.active);
-  }
-}
 
 export function formatLayoutJsonStatus(status: LayoutJsonStatus, locale: PlaygroundLocale): string {
   return resolveLocalizedText(layoutPlaygroundCopy.status.json[status.type], locale);
@@ -481,6 +424,14 @@ export function resolveWidgetPresentation(
     return {
       description: resolveLocalizedText(fixturePresentation.description, locale),
       title: resolveLocalizedText(fixturePresentation.title, locale),
+    };
+  }
+
+  if (widget.data?.fixtureIndex !== undefined) {
+    const fixtureIndex = widget.data.fixtureIndex;
+    return {
+      description: locale === "ko" ? `위젯 ${fixtureIndex} 콘텐츠` : `Widget ${fixtureIndex} content`,
+      title: sharedPlaygroundCopy.generatedWidgetTitle[locale](fixtureIndex),
     };
   }
 

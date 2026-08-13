@@ -1,16 +1,17 @@
 import { useRef, useState } from "react";
-import { Lock, Move, Settings2 } from "lucide-react";
+import { Lock, Move, Pencil, Plus, RefreshCw, Settings2, Trash2 } from "lucide-react";
 
 import { useDashboardGrid } from "../../../src";
+import { Dialog } from "../components/ui/dialog";
 import { usePlaygroundLocale } from "../i18n/playground-locale";
 import { DashboardPreview, PlaygroundHeader, toggleStateProps } from "./components/DashboardPreview";
-import { WidgetCrudControls } from "./components/WidgetCrudControls";
-import type { EditedWidgetDraft, NewWidgetDraft } from "./components/WidgetCrudControls";
-import { formatWidgetStatus, toWidgetStatusTitle, widgetPlaygroundCopy } from "./copy";
-import { createWidgetPlaygroundFixture } from "./fixtures";
-import { createWidget } from "./fixtures";
+import { WidgetFormDialog } from "./components/WidgetFormDialog";
+import type { WidgetDraft } from "./components/WidgetFormDialog";
+import { resolveWidgetPresentation, sharedPlaygroundCopy, widgetPlaygroundCopy } from "./copy";
+import { createWidget, createWidgetPlaygroundFixture } from "./fixtures";
+import { pastelKeyForIndex } from "./palette";
 import type { ExampleWidgetData } from "./types";
-import type { WidgetStatus } from "./copy";
+import { useWidgetRefresh } from "./use-widget-refresh";
 
 export function WidgetPlayground() {
   const { locale, text } = usePlaygroundLocale();
@@ -20,118 +21,110 @@ export function WidgetPlayground() {
   });
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedWidgetId, setSelectedWidgetId] = useState<string | undefined>("sales");
-  const [status, setStatus] = useState<WidgetStatus>(() => {
-    const selectedWidget = dashboard.widgets.find((widget) => widget.id === "sales");
-    return selectedWidget ? { type: "selected", title: toWidgetStatusTitle(selectedWidget) } : { type: "empty" };
-  });
+  const [editTargetId, setEditTargetId] = useState<string>();
+  const [selectedWidgetId, setSelectedWidgetId] = useState<string | undefined>("widget-1");
+  const addDialogTriggerRef = useRef<HTMLButtonElement>(null);
+  const editDialogTriggerRef = useRef<HTMLElement | null>(null);
   const nextWidgetNumber = useRef(dashboard.widgets.length + 1);
   const selectedWidget = dashboard.widgets.find((widget) => widget.id === selectedWidgetId);
+  const editTargetWidget = dashboard.widgets.find((widget) => widget.id === editTargetId);
   const moveLocked = selectedWidget?.locked === true || selectedWidget?.movable === false;
   const resizeLocked = selectedWidget?.locked === true || selectedWidget?.resizable === false;
   const fullyLocked = selectedWidget?.locked === true;
-
-  const selectWidget = (id: string | undefined) => {
-    setSelectedWidgetId(id);
+  const widgetRefresh = useWidgetRefresh((id) => {
     const widget = dashboard.widgets.find((candidate) => candidate.id === id);
-    setStatus(widget ? { type: "selected", title: toWidgetStatusTitle(widget) } : { type: "empty" });
-  };
+    if (!widget?.data) {
+      return;
+    }
 
-  const addWidget = (draft: NewWidgetDraft) => {
+    dashboard.commands.updateWidget(id, {
+      data: {
+        ...widget.data,
+        contentRevision: widget.data.contentRevision + 1,
+      },
+    });
+  });
+
+  const addWidget = (draft: WidgetDraft) => {
     const number = nextWidgetNumber.current;
     nextWidgetNumber.current += 1;
     const id = `widget-${number}`;
     dashboard.commands.addWidget(
       createWidget(id, draft.title, 0, 0, draft.width, draft.height, {
+        colorKey: draft.colorKey,
+        contentRevision: 0,
         description: "새 대시보드 위젯",
         generatedDescriptionKey: "newWidget",
         value: draft.value,
       }),
     );
     setSelectedWidgetId(id);
-    setStatus({ type: "added", title: { kind: "literal", value: draft.title } });
+    setAddDialogOpen(false);
   };
 
-  const editWidget = (draft: EditedWidgetDraft) => {
-    if (!selectedWidget) {
+  const editWidget = (draft: WidgetDraft) => {
+    if (!editTargetWidget?.data) {
       return;
     }
 
-    const { fixtureCopyKey: _fixtureCopyKey, ...userData } = (selectedWidget.data ?? {}) as Partial<ExampleWidgetData>;
-    const generatedDescriptionKey = _fixtureCopyKey
-      ? "editedWidget"
-      : userData.generatedDescriptionKey;
-
-    dashboard.commands.updateWidget(selectedWidget.id, {
+    const {
+      fixtureCopyKey: _fixtureCopyKey,
+      fixtureIndex: _fixtureIndex,
+      ...userData
+    } = editTargetWidget.data;
+    dashboard.commands.updateWidgetLayout(editTargetWidget.id, { h: draft.height, w: draft.width });
+    dashboard.commands.updateWidget(editTargetWidget.id, {
       data: {
         ...userData,
-        colorKey: userData.colorKey ?? "mint",
-        contentRevision: (userData.contentRevision ?? 0) + 1,
+        colorKey: draft.colorKey,
         description: userData.description ?? `${draft.title} dashboard widget`,
-        ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
+        generatedDescriptionKey: "editedWidget",
         value: draft.value,
       },
       title: draft.title,
     });
-    setStatus({ type: "edited", title: { kind: "literal", value: draft.title } });
+    setEditDialogOpen(false);
   };
 
   const removeWidget = (id: string) => {
-    const removedWidget = dashboard.widgets.find((widget) => widget.id === id);
-    if (!removedWidget) {
+    if (!dashboard.widgets.some((widget) => widget.id === id)) {
       return;
     }
 
+    widgetRefresh.cancel(id);
     const nextWidget = dashboard.widgets.find((widget) => widget.id !== id);
     dashboard.commands.removeWidget(id);
-    setSelectedWidgetId(nextWidget?.id);
-    setStatus(nextWidget ? { type: "selected", title: toWidgetStatusTitle(nextWidget) } : { type: "empty" });
-  };
-
-  const deleteWidget = () => {
-    if (selectedWidget) {
-      removeWidget(selectedWidget.id);
+    if (selectedWidgetId === id) {
+      setSelectedWidgetId(nextWidget?.id);
     }
   };
 
   const clearWidgets = () => {
+    dashboard.widgets.forEach((widget) => widgetRefresh.cancel(widget.id));
     dashboard.commands.clearWidgets();
     setSelectedWidgetId(undefined);
-    setStatus({ type: "empty" });
   };
 
   const toggleMoveLock = () => {
     if (!selectedWidget) {
       return;
     }
-
-    dashboard.commands.updateWidget(selectedWidget.id, {
-      movable: moveLocked,
-    });
-    setStatus({ type: "moveLock", active: !moveLocked });
+    dashboard.commands.updateWidget(selectedWidget.id, { movable: moveLocked });
   };
 
   const toggleResizeLock = () => {
     if (!selectedWidget) {
       return;
     }
-
-    dashboard.commands.updateWidget(selectedWidget.id, {
-      resizable: resizeLocked,
-    });
-    setStatus({ type: "resizeLock", active: !resizeLocked });
+    dashboard.commands.updateWidget(selectedWidget.id, { resizable: resizeLocked });
   };
 
   const toggleFullLock = () => {
     if (!selectedWidget) {
       return;
     }
-
     dashboard.commands.updateWidget(selectedWidget.id, { locked: !fullyLocked });
-    setStatus({ type: "fullLock", active: !fullyLocked });
   };
-
-  const serializedState = JSON.stringify(dashboard.commands.serializeState(), null, 2);
 
   return (
     <section className="playground-workspace" data-example-mode="widget">
@@ -141,63 +134,172 @@ export function WidgetPlayground() {
         title={text(widgetPlaygroundCopy.title)}
       />
       <section aria-label={text(widgetPlaygroundCopy.controls)} className="playground-controls">
-        <WidgetCrudControls
-          addDialogOpen={addDialogOpen}
-          canEdit
-          dashboard={dashboard}
-          editDialogOpen={editDialogOpen}
-          mode="widget"
-          nextWidgetNumber={nextWidgetNumber.current}
-          selectedWidgetId={selectedWidgetId}
-          onAddDialogOpenChange={setAddDialogOpen}
-          onAddWidget={addWidget}
-          onClearWidgets={clearWidgets}
-          onDeleteWidget={deleteWidget}
-          onEditDialogOpenChange={setEditDialogOpen}
-          onEditWidget={editWidget}
-          onSelectedWidgetIdChange={selectWidget}
-        />
-        <fieldset
-          aria-label={text(widgetPlaygroundCopy.interactionActions)}
-          className="example-actions example-interaction-actions"
-          disabled={!selectedWidget}
-        >
-          <button className="example-toggle-button" disabled={!selectedWidget || fullyLocked} type="button" onClick={toggleMoveLock} {...toggleStateProps(moveLocked)}>
-            <Move aria-hidden="true" size={14} />
-            {text(widgetPlaygroundCopy.moveLock)}
-          </button>
-          <button className="example-toggle-button" disabled={!selectedWidget || fullyLocked} type="button" onClick={toggleResizeLock} {...toggleStateProps(resizeLocked)}>
-            <Settings2 aria-hidden="true" size={14} />
-            {text(widgetPlaygroundCopy.resizeLock)}
-          </button>
-          <button
-            className="example-toggle-button"
+        <div className="example-toolbar-groups">
+          <div aria-label={text(sharedPlaygroundCopy.widgetActions)} className="example-toolbar-group" role="group">
+            <button
+              ref={addDialogTriggerRef}
+              className="example-action-button example-action-button--add"
+              type="button"
+              onClick={() => setAddDialogOpen(true)}
+            >
+              <Plus aria-hidden="true" size={14} />
+              {text(sharedPlaygroundCopy.addWidget)}
+            </button>
+            <button
+              className="example-action-button example-action-button--danger"
+              disabled={!selectedWidget}
+              type="button"
+              onClick={() => selectedWidget && removeWidget(selectedWidget.id)}
+            >
+              <Trash2 aria-hidden="true" size={14} />
+              {text(sharedPlaygroundCopy.deleteSelectedWidget)}
+            </button>
+            <button
+              className="example-action-button example-action-button--danger"
+              disabled={dashboard.widgets.length === 0}
+              type="button"
+              onClick={clearWidgets}
+            >
+              {text(sharedPlaygroundCopy.clearAll)}
+            </button>
+          </div>
+          <fieldset
+            aria-label={text(widgetPlaygroundCopy.interactionActions)}
+            className="example-toolbar-group example-interaction-actions"
             disabled={!selectedWidget}
-            type="button"
-            onClick={toggleFullLock}
-            {...toggleStateProps(fullyLocked)}
           >
-            <Lock aria-hidden="true" size={14} />
-            {text(widgetPlaygroundCopy.fullLock)}
-          </button>
-        </fieldset>
-        <p aria-label={text(widgetPlaygroundCopy.status.label)} aria-live="polite" className="example-status" role="status">
-          {formatWidgetStatus(status, locale)}
-        </p>
-        <details className="example-state-output">
-          <summary>{text(widgetPlaygroundCopy.state.summary)}</summary>
-          <pre aria-label={text(widgetPlaygroundCopy.state.jsonLabel)}>{serializedState}</pre>
-        </details>
+            <button
+              className="example-toggle-button"
+              disabled={!selectedWidget || fullyLocked}
+              type="button"
+              onClick={toggleMoveLock}
+              {...toggleStateProps(moveLocked)}
+            >
+              <Move aria-hidden="true" size={14} />
+              {text(widgetPlaygroundCopy.moveLock[moveLocked ? "unlock" : "lock"])}
+            </button>
+            <button
+              className="example-toggle-button"
+              disabled={!selectedWidget || fullyLocked}
+              type="button"
+              onClick={toggleResizeLock}
+              {...toggleStateProps(resizeLocked)}
+            >
+              <Settings2 aria-hidden="true" size={14} />
+              {text(widgetPlaygroundCopy.resizeLock[resizeLocked ? "unlock" : "lock"])}
+            </button>
+            <button
+              className="example-toggle-button"
+              disabled={!selectedWidget}
+              type="button"
+              onClick={toggleFullLock}
+              {...toggleStateProps(fullyLocked)}
+            >
+              <Lock aria-hidden="true" size={14} />
+              {text(widgetPlaygroundCopy.fullLock[fullyLocked ? "unlock" : "lock"])}
+            </button>
+          </fieldset>
+          <div aria-label={text(sharedPlaygroundCopy.widgetCount).replace("{count}", String(dashboard.widgets.length))} className="example-toolbar-group example-toolbar-group--count">
+            <span>{text(sharedPlaygroundCopy.widgetCount).replace("{count}", String(dashboard.widgets.length))}</span>
+          </div>
+        </div>
       </section>
       <section aria-label={text(widgetPlaygroundCopy.dashboard)} className="playground-grid-region">
         <DashboardPreview
           dashboard={dashboard}
+          isWidgetRefreshing={widgetRefresh.isRefreshing}
           selectedWidgetId={selectedWidgetId}
+          showWidgetCount={false}
           onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
           onWidgetRemove={removeWidget}
-          onWidgetSelect={selectWidget}
+          onWidgetSelect={setSelectedWidgetId}
+          renderWidgetActions={(widget) => {
+            const title = widget.title ?? widget.id;
+            return (
+              <>
+                <button
+                  aria-label={`${title} ${text(widgetPlaygroundCopy.actions.edit)}`}
+                  type="button"
+                  onClick={(event) => {
+                    editDialogTriggerRef.current = event.currentTarget;
+                    setSelectedWidgetId(widget.id);
+                    setEditTargetId(widget.id);
+                    setEditDialogOpen(true);
+                  }}
+                >
+                  <Pencil aria-hidden="true" size={14} />
+                  <span>{text(widgetPlaygroundCopy.actions.edit)}</span>
+                </button>
+                <button
+                  aria-label={`${title} ${text(widgetPlaygroundCopy.actions.refresh)}`}
+                  type="button"
+                  onClick={() => widgetRefresh.refresh(widget.id)}
+                >
+                  <RefreshCw aria-hidden="true" size={14} />
+                  <span>{text(widgetPlaygroundCopy.actions.refresh)}</span>
+                </button>
+                <button
+                  aria-label={`${title} ${text(widgetPlaygroundCopy.actions.delete)}`}
+                  className="comins-grid-layout-widget__action--danger"
+                  type="button"
+                  onClick={() => removeWidget(widget.id)}
+                >
+                  <Trash2 aria-hidden="true" size={14} />
+                  <span>{text(widgetPlaygroundCopy.actions.delete)}</span>
+                </button>
+              </>
+            );
+          }}
         />
       </section>
+
+      <Dialog
+        description={text(sharedPlaygroundCopy.dialog.add.description)}
+        open={addDialogOpen}
+        returnFocusRef={addDialogTriggerRef}
+        title={text(sharedPlaygroundCopy.dialog.add.title)}
+        onOpenChange={setAddDialogOpen}
+      >
+        <WidgetFormDialog
+          initialDraft={{
+            colorKey: pastelKeyForIndex(nextWidgetNumber.current - 1),
+            height: 2,
+            title: sharedPlaygroundCopy.generatedWidgetTitle[locale](nextWidgetNumber.current),
+            value: String(nextWidgetNumber.current),
+            width: 2,
+          }}
+          mode="add"
+          open={addDialogOpen}
+          resetKey={`add-${nextWidgetNumber.current}`}
+          scope="widget-new"
+          onCancel={() => setAddDialogOpen(false)}
+          onSubmit={addWidget}
+        />
+      </Dialog>
+
+      <Dialog
+        description={text(sharedPlaygroundCopy.dialog.edit.description)}
+        open={editDialogOpen}
+        returnFocusRef={editDialogTriggerRef}
+        title={text(sharedPlaygroundCopy.dialog.edit.title)}
+        onOpenChange={setEditDialogOpen}
+      >
+        <WidgetFormDialog
+          initialDraft={{
+            colorKey: editTargetWidget?.data?.colorKey ?? pastelKeyForIndex(0),
+            height: editTargetWidget?.layout.h ?? 2,
+            title: editTargetWidget ? resolveWidgetPresentation(editTargetWidget, locale).title : "",
+            value: editTargetWidget?.data?.value ?? "",
+            width: editTargetWidget?.layout.w ?? 2,
+          }}
+          mode="edit"
+          open={editDialogOpen}
+          resetKey={editTargetWidget?.id ?? ""}
+          scope="widget-edit"
+          onCancel={() => setEditDialogOpen(false)}
+          onSubmit={editWidget}
+        />
+      </Dialog>
     </section>
   );
 }

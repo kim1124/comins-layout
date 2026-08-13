@@ -72,20 +72,6 @@ async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY:
   await page.mouse.up();
 }
 
-async function readWidgetState(page: Page) {
-  const output = page.locator('[data-example-mode="widget"] .example-state-output pre');
-  return JSON.parse((await output.textContent()) ?? "{}") as {
-    widgets?: Array<{
-      id: string;
-      title?: string;
-      data?: { value?: string };
-      locked?: boolean;
-      movable?: boolean;
-      resizable?: boolean;
-    }>;
-  };
-}
-
 async function readDashboardLayouts(page: Page): Promise<IdentifiedWidgetLayout[]> {
   return page.locator(".grid-stack-item").evaluateAll((elements) =>
     elements.map((element) => ({
@@ -130,9 +116,9 @@ test.describe("Widget Playground", () => {
     await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
     await expect(page.locator(".grid-stack")).toHaveCount(1);
     await expect(page.getByText("위젯을 추가·수정·삭제하고 개별 이동 및 크기 조절 잠금을 확인합니다.")).toBeVisible();
-    await expect(page.getByTestId("dashboard-widget-sales")).toContainText("매출");
-    await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("트래픽");
-    await expect(page.getByTestId("dashboard-widget-orders")).toContainText("주문");
+    await expect(page.getByTestId("dashboard-widget-widget-1")).toContainText("위젯 1");
+    await expect(page.getByTestId("dashboard-widget-widget-2")).toContainText("위젯 2");
+    await expect(page.getByTestId("dashboard-widget-widget-3")).toContainText("위젯 3");
 
     const header = page.locator(".playground-header");
     const heading = header.getByRole("heading", { level: 1 });
@@ -141,10 +127,10 @@ test.describe("Widget Playground", () => {
     expect(labelledBy).not.toMatch(/\s/);
     await expect(heading).toHaveAttribute("id", labelledBy ?? "");
 
-    const trafficSelection = page.getByRole("button", { name: "트래픽 위젯 선택" });
-    await expect(trafficSelection.locator("button")).toHaveCount(0);
-    await trafficSelection.click();
-    await expect(page.getByRole("combobox", { name: "위젯 선택" })).toHaveValue("traffic");
+    const secondWidgetBody = page.getByRole("button", { name: "위젯 2 위젯 선택" });
+    await expect(secondWidgetBody.locator("button")).toHaveCount(0);
+    await secondWidgetBody.click();
+    await expect(secondWidgetBody).toHaveAttribute("data-selected", "true");
   });
 
   test("adds and edits the selected widget while preserving dialog validation and cancel semantics", async ({ page }) => {
@@ -160,8 +146,8 @@ test.describe("Widget Playground", () => {
 
     await addDialog.getByLabel("위젯명").fill("신규 지표");
     await addDialog.getByLabel("값").fill("42");
-    await addDialog.getByLabel("새 위젯 너비").selectOption("3");
-    await addDialog.getByLabel("새 위젯 높이").selectOption("3");
+    await addDialog.getByLabel("너비").selectOption("3");
+    await addDialog.getByLabel("높이").selectOption("3");
     await addDialog.getByRole("button", { name: "위젯 저장" }).click();
 
     const added = page.getByTestId("dashboard-widget-widget-4");
@@ -170,9 +156,9 @@ test.describe("Widget Playground", () => {
     await expect(added).toContainText("42");
     await expect(added).toHaveAttribute("data-layout-w", "3");
     await expect(added).toHaveAttribute("data-layout-h", "3");
-    await expect(page.getByRole("combobox", { name: "위젯 선택" })).toHaveValue("widget-4");
+    await expect(added.locator(".dashboard-widget-body")).toHaveAttribute("data-selected", "true");
 
-    await page.getByRole("button", { name: "선택 위젯 수정" }).click();
+    await added.getByRole("button", { name: "신규 지표 수정" }).click();
     const editDialog = page.getByRole("dialog", { name: "위젯 수정" });
     await editDialog.getByLabel("위젯명").fill("취소할 이름");
     await editDialog.getByLabel("값").fill("취소할 값");
@@ -180,62 +166,48 @@ test.describe("Widget Playground", () => {
     await expect(added).toContainText("신규 지표");
     await expect(added).toContainText("42");
 
-    await page.getByRole("button", { name: "선택 위젯 수정" }).click();
+    await added.getByRole("button", { name: "신규 지표 수정" }).click();
     await editDialog.getByLabel("위젯명").fill("전환 지표");
     await editDialog.getByLabel("값").fill("84");
     await editDialog.getByRole("button", { name: "변경 저장" }).click();
 
     await expect(added).toContainText("전환 지표");
     await expect(added).toContainText("84");
-    const state = await readWidgetState(page);
-    expect(state.widgets).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "widget-4", title: "전환 지표", data: expect.objectContaining({ value: "84" }) }),
-      ]),
-    );
   });
 
   test("selects the first remaining widget after delete and disables controls after clear", async ({ page }) => {
-    const selection = page.getByRole("combobox", { name: "위젯 선택" });
-    await selection.selectOption("orders");
-    await page.getByRole("button", { name: "주문 삭제" }).click();
-
-    await expect(page.getByTestId("dashboard-widget-orders")).toBeHidden();
-    await expect(selection).toHaveValue("sales");
-    await expect(page.locator('[data-example-mode="widget"] [role="status"]')).toContainText("매출 위젯을 선택했습니다.");
-
-    await selection.selectOption("traffic");
+    const secondWidget = page.getByTestId("dashboard-widget-widget-2");
+    await secondWidget.locator(".dashboard-widget-body").click();
     await page.getByRole("button", { name: "선택 위젯 삭제" }).click();
-    await expect(page.getByTestId("dashboard-widget-traffic")).toBeHidden();
-    await expect(selection).toHaveValue("sales");
+    await expect(secondWidget).toBeHidden();
+    await expect(page.getByTestId("dashboard-widget-widget-1").locator(".dashboard-widget-body")).toHaveAttribute("data-selected", "true");
 
     await page.getByRole("button", { name: "전체 삭제" }).click();
     await expect(page.locator(".grid-stack-item")).toHaveCount(0);
-    await expect(selection).toBeDisabled();
-    await expect(page.getByRole("button", { name: "선택 위젯 수정" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "선택 위젯 삭제" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "이동 잠금" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "리사이즈 잠금" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "전체 잠금" })).toBeDisabled();
-    await expect(page.locator('[data-example-mode="widget"] [role="status"]')).toContainText("선택할 위젯이 없습니다.");
+    await expect(page.getByText("위젯 0개", { exact: true })).toBeVisible();
   });
 
-  test("selects the first remaining widget when a different widget is deleted from its header", async ({ page }) => {
-    const selection = page.getByRole("combobox", { name: "위젯 선택" });
-    await selection.selectOption("traffic");
-    await page.getByRole("button", { name: "주문 삭제" }).click();
+  test("keeps the selected widget when a different widget is deleted from its header", async ({ page }) => {
+    const selectedBody = page.getByTestId("dashboard-widget-widget-2").locator(".dashboard-widget-body");
+    await selectedBody.click();
+    await page.getByTestId("dashboard-widget-widget-3").getByRole("button", { name: "위젯 3 삭제" }).click();
 
-    await expect(page.getByTestId("dashboard-widget-orders")).toBeHidden();
-    await expect(selection).toHaveValue("sales");
-    await expect(page.locator('[data-example-mode="widget"] [role="status"]')).toContainText("매출 위젯을 선택했습니다.");
+    await expect(page.getByTestId("dashboard-widget-widget-3")).toBeHidden();
+    await expect(selectedBody).toHaveAttribute("data-selected", "true");
   });
 
   test("prevents and then permits a real drag through the move lock", async ({ page }) => {
-    const widget = page.getByTestId("dashboard-widget-sales");
-    const moveLock = page.getByRole("button", { name: "이동 잠금" });
-    const resizeLock = page.getByRole("button", { name: "리사이즈 잠금" });
+    const widget = page.getByTestId("dashboard-widget-widget-1");
+    const interactionActions = page.locator(".example-interaction-actions");
+    const moveLock = interactionActions.getByRole("button").nth(0);
+    const resizeLock = interactionActions.getByRole("button").nth(1);
 
     await moveLock.click();
+    await expect(moveLock).toHaveAccessibleName("이동 잠금 해제");
     await expect(moveLock).toHaveAttribute("aria-pressed", "true");
     await expect(resizeLock).toHaveAttribute("aria-pressed", "false");
     const lockedLayout = await readWidgetLayout(widget);
@@ -247,6 +219,7 @@ test.describe("Widget Playground", () => {
     await expect.poll(() => readWidgetLayout(widget)).toEqual(lockedLayout);
 
     await moveLock.click();
+    await expect(moveLock).toHaveAccessibleName("이동 잠금");
     await expect(moveLock).toHaveAttribute("aria-pressed", "false");
     await dragWidget(page, widget, widgetBox.width, 0);
     await expect.poll(async () => {
@@ -256,11 +229,13 @@ test.describe("Widget Playground", () => {
   });
 
   test("prevents and then permits a real resize through the resize lock", async ({ page }) => {
-    const widget = page.getByTestId("dashboard-widget-sales");
-    const moveLock = page.getByRole("button", { name: "이동 잠금" });
-    const resizeLock = page.getByRole("button", { name: "리사이즈 잠금" });
+    const widget = page.getByTestId("dashboard-widget-widget-1");
+    const interactionActions = page.locator(".example-interaction-actions");
+    const moveLock = interactionActions.getByRole("button").nth(0);
+    const resizeLock = interactionActions.getByRole("button").nth(1);
 
     await resizeLock.click();
+    await expect(resizeLock).toHaveAccessibleName("리사이즈 잠금 해제");
     await expect(resizeLock).toHaveAttribute("aria-pressed", "true");
     await expect(moveLock).toHaveAttribute("aria-pressed", "false");
     const lockedLayout = await readWidgetLayout(widget);
@@ -268,6 +243,7 @@ test.describe("Widget Playground", () => {
     await expect.poll(() => readWidgetLayout(widget)).toEqual(lockedLayout);
 
     await resizeLock.click();
+    await expect(resizeLock).toHaveAccessibleName("리사이즈 잠금");
     await expect(resizeLock).toHaveAttribute("aria-pressed", "false");
     await resizeWidget(page, widget, 140, 100);
     await expect.poll(async () => {
@@ -277,27 +253,25 @@ test.describe("Widget Playground", () => {
   });
 
   test("uses the actual full-lock state as the pressed-state and interaction precedence", async ({ page }) => {
-    const widget = page.getByTestId("dashboard-widget-sales");
-    const fullLock = page.getByRole("button", { name: "전체 잠금" });
-    const moveLock = page.getByRole("button", { name: "이동 잠금" });
-    const resizeLock = page.getByRole("button", { name: "리사이즈 잠금" });
+    const widget = page.getByTestId("dashboard-widget-widget-1");
+    const interactionActions = page.locator(".example-interaction-actions");
+    const moveLock = interactionActions.getByRole("button").nth(0);
+    const resizeLock = interactionActions.getByRole("button").nth(1);
+    const fullLock = interactionActions.getByRole("button").nth(2);
 
     await fullLock.click();
+    await expect(fullLock).toHaveAccessibleName("전체 잠금 해제");
     await expect(fullLock).toHaveAttribute("aria-pressed", "true");
     await expect(moveLock).toHaveAttribute("aria-pressed", "true");
     await expect(resizeLock).toHaveAttribute("aria-pressed", "true");
-    let state = await readWidgetState(page);
-    expect(state.widgets?.find((candidate) => candidate.id === "sales")?.locked).toBe(true);
-
     const lockedLayout = await readWidgetLayout(widget);
     await dragWidget(page, widget, 0, 220);
     await resizeWidget(page, widget, 140, 100);
     await expect.poll(() => readWidgetLayout(widget)).toEqual(lockedLayout);
 
     await fullLock.click();
+    await expect(fullLock).toHaveAccessibleName("전체 잠금");
     await expect(fullLock).toHaveAttribute("aria-pressed", "false");
-    state = await readWidgetState(page);
-    expect(state.widgets?.find((candidate) => candidate.id === "sales")?.locked).toBe(false);
   });
 
   test("preserves Advanced control ownership and first-widget fallback", async ({ page }) => {
@@ -325,8 +299,8 @@ test.describe("Layout Playground", () => {
     const addDialog = page.getByRole("dialog", { name: "위젯 추가" });
     await addDialog.getByLabel("위젯명").fill("Layout KPI");
     await addDialog.getByLabel("값").fill("120");
-    await addDialog.getByLabel("새 위젯 너비").selectOption("3");
-    await addDialog.getByLabel("새 위젯 높이").selectOption("2");
+    await addDialog.getByLabel("너비").selectOption("3");
+    await addDialog.getByLabel("높이").selectOption("2");
     await addDialog.getByRole("button", { name: "위젯 저장" }).click();
 
     const added = page.getByTestId("dashboard-widget-widget-5");
