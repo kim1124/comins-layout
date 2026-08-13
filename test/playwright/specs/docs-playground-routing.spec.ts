@@ -77,6 +77,30 @@ test.describe("gridstack docs playground routing", () => {
     expect(columnChildBox!.x).toBe(childBox!.x);
   });
 
+  test("marks exactly one current navigation link for every canonical docs route", async ({ page }) => {
+    const routes = [
+      { label: "시작하기", path: "/docs/getting-started" },
+      { label: "위젯", path: "/examples/widget" },
+      { label: "저장·복원", path: "/examples/layout" },
+      { label: "동적 컬럼", path: "/examples/layout/columns" },
+      { label: "반응형·엔진 옵션", path: "/examples/advanced" },
+      { label: "API", path: "/api" },
+    ] as const;
+
+    for (const route of routes) {
+      await page.goto(route.path);
+      const currentLinks = page.getByRole("navigation", { name: "문서 메뉴" }).locator('a[aria-current="page"]');
+      await expect(currentLinks).toHaveCount(1);
+      await expect(currentLinks).toHaveText(route.label);
+    }
+
+    await page.goto("/examples/layout/columns");
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    const englishCurrentLinks = page.getByRole("navigation", { name: "Docs menu" }).locator('a[aria-current="page"]');
+    await expect(englishCurrentLinks).toHaveCount(1);
+    await expect(englishCurrentLinks).toHaveText("Dynamic columns");
+  });
+
   test("renders an integrated docs shell with one live playground for every example route", async ({ page }) => {
     await expectIntegratedPlayground(page, "/examples/widget", "위젯", "위젯");
     await expectIntegratedPlayground(page, "/examples/layout", "레이아웃", "저장·복원");

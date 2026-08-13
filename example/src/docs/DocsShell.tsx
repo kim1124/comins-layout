@@ -304,7 +304,7 @@ function DocsSidebar({ navGroups }: { navGroups: DocsNavGroup[] }) {
                 {section.label ? <h3>{section.label}</h3> : null}
                 <div className="docs-sidebar__links">
                   {section.pages.map((page) => (
-                    <NavLink className="docs-sidebar__link" key={page.path} to={page.path}>
+                    <NavLink className="docs-sidebar__link" end key={page.path} to={page.path}>
                       {page.label}
                     </NavLink>
                   ))}
