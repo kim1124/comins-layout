@@ -37,13 +37,18 @@ async function readGridInteractionState(widget: Locator) {
     };
     const grid = gridElement?.gridstack;
     const node = gridItem.gridstackNode;
+    const serializeBoolean = (value: boolean | undefined) => (
+      typeof value === "boolean"
+        ? { kind: "boolean" as const, value }
+        : { kind: "undefined" as const }
+    );
 
     return {
-      disableDrag: grid?.opts?.disableDrag === true,
-      disableResize: grid?.opts?.disableResize === true,
+      disableDrag: serializeBoolean(grid?.opts?.disableDrag),
+      disableResize: serializeBoolean(grid?.opts?.disableResize),
       engineReady: Boolean(grid),
-      noMove: node?.noMove === true,
-      noResize: node?.noResize === true,
+      noMove: serializeBoolean(node?.noMove),
+      noResize: serializeBoolean(node?.noResize),
       widgetNodeReady: Boolean(node),
     };
   });
@@ -196,9 +201,9 @@ test("blocks move and delete until unlocked", async ({ page }) => {
   const movableWidget = page.getByTestId("dashboard-widget-sales");
   await page.getByRole("button", { name: "레이아웃 잠금", exact: true }).click();
   await expect.poll(() => readGridInteractionState(movableWidget)).toMatchObject({
-    disableDrag: true,
+    disableDrag: { kind: "boolean", value: true },
     engineReady: true,
-    noMove: true,
+    noMove: { kind: "boolean", value: true },
     widgetNodeReady: true,
   });
   await expect(movableWidget.locator(".grid-stack-item-content")).toHaveCSS("cursor", "default");
@@ -212,9 +217,9 @@ test("blocks move and delete until unlocked", async ({ page }) => {
 
   await page.getByRole("button", { name: "레이아웃 잠금 해제", exact: true }).click();
   await expect.poll(() => readGridInteractionState(movableWidget)).toMatchObject({
-    disableDrag: false,
+    disableDrag: { kind: "undefined" },
     engineReady: true,
-    noMove: false,
+    noMove: { kind: "undefined" },
     widgetNodeReady: true,
   });
 
@@ -235,9 +240,9 @@ test("blocks resize until unlocked", async ({ page }) => {
   const resizableWidget = page.getByTestId("dashboard-widget-traffic");
   await page.getByRole("button", { name: "레이아웃 잠금", exact: true }).click();
   await expect.poll(() => readGridInteractionState(resizableWidget)).toMatchObject({
-    disableResize: true,
+    disableResize: { kind: "boolean", value: true },
     engineReady: true,
-    noResize: true,
+    noResize: { kind: "boolean", value: true },
     widgetNodeReady: true,
   });
 
@@ -253,9 +258,9 @@ test("blocks resize until unlocked", async ({ page }) => {
 
   await page.getByRole("button", { name: "레이아웃 잠금 해제", exact: true }).click();
   await expect.poll(() => readGridInteractionState(resizableWidget)).toMatchObject({
-    disableResize: false,
+    disableResize: { kind: "undefined" },
     engineReady: true,
-    noResize: false,
+    noResize: { kind: "undefined" },
     widgetNodeReady: true,
   });
   await resizableWidget.hover();
