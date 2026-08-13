@@ -3,9 +3,9 @@
 
 ## Scope
 
-- Comins Git boundary. Read closer `AGENTS.md`; use
-  [Governance](https://github.com/kim1124/comins-governance) for common rules.
-- KMSF is historical. Never commit `AGENTS.override.md`.
+- Comins Git boundary. Read `AGENTS.md`; use
+  [Governance](https://github.com/kim1124/comins-governance) for rules.
+- Keep KMSF historical; never commit `AGENTS.override.md`.
 
 ## Required Order
 
@@ -17,10 +17,11 @@
 - **Inspection or research:** report evidence only.
 - **Documentation or configuration:** direct edit and matching checks.
 - **Product behavior:** acceptance, smallest change, affected checks.
-- Plan only for high risk or ambiguity.
-- Skills and history must not expand the selected route.
+- Plan only for high-risk ambiguity.
+- General-purpose skills and historical plans must not expand the selected route
+  or trigger unrelated checks.
 - Subagents require explicit maintainer delegation or approved independent
-  parallel work. Never pass full history; use bounded briefs and exact paths.
+  parallel work. Never pass full history; use bounded briefs and paths.
 - Default: one final review and one required broad gate after the final change.
   Recheck affected failures; reuse unchanged evidence.
 
@@ -32,7 +33,7 @@
 - Remote writes, publishing, tags, Releases, policy exceptions, and destructive
   operations require explicit approval.
 - Name new Codex development branches `codex-<short-feature-name>`; append `-2`,
-  `-3`, and so on for additional work under the same representative feature.
+  `-3`, and so on for additional work under the same feature.
   Existing and provider-managed branches are exempt.
 
 ## Verification
