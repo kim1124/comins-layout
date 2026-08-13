@@ -103,10 +103,7 @@ it("exposes the current GridStack instance through a readonly property", () => {
   const element = <DashboardGrid ref={ref} widgets={widgets} renderWidget={() => null} />;
 
   expect(element.type).toBe(DashboardGrid);
-  if (ref.current) {
-    const instance: GridStack | null = ref.current.grid;
-    expect(instance).toBeDefined();
-  }
+  expectTypeOf<DashboardGridHandle["grid"]>().toEqualTypeOf<GridStack | null>();
 });
 ```
 
@@ -982,8 +979,10 @@ test("explains and changes supported engine options", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Float 해제" })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "정적 모드 사용" }).click();
   await expect(page.locator(".grid-stack")).toHaveClass(/grid-stack-static/);
+  const before = await page.locator(".grid-stack-item").first().boundingBox();
   await page.getByRole("combobox", { name: "셀 높이" }).selectOption("80");
-  await expect(page.locator(".grid-stack-item").first()).toHaveCSS("height", /.+/);
+  await expect.poll(async () => (await page.locator(".grid-stack-item").first().boundingBox())?.height)
+    .not.toBe(before?.height);
 });
 ```
 
