@@ -561,6 +561,54 @@ test("supports selector-significant widget IDs", async ({ page }) => {
   expect(diagnostics).toEqual([]);
 });
 
+test("keeps default widget actions when renderWidgetActions is omitted", async ({ page }, testInfo) => {
+  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Default header actions are hidden by the mobile readme-demo policy.");
+
+  await page.goto("/readme-demo");
+  await page.evaluate(() => window.__cominsReadmeDemo?.removeWidget("orders"));
+  await expect(page.getByTestId("dashboard-widget-orders")).toHaveCount(0);
+
+  const widget = page.getByTestId("dashboard-widget-overview");
+  const maximize = widget.getByRole("button", { name: "Overview Maximize" });
+  const minimize = widget.getByRole("button", { name: "Overview Minimize" });
+  const restore = widget.getByRole("button", { name: "Overview Restore" });
+  const remove = widget.getByRole("button", { name: "Overview Remove" });
+  const initialLayout = await readWidgetLayout(widget);
+  const readEngineLayout = () => widget.evaluate((element) => {
+    const node = (element as HTMLElement & {
+      gridstackNode?: { x?: number; y?: number; w?: number; h?: number };
+    }).gridstackNode;
+    return { x: node?.x, y: node?.y, w: node?.w, h: node?.h };
+  });
+
+  expect(initialLayout).toEqual({ x: 0, y: 0, w: 2, h: 2 });
+  await expect(widget.locator(".comins-grid-layout-widget__actions").getByRole("button")).toHaveCount(4);
+  for (const action of [maximize, minimize, restore, remove]) {
+    await expect(action).toBeVisible();
+  }
+
+  await maximize.click();
+  await expect(widget).toHaveAttribute("data-maximized", "true");
+  await expect(widget).toHaveAttribute("data-minimized", "false");
+  await expect.poll(() => readWidgetLayout(widget)).toEqual({ x: 0, y: 0, w: 6, h: 3 });
+  await expect.poll(readEngineLayout).toEqual({ x: 0, y: 0, w: 6, h: 3 });
+  await expect(maximize).toHaveAccessibleName("Overview Maximize");
+
+  await minimize.click();
+  await expect(widget).toHaveAttribute("data-maximized", "false");
+  await expect(widget).toHaveAttribute("data-minimized", "true");
+  await expect.poll(() => readWidgetLayout(widget)).toEqual({ x: 0, y: 0, w: 6, h: 1 });
+  await expect.poll(readEngineLayout).toEqual({ x: 0, y: 0, w: 6, h: 1 });
+  await expect(minimize).toHaveAccessibleName("Overview Minimize");
+
+  await restore.click();
+  await expect(widget).toHaveAttribute("data-maximized", "false");
+  await expect(widget).toHaveAttribute("data-minimized", "false");
+  await expect.poll(() => readWidgetLayout(widget)).toEqual(initialLayout);
+  await expect.poll(readEngineLayout).toEqual(initialLayout);
+  await expect(restore).toHaveAccessibleName("Overview Restore");
+});
+
 test("keeps 100 widgets stable through repeated column changes", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "chromium-resource", "Chrome CDP resource checks run in the isolated resource project only.");
   test.setTimeout(120_000);
