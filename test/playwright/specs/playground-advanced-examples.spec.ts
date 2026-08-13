@@ -94,4 +94,64 @@ test.describe("Advanced engine options", () => {
     await expect(page.getByRole("combobox", { name: "행 제한" })).toHaveValue("none");
     await expect(page.getByText(/상태:|사용 상태|활성 상태/)).toHaveCount(0);
   });
+
+  test("associates every engine control with distinct localized effect guidance", async ({ page }) => {
+    const koreanControls = [
+      { name: "Float 사용", phrase: "빈 행", role: "button" },
+      { name: "애니메이션 사용", phrase: "이동과 재배치", role: "button" },
+      { name: "정적 모드 사용", phrase: "이동과 크기 조절", role: "button" },
+      { name: "RTL 사용", phrase: "오른쪽", role: "button" },
+      { name: "콘텐츠 높이 사용", phrase: "고유 높이", role: "button" },
+      { name: "셀 높이", phrase: "한 행의 높이", role: "combobox" },
+      { name: "여백", phrase: "위젯 사이", role: "combobox" },
+      { name: "행 제한", phrase: "최소·최대", role: "combobox" },
+    ] as const;
+    const englishControls = [
+      { name: "Enable float", phrase: "empty rows", role: "button" },
+      { name: "Enable animation", phrase: "movement and rearrangement", role: "button" },
+      { name: "Enable static mode", phrase: "moving and resizing", role: "button" },
+      { name: "Enable RTL", phrase: "right edge", role: "button" },
+      { name: "Enable content height", phrase: "intrinsic height", role: "button" },
+      { name: "Cell height", phrase: "height of one row", role: "combobox" },
+      { name: "Margin", phrase: "between widgets", role: "combobox" },
+      { name: "Row limit", phrase: "minimum and maximum", role: "combobox" },
+    ] as const;
+
+    const expectDescriptions = async (controls: ReadonlyArray<{ name: string; phrase: string; role: "button" | "combobox" }>) => {
+      const descriptionIds = new Set<string>();
+      for (const control of controls) {
+        const locator = page.getByRole(control.role, { name: control.name });
+        const descriptionId = await locator.getAttribute("aria-describedby");
+        expect(descriptionId, `${control.name} description id`).toBeTruthy();
+        descriptionIds.add(descriptionId ?? "");
+        await expect(page.locator(`#${descriptionId}`)).toContainText(control.phrase);
+      }
+      expect(descriptionIds.size).toBe(controls.length);
+    };
+
+    await expectDescriptions(koreanControls);
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    await expectDescriptions(englishControls);
+  });
+
+  test("changes real vertical placement when Float is enabled", async ({ page }) => {
+    const alerts = page.getByTestId("dashboard-widget-alerts");
+    const packedY = Number(await alerts.getAttribute("gs-y"));
+
+    await page.getByRole("button", { name: "Float 사용" }).click();
+    await expect.poll(async () => Number(await alerts.getAttribute("gs-y"))).toBeGreaterThan(packedY);
+
+    await page.getByRole("button", { name: "Float 해제" }).click();
+    await expect.poll(async () => Number(await alerts.getAttribute("gs-y"))).toBe(packedY);
+  });
+
+  test("resizes a tall widget to its intrinsic content height", async ({ page }) => {
+    const target = page.getByTestId("dashboard-widget-alerts");
+    const before = await target.boundingBox();
+    expect(before).not.toBeNull();
+
+    await page.getByRole("button", { name: "콘텐츠 높이 사용" }).click();
+
+    await expect.poll(async () => (await target.boundingBox())?.height).toBeGreaterThan((before?.height ?? 0) + 40);
+  });
 });

@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 
 import { DashboardGrid, useDashboardGrid } from "../../../src";
 import type { DashboardGridEngineOptions, DashboardResponsiveOptions } from "../../../src";
-import { Select } from "../components/ui/select";
-import type { SelectOption } from "../components/ui/select";
 import { usePlaygroundLocale } from "../i18n/playground-locale";
 import { PlaygroundHeader, toggleStateProps } from "./components/DashboardPreview";
 import {
@@ -31,15 +29,52 @@ const responsiveOptions: DashboardResponsiveOptions = {
   breakpoints: [{ maxWidth: 900, columns: 6, layout: "moveScale" }],
 };
 
-function numericOptions(values: readonly number[]): SelectOption[] {
+type EngineSelectProps = {
+  description: string;
+  descriptionId: string;
+  id: string;
+  label: string;
+  options: ReadonlyArray<{ label: string; value: string }>;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function EngineSelect({ description, descriptionId, id, label, options, value, onChange }: EngineSelectProps) {
+  return (
+    <div className="playground-advanced-control">
+      <label className="example-select" htmlFor={id}>
+        <span>{label}</span>
+        <select
+          aria-describedby={descriptionId}
+          id={id}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
+        </select>
+      </label>
+      <p className="playground-advanced-control__description" id={descriptionId}>{description}</p>
+    </div>
+  );
+}
+
+function numericOptions(values: readonly number[]): Array<{ label: string; value: string }> {
   return values.map((value) => ({ label: String(value), value: String(value) }));
+}
+
+function createAdvancedEngineFixture() {
+  return createAdvancedPlaygroundFixture().map((widget) => widget.id === "alerts"
+    ? { ...widget, layout: { ...widget.layout, w: 4 } }
+    : widget);
 }
 
 export function AdvancedPlayground() {
   const { locale, text } = usePlaygroundLocale();
   const dashboard = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 12,
-    initialWidgets: createAdvancedPlaygroundFixture(),
+    initialWidgets: createAdvancedEngineFixture(),
   });
   const [responsiveEnabled, setResponsiveEnabled] = useState(false);
   const [floatEnabled, setFloatEnabled] = useState(false);
@@ -68,31 +103,51 @@ export function AdvancedPlayground() {
     value: key,
   }));
 
+  const toggleFloat = () => {
+    if (!floatEnabled) {
+      const floatProbe = dashboard.widgets.find(({ id }) => id === "alerts");
+      if (floatProbe) {
+        dashboard.commands.updateWidgetLayout(floatProbe.id, { ...floatProbe.layout, y: 4 });
+      }
+    }
+    setFloatEnabled((value) => !value);
+  };
+
   const toggles = [
     {
+      description: advancedPlaygroundCopy.descriptions.controls.float,
       enabled: floatEnabled,
+      key: "float",
       labels: advancedPlaygroundCopy.toggles.float,
-      setEnabled: setFloatEnabled,
+      toggle: toggleFloat,
     },
     {
+      description: advancedPlaygroundCopy.descriptions.controls.animate,
       enabled: animateEnabled,
+      key: "animate",
       labels: advancedPlaygroundCopy.toggles.animate,
-      setEnabled: setAnimateEnabled,
+      toggle: () => setAnimateEnabled((value) => !value),
     },
     {
+      description: advancedPlaygroundCopy.descriptions.controls.staticGrid,
       enabled: staticGridEnabled,
+      key: "static-grid",
       labels: advancedPlaygroundCopy.toggles.staticGrid,
-      setEnabled: setStaticGridEnabled,
+      toggle: () => setStaticGridEnabled((value) => !value),
     },
     {
+      description: advancedPlaygroundCopy.descriptions.controls.rtl,
       enabled: rtlEnabled,
+      key: "rtl",
       labels: advancedPlaygroundCopy.toggles.rtl,
-      setEnabled: setRtlEnabled,
+      toggle: () => setRtlEnabled((value) => !value),
     },
     {
+      description: advancedPlaygroundCopy.descriptions.controls.sizeToContent,
       enabled: sizeToContentEnabled,
+      key: "size-to-content",
       labels: advancedPlaygroundCopy.toggles.sizeToContent,
-      setEnabled: setSizeToContentEnabled,
+      toggle: () => setSizeToContentEnabled((value) => !value),
     },
   ] as const;
 
@@ -106,11 +161,12 @@ export function AdvancedPlayground() {
       <section aria-label={text(advancedPlaygroundCopy.controls)} className="playground-controls playground-advanced-controls">
         <section aria-label={text(advancedPlaygroundCopy.groups.responsive)} className="example-control-group">
           <h2>{text(advancedPlaygroundCopy.headings.responsive)}</h2>
-          <p className="example-control-description">{text(advancedPlaygroundCopy.descriptions.responsive)}</p>
+          <p className="example-control-description" id="advanced-responsive-description">{text(advancedPlaygroundCopy.descriptions.responsive)}</p>
           <div className="example-actions">
             <button
               className="example-toggle-button"
               type="button"
+              aria-describedby="advanced-responsive-description"
               onClick={() => setResponsiveEnabled((value) => !value)}
               {...toggleStateProps(responsiveEnabled)}
             >
@@ -124,21 +180,27 @@ export function AdvancedPlayground() {
           <p className="example-control-description">{text(advancedPlaygroundCopy.descriptions.engine)}</p>
           <div className="playground-advanced-options">
             <div className="example-actions">
-              <Select
+              <EngineSelect
+                description={text(advancedPlaygroundCopy.descriptions.controls.cellHeight)}
+                descriptionId="advanced-cell-height-description"
                 id="advanced-cell-height"
                 label={text(advancedPlaygroundCopy.selects.cellHeight)}
                 options={numericOptions(cellHeights)}
                 value={String(cellHeight)}
                 onChange={(value) => setCellHeight(Number(value) as (typeof cellHeights)[number])}
               />
-              <Select
+              <EngineSelect
+                description={text(advancedPlaygroundCopy.descriptions.controls.margin)}
+                descriptionId="advanced-margin-description"
                 id="advanced-margin"
                 label={text(advancedPlaygroundCopy.selects.margin)}
                 options={numericOptions(margins)}
                 value={String(margin)}
                 onChange={(value) => setMargin(Number(value) as (typeof margins)[number])}
               />
-              <Select
+              <EngineSelect
+                description={text(advancedPlaygroundCopy.descriptions.controls.rowLimit)}
+                descriptionId="advanced-row-limit-description"
                 id="advanced-row-limit"
                 label={text(advancedPlaygroundCopy.selects.rowLimit)}
                 options={rowLimitOptions}
@@ -147,16 +209,21 @@ export function AdvancedPlayground() {
               />
             </div>
             <div className="example-actions">
-              {toggles.map(({ enabled, labels, setEnabled }) => (
-                <button
-                  className="example-toggle-button"
-                  key={text(labels.enable)}
-                  type="button"
-                  onClick={() => setEnabled((value) => !value)}
-                  {...toggleStateProps(enabled)}
-                >
-                  {text(enabled ? labels.disable : labels.enable)}
-                </button>
+              {toggles.map(({ description, enabled, key, labels, toggle }) => (
+                <div className="playground-advanced-control" key={key}>
+                  <button
+                    aria-describedby={`advanced-${key}-description`}
+                    className="example-toggle-button"
+                    type="button"
+                    onClick={toggle}
+                    {...toggleStateProps(enabled)}
+                  >
+                    {text(enabled ? labels.disable : labels.enable)}
+                  </button>
+                  <p className="playground-advanced-control__description" id={`advanced-${key}-description`}>
+                    {text(description)}
+                  </p>
+                </div>
               ))}
             </div>
           </div>
@@ -169,6 +236,7 @@ export function AdvancedPlayground() {
         </p>
         <DashboardGrid
           actionLabels={resolveDashboardActionLabels(locale)}
+          className={sizeToContentEnabled ? "playground-advanced-grid--size-to-content" : undefined}
           columns={dashboard.columns}
           engineOptions={engineOptions}
           responsive={responsiveEnabled ? responsiveOptions : undefined}
@@ -180,6 +248,11 @@ export function AdvancedPlayground() {
             <div className="dashboard-widget-body">
               <span>{widget.data?.description}</span>
               <strong>{widget.data?.value}</strong>
+              {widget.id === "alerts" ? (
+                <div className="playground-advanced-size-probe" data-testid="advanced-size-content-probe">
+                  {advancedPlaygroundCopy.sizeToContentProbe.map((line) => <span key={line.ko}>{text(line)}</span>)}
+                </div>
+              ) : null}
             </div>
           )}
         />

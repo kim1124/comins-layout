@@ -234,6 +234,40 @@ export const advancedPlaygroundCopy = {
     widgets: defineLocalizedText("제어 위젯", "Controlled widgets"),
   },
   descriptions: {
+    controls: {
+      animate: defineLocalizedText(
+        "위젯 이동과 재배치에 전환 효과를 적용합니다. 정적 모드에서는 상호작용 애니메이션을 확인할 수 없습니다.",
+        "Applies transitions to widget movement and rearrangement. Interaction animation is not visible in static mode.",
+      ),
+      cellHeight: defineLocalizedText(
+        "Grid 한 행의 높이를 60, 80 또는 100px로 변경하며 위젯의 전체 높이는 행 수에 따라 함께 변합니다.",
+        "Changes the height of one row to 60, 80, or 100px, so widget height scales with its row span.",
+      ),
+      float: defineLocalizedText(
+        "Float를 사용하면 위젯이 빈 행 위에 현재 세로 위치를 유지할 수 있습니다. 해제하면 빈 공간을 위쪽부터 채웁니다.",
+        "Float lets widgets keep their vertical position above empty rows. Disabling it packs empty rows from the top.",
+      ),
+      margin: defineLocalizedText(
+        "위젯 사이 여백을 4, 8 또는 12px로 변경합니다. Grid 외곽이 아니라 각 위젯 콘텐츠의 간격에 적용됩니다.",
+        "Changes spacing between widgets to 4, 8, or 12px. It affects widget content gaps, not the outer Grid edge.",
+      ),
+      rowLimit: defineLocalizedText(
+        "Grid의 최소·최대 행을 유효한 쌍으로 제한합니다. 제한 없음은 0/0이며 다른 preset은 resize 하한과 상한을 함께 적용합니다.",
+        "Constrains the Grid minimum and maximum rows as a valid pair. No limit is 0/0; other presets apply resize minimum and maximum together.",
+      ),
+      rtl: defineLocalizedText(
+        "수평 배치 기준을 오른쪽 가장자리로 전환합니다. 세로 좌표와 컬럼 수는 변경하지 않습니다.",
+        "Moves the horizontal layout origin to the right edge without changing vertical coordinates or column count.",
+      ),
+      sizeToContent: defineLocalizedText(
+        "위젯을 내부 콘텐츠의 고유 높이에 맞춰 늘립니다. 콘텐츠가 현재 셀 높이를 넘을 때만 행 수가 증가합니다.",
+        "Expands widgets to their content's intrinsic height. Row count grows only when content exceeds the current cell height.",
+      ),
+      staticGrid: defineLocalizedText(
+        "모든 위젯 이동과 크기 조절을 막습니다. 옵션을 해제하면 기존 상호작용이 다시 활성화됩니다.",
+        "Blocks all widget moving and resizing. Disabling the option restores the existing interactions.",
+      ),
+    },
     engine: defineLocalizedText(
       "GridStack의 배치, 렌더링과 상호작용 옵션을 변경합니다.",
       "Change GridStack layout, rendering, and interaction options.",
@@ -287,6 +321,13 @@ export const advancedPlaygroundCopy = {
     { key: "none", label: defineLocalizedText("제한 없음", "No limit") },
     { key: "two-eight", label: defineLocalizedText("2–8행", "Rows 2–8") },
     { key: "four-twelve", label: defineLocalizedText("4–12행", "Rows 4–12") },
+  ],
+  sizeToContentProbe: [
+    defineLocalizedText("콘텐츠 높이 측정 기준", "Intrinsic content height probe"),
+    defineLocalizedText("첫 번째 상세 행", "First detail row"),
+    defineLocalizedText("두 번째 상세 행", "Second detail row"),
+    defineLocalizedText("세 번째 상세 행", "Third detail row"),
+    defineLocalizedText("네 번째 상세 행", "Fourth detail row"),
   ],
   externalDrop: {
     description: defineLocalizedText("드래그한 위젯을 여기에 놓으세요.", "Drop a dragged widget here."),

@@ -1167,6 +1167,44 @@ button.dashboard-widget-body[data-selected="true"] {
   gap: 12px;
 }
 
+.playground-advanced-control {
+  align-content: start;
+  display: grid;
+  flex: 1 1 210px;
+  gap: 5px;
+  min-width: 0;
+}
+
+.playground-advanced-control .example-select {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.playground-advanced-control__description {
+  color: #52645f;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.playground-advanced-size-probe {
+  display: grid;
+  gap: 8px;
+  min-height: 190px;
+}
+
+.playground-advanced-grid--size-to-content .grid-stack-item-content {
+  align-items: flex-start;
+  overflow: visible;
+}
+
+.playground-advanced-grid--size-to-content .comins-grid-layout-widget {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
 .playground-layout-toolbar {
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -1295,6 +1333,7 @@ button.dashboard-widget-body[data-selected="true"] {
   }
 
   .playground-controls .example-actions > button,
+  .playground-controls .playground-advanced-control > button,
   .playground-controls .example-select,
   .playground-controls .example-select select,
   .playground-controls .example-input,
