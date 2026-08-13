@@ -6,12 +6,13 @@ async function expectIntegratedPlayground(
   page: Page,
   path: "/examples/widget" | "/examples/layout" | "/examples/advanced",
   heading: "위젯" | "레이아웃" | "고급 예제",
+  navLabel: "위젯" | "저장·복원" | "반응형·엔진 옵션",
 ) {
   await page.goto(path);
 
   const navigation = page.getByRole("navigation", { name: "문서 메뉴" });
   await expect(navigation).toBeVisible();
-  await expect(navigation.getByRole("link", { name: heading })).toHaveAttribute("aria-current", "page");
+  await expect(navigation.getByRole("link", { name: navLabel })).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("searchbox", { name: "전체 문서 검색" })).toBeVisible();
   await expect(page.locator(".docs-code")).not.toHaveCount(0);
   await expect(page.locator(".docs-live .playground-workspace")).toHaveCount(1);
@@ -41,21 +42,31 @@ test.describe("gridstack docs playground routing", () => {
 
     const navigation = page.getByRole("navigation", { name: "문서 메뉴" });
     await expect(navigation.getByRole("link", { name: "위젯" })).toHaveAttribute("href", "/examples/widget");
-    await expect(navigation.getByRole("link", { name: "레이아웃" })).toHaveAttribute("href", "/examples/layout");
-    await expect(navigation.getByRole("link", { name: "고급 예제" })).toHaveAttribute("href", "/examples/advanced");
+    await expect(navigation.getByRole("link", { name: "저장·복원" })).toHaveAttribute("href", "/examples/layout");
+    await expect(navigation.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
     await expect(navigation.getByRole("link", { name: "추가 / 삭제" })).toHaveCount(0);
     await expect(navigation.getByRole("link", { name: "종합 예제" })).toHaveCount(0);
 
-    await navigation.getByRole("link", { name: "고급 예제" }).click();
+    await navigation.getByRole("link", { name: "반응형·엔진 옵션" }).click();
 
     await expect(page).toHaveURL(/\/examples\/advanced$/);
-    await expect(page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "고급 예제" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("aria-current", "page");
+  });
+
+  test("groups Layout and Advanced links without hiding child routes", async ({ page }) => {
+    await page.goto("/examples/widget");
+
+    const nav = page.getByRole("navigation", { name: "문서 메뉴" });
+    await expect(nav.getByText("레이아웃", { exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "저장·복원" })).toHaveAttribute("href", "/examples/layout");
+    await expect(nav.getByText("고급 예제", { exact: true })).toBeVisible();
+    await expect(nav.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
   });
 
   test("renders an integrated docs shell with one live playground for every example route", async ({ page }) => {
-    await expectIntegratedPlayground(page, "/examples/widget", "위젯");
-    await expectIntegratedPlayground(page, "/examples/layout", "레이아웃");
-    await expectIntegratedPlayground(page, "/examples/advanced", "고급 예제");
+    await expectIntegratedPlayground(page, "/examples/widget", "위젯", "위젯");
+    await expectIntegratedPlayground(page, "/examples/layout", "레이아웃", "저장·복원");
+    await expectIntegratedPlayground(page, "/examples/advanced", "고급 예제", "반응형·엔진 옵션");
   });
 
   test("keeps the getting started and API pages in the docs shell", async ({ page }) => {
@@ -159,7 +170,7 @@ test.describe("gridstack docs playground routing", () => {
     await page.evaluate(() => {
       window.__cominsGridLayoutLastUnmount = undefined;
     });
-    await page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "레이아웃" }).click();
+    await page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "저장·복원" }).click();
 
     await expect(page).toHaveURL(/\/examples\/layout$/);
     await expect

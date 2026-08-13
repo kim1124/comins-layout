@@ -493,7 +493,8 @@ const localizedDocsPages: LocalizedDocsPage[] = [
         title: text("레이아웃 잠금 / 해제", "Lock and unlock layout"),
       },
     ],
-    label: text("레이아웃", "Layout"),
+    label: text("저장·복원", "Save and restore"),
+    navParent: text("레이아웃", "Layout"),
     path: "/examples/layout",
     summary: text("저장/복원, column 변경, 전체 잠금 흐름입니다.", "Save/restore, column changes, and whole-layout locking."),
     title: text("레이아웃", "Layout"),
@@ -508,7 +509,8 @@ const localizedDocsPages: LocalizedDocsPage[] = [
         title: text("고급 제어 예제", "Advanced controlled example"),
       },
     ],
-    label: text("고급 예제", "Advanced example"),
+    label: text("반응형·엔진 옵션", "Responsive and engine options"),
+    navParent: text("고급 예제", "Advanced examples"),
     path: "/examples/advanced",
     summary: text("responsive, handle, external drop, 전체 상태 cache 흐름입니다.", "Responsive, handle, external drop, and complete state cache flow."),
     title: text("고급 예제", "Advanced example"),
@@ -569,6 +571,7 @@ export function createDocsContent(locale: PlaygroundLocale) {
     category: resolveLocalizedText(page.category, locale),
     examples: page.examples.map((example) => resolveExample(example, locale)),
     label: resolveLocalizedText(page.label, locale),
+    navParent: page.navParent ? resolveLocalizedText(page.navParent, locale) : undefined,
     summary: resolveLocalizedText(page.summary, locale),
     title: resolveLocalizedText(page.title, locale),
   }));
@@ -580,11 +583,16 @@ export function createDocsNavGroups(pages: DocsPage[]): DocsNavGroup[] {
   return pages.reduce<DocsNavGroup[]>((groups, page) => {
     const group = groups.find((item) => item.category === page.category);
     if (group) {
-      group.pages.push(page);
+      const section = group.sections.find((item) => item.label === page.navParent);
+      if (section) {
+        section.pages.push(page);
+      } else {
+        group.sections.push({ label: page.navParent, pages: [page] });
+      }
       return groups;
     }
 
-    groups.push({ category: page.category, pages: [page] });
+    groups.push({ category: page.category, sections: [{ label: page.navParent, pages: [page] }] });
     return groups;
   }, []);
 }

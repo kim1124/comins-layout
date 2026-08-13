@@ -20,7 +20,7 @@ test("persists an English locale chosen from the default Korean UI across reload
   const localeToggle = page.getByTestId("playground-locale-toggle");
 
   await expect(page.locator("html")).toHaveAttribute("lang", "ko");
-  await expect(localeToggle.getByRole("button", { name: "KO" })).toHaveAttribute("aria-pressed", "true");
+  await expect(localeToggle.getByRole("button", { name: "한" })).toHaveAttribute("aria-pressed", "true");
 
   await localeToggle.getByRole("button", { name: "EN" }).click();
   await expect.poll(
@@ -31,7 +31,7 @@ test("persists an English locale chosen from the default Korean UI across reload
 
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(localeToggle.getByRole("button", { name: "EN" })).toHaveAttribute("aria-pressed", "true");
-  await expect(localeToggle.getByRole("button", { name: "KO" })).toHaveAttribute("aria-pressed", "false");
+  await expect(localeToggle.getByRole("button", { name: "한" })).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByRole("article").getByRole("heading", { name: "Getting started" })).toBeVisible();
   await expect(page.getByRole("searchbox", { name: "Search all docs" })).toBeVisible();
 });
@@ -67,10 +67,21 @@ test("keeps the in-memory locale when locale storage writes throw", async ({ pag
     };
   });
 
-  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "KO" }).click();
-
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "한" }).click();
   await expect(page.locator("html")).toHaveAttribute("lang", "ko");
   await expect(page.getByRole("article").getByRole("heading", { name: "시작하기" })).toBeVisible();
+});
+
+test("places the locale toggle immediately left of search", async ({ page }) => {
+  await page.goto("/docs/getting-started");
+
+  await expect(page.getByTestId("playground-locale-toggle").getByRole("button", { name: "한" }))
+    .toHaveAttribute("aria-pressed", "true");
+  const locale = await page.getByTestId("playground-locale-toggle").boundingBox();
+  const search = await page.getByRole("searchbox", { name: "전체 문서 검색" }).boundingBox();
+  expect(locale).not.toBeNull();
+  expect(search).not.toBeNull();
+  expect(locale!.x + locale!.width).toBeLessThanOrEqual(search!.x);
 });
 
 test("searches resolved docs copy for each locale", async ({ page }) => {
@@ -428,7 +439,7 @@ test("uses fixture presentation until an edited Widget has user-owned data", asy
   await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("사용자 트래픽");
   await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("사용자 값");
 
-  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "KO" }).click();
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "한" }).click();
   await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
 
   await expect(page.getByTestId("dashboard-widget-traffic")).toContainText("사용자 트래픽");
@@ -450,12 +461,15 @@ test("keeps Layout JSON draft data while its shared labels change locale", async
 test("localizes shared fallback CRUD generated add copy in Layout and Advanced", async ({ page }) => {
   await initializePlaygroundLocale(page, "en");
 
-  for (const route of ["/examples/layout", "/examples/advanced"]) {
-    await page.goto(route);
+  for (const fixture of [
+    { addedId: "widget-7", defaultTitle: "Widget 7", route: "/examples/layout" },
+    { addedId: "widget-5", defaultTitle: "Widget 5", route: "/examples/advanced" },
+  ] as const) {
+    await page.goto(fixture.route);
     await page.getByRole("button", { name: "Add widget" }).click();
 
     let dialog = page.getByRole("dialog", { name: "Add widget" });
-    await expect(dialog.getByLabel("Widget name")).toHaveValue("Widget 5");
+    await expect(dialog.getByLabel("Widget name")).toHaveValue(fixture.defaultTitle);
     await dialog.getByLabel("Widget name").fill("사용자 생성 제목");
     await dialog.getByLabel("Value").fill("사용자 생성 값");
     await dialog.getByTestId("dialog-locale-toggle").getByRole("button", { name: "KO" }).click();
@@ -467,12 +481,12 @@ test("localizes shared fallback CRUD generated add copy in Layout and Advanced",
 
     dialog = page.getByRole("dialog", { name: "Add widget" });
     await dialog.getByRole("button", { name: "Save widget" }).click();
-    const added = page.getByTestId("dashboard-widget-widget-5");
+    const added = page.getByTestId(`dashboard-widget-${fixture.addedId}`);
     await expect(added).toContainText("New dashboard widget");
     await expect(added).toContainText("사용자 생성 제목");
     await expect(added).toContainText("사용자 생성 값");
 
-    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "KO" }).click();
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "한" }).click();
     await expect(added).toContainText("새 대시보드 위젯");
     await expect(added).toContainText("사용자 생성 제목");
     await expect(added).toContainText("사용자 생성 값");
@@ -506,7 +520,7 @@ test("localizes shared fallback CRUD fixture edits in Layout", async ({ page }) 
   });
   expect(state.widgets.find((widget) => widget.id === "traffic")?.data).not.toHaveProperty("fixtureCopyKey");
 
-  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "KO" }).click();
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "한" }).click();
   await expect(traffic).toContainText("수정된 대시보드 위젯");
   await expect(traffic).toContainText("사용자 수정 제목");
   await expect(traffic).toContainText("사용자 수정 값");

@@ -34,6 +34,7 @@ export type DocsPage = {
   category: string;
   examples: DocsExampleCase[];
   label: string;
+  navParent?: string;
   path: string;
   summary: string;
   title: string;
@@ -44,14 +45,20 @@ export type LocalizedDocsPage = {
   category: LocalizedText;
   examples: LocalizedDocsExampleCase[];
   label: LocalizedText;
+  navParent?: LocalizedText;
   path: string;
   summary: LocalizedText;
   title: LocalizedText;
 };
 
+export type DocsNavSection = {
+  label?: string;
+  pages: DocsPage[];
+};
+
 export type DocsNavGroup = {
   category: string;
-  pages: DocsPage[];
+  sections: DocsNavSection[];
 };
 
 export type ApiPropEntry = {

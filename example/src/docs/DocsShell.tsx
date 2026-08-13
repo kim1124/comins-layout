@@ -174,9 +174,11 @@ function DocsTopNav({ pages }: { pages: DocsPage[] }) {
         <p className="docs-topnav__eyebrow">Comins Playground</p>
         <h1>comins-grid-layout</h1>
       </div>
-      <GlobalDocsSearch pages={pages} />
-      <div aria-label={text(playgroundMessages.localeToggle)} data-testid="playground-locale-toggle" role="group">
-        <LocaleToggle />
+      <div className="docs-topnav__controls">
+        <div aria-label={text(playgroundMessages.localeToggle)} data-testid="playground-locale-toggle" role="group">
+          <LocaleToggle />
+        </div>
+        <GlobalDocsSearch pages={pages} />
       </div>
     </header>
   );
@@ -188,7 +190,7 @@ function LocaleToggle() {
   return (
     <>
       <button aria-pressed={locale === "ko"} type="button" onClick={() => setLocale("ko")}>
-        KO
+        한
       </button>
       <button aria-pressed={locale === "en"} type="button" onClick={() => setLocale("en")}>
         EN
@@ -296,13 +298,18 @@ function DocsSidebar({ navGroups }: { navGroups: DocsNavGroup[] }) {
         {navGroups.map((group) => (
           <section className="docs-sidebar__group" key={group.category}>
             <h2>{group.category}</h2>
-            <div className="docs-sidebar__links">
-              {group.pages.map((page) => (
-                <NavLink className="docs-sidebar__link" key={page.path} to={page.path}>
-                  {page.label}
-                </NavLink>
-              ))}
-            </div>
+            {group.sections.map((section, index) => (
+              <div className="docs-sidebar__section" key={`${section.label ?? "root"}-${index}`}>
+                {section.label ? <h3>{section.label}</h3> : null}
+                <div className="docs-sidebar__links">
+                  {section.pages.map((page) => (
+                    <NavLink className="docs-sidebar__link" key={page.path} to={page.path}>
+                      {page.label}
+                    </NavLink>
+                  ))}
+                </div>
+              </div>
+            ))}
           </section>
         ))}
       </nav>
