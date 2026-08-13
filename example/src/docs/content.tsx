@@ -78,6 +78,18 @@ const advancedEngineSample = `<DashboardGrid
   widgets={dashboard.widgets}
 />`;
 
+const safeHandleSample = `const layoutRef = useRef<DashboardGridHandle>(null);
+
+<DashboardGrid ref={layoutRef} />;
+
+layoutRef.current?.refresh();
+layoutRef.current?.compact();
+layoutRef.current?.commitLayout();`;
+
+const officialGridStackHandleSample = `layoutRef.current?.grid?.getColumn();
+layoutRef.current?.grid?.getRow();
+layoutRef.current?.grid?.cellHeight(80);`;
+
 const componentApiSample = `import { DashboardGrid } from "comins-grid-layout";
 
 <DashboardGrid
@@ -580,6 +592,31 @@ const localizedDocsPages: LocalizedDocsPage[] = [
       "Compare responsive columns and the real behavior of supported GridStack engine options.",
     ),
     title: text("고급 예제", "Advanced example"),
+  },
+  {
+    category: text("예제", "Examples"),
+    examples: [
+      {
+        codeSamples: [
+          { code: safeHandleSample, language: "tsx", title: text("안전한 Comins Handle", "Safe Comins Handle") },
+          { code: officialGridStackHandleSample, language: "ts", title: text("공식 GridStack API", "Official GridStack API") },
+        ],
+        description: text(
+          "raw grid API는 controlled React 상태와 컬럼 캐시를 우회할 수 있습니다. 관리되는 변경에는 안전한 Comins method를 우선 사용하세요.",
+          "Raw grid APIs can bypass controlled React state and the column cache. Prefer safe Comins methods for managed mutations.",
+        ),
+        liveExampleId: "advanced-handle",
+        title: text("공식 API Handle", "Official API Handle"),
+      },
+    ],
+    label: text("공식 API Handle", "Official API Handle"),
+    navParent: text("고급 예제", "Advanced examples"),
+    path: "/examples/advanced/handle",
+    summary: text(
+      "ref로 안전한 Comins method와 공식 GridStack API를 호출하는 경계를 확인합니다.",
+      "Use a ref to explore the boundary between safe Comins methods and official GridStack APIs.",
+    ),
+    title: text("공식 API Handle", "Official API Handle"),
   },
   {
     category: text("API", "API"),

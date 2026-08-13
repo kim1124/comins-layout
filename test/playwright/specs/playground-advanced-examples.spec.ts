@@ -162,3 +162,85 @@ test.describe("Advanced engine options", () => {
     await expect.poll(async () => (await target.boundingBox())?.height).toBeGreaterThan((before?.height ?? 0) + 40);
   });
 });
+
+test.describe("Official API Handle", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1100 });
+  });
+
+  test("runs safe Comins methods and official read APIs", async ({ page }) => {
+    await page.goto("/examples/advanced/handle");
+    await expect.poll(() => page.evaluate(() => window.__cominsGridLayoutHandleExample?.getHandle()?.grid?.getColumn() ?? null)).toBe(12);
+
+    await page.getByRole("button", { name: "Grid 정보 조회" }).click();
+    await expect(page.getByRole("status", { name: "GridStack 조회 결과" })).toHaveText(/^column=12; row=\d+$/);
+
+    const target = page.getByTestId("dashboard-widget-alerts");
+    const beforeY = Number(await target.getAttribute("gs-y"));
+    await page.getByRole("button", { name: "compact 후 commit" }).click();
+    await expect(page.getByRole("status", { name: "Handle 실행 결과" })).toHaveText("committed");
+    await expect.poll(async () => Number(await target.getAttribute("data-layout-y"))).toBeLessThan(beforeY);
+    await expect(target).toHaveAttribute("gs-y", await target.getAttribute("data-layout-y") ?? "");
+
+    await page.getByRole("button", { name: "레이아웃 갱신" }).click();
+    await expect(page.getByRole("status", { name: "Handle 실행 결과" })).toHaveText("refreshed");
+  });
+
+  test("changes cell height through layoutRef.current.grid", async ({ page }) => {
+    await page.goto("/examples/advanced/handle");
+    await expect.poll(() => page.evaluate(() => window.__cominsGridLayoutHandleExample?.getHandle()?.grid?.getColumn() ?? null)).toBe(12);
+
+    const firstWidget = page.locator(".grid-stack-item").first();
+    const before = await firstWidget.boundingBox();
+    expect(before).not.toBeNull();
+    await page.getByRole("button", { name: "공식 API로 셀 높이 80 적용" }).click();
+    await expect.poll(async () => (await firstWidget.boundingBox())?.height).not.toBe(before?.height);
+    await expect(page.getByRole("status", { name: "Handle 실행 결과" })).toHaveText("cell-height-80");
+  });
+
+  test("keeps controlled state unchanged when GridStack is not ready", async ({ page }) => {
+    await page.route("**/src/gridstack/adapter.ts*", (route) => route.abort());
+    await page.goto("/examples/advanced/handle");
+
+    const target = page.getByTestId("dashboard-widget-alerts");
+    const before = await target.evaluate((element) => ({
+      h: element.getAttribute("data-layout-h"),
+      w: element.getAttribute("data-layout-w"),
+      x: element.getAttribute("data-layout-x"),
+      y: element.getAttribute("data-layout-y"),
+    }));
+    await page.getByRole("button", { name: "Grid 정보 조회" }).click();
+    await expect(page.getByRole("status", { name: "GridStack 조회 결과" })).toHaveText("GridStack이 아직 준비되지 않았습니다.");
+    await page.getByRole("button", { name: "compact 후 commit" }).click();
+    await expect(page.getByRole("status", { name: "Handle 실행 결과" })).toHaveText("GridStack이 아직 준비되지 않았습니다.");
+    await page.getByRole("button", { name: "공식 API로 셀 높이 80 적용" }).click();
+    await expect(target).toHaveAttribute("data-layout-h", before.h ?? "");
+    await expect(target).toHaveAttribute("data-layout-w", before.w ?? "");
+    await expect(target).toHaveAttribute("data-layout-x", before.x ?? "");
+    await expect(target).toHaveAttribute("data-layout-y", before.y ?? "");
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    await expect(page.getByRole("status", { name: "GridStack query result" })).toHaveText("GridStack is not ready yet.");
+    await expect(page.getByRole("status", { name: "Handle execution result" })).toHaveText("GridStack is not ready yet.");
+  });
+
+  test("clears the live GridStack instance after the Handle route unmounts", async ({ page }) => {
+    await page.goto("/examples/advanced/handle");
+    await expect.poll(() => page.evaluate(() => window.__cominsGridLayoutHandleExample?.getHandle()?.grid?.getColumn() ?? null)).toBe(12);
+
+    await page.evaluate(() => {
+      window.__retainedCominsGridLayoutHandle = window.__cominsGridLayoutHandleExample?.getHandle() ?? null;
+      history.pushState({}, "", "/examples/advanced");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+
+    await expect(page.getByRole("heading", { name: "고급 예제" }).first()).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.__retainedCominsGridLayoutHandle?.grid?.getColumn() ?? null)).toBeNull();
+  });
+
+  test("does not expose raw mutation or destroy controls", async ({ page }) => {
+    await page.goto("/examples/advanced/handle");
+
+    await expect(page.getByRole("button", { name: /raw.*(?:add|remove|destroy)|(?:add|remove|destroy).*raw/i })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /위젯 추가|전체 삭제|삭제/ })).toHaveCount(0);
+  });
+});

@@ -364,6 +364,32 @@ export const advancedPlaygroundCopy = {
   },
 } as const;
 
+export const advancedHandleCopy = {
+  actions: {
+    cellHeight: defineLocalizedText("공식 API로 셀 높이 80 적용", "Set cell height to 80 with the official API"),
+    compactCommit: defineLocalizedText("compact 후 commit", "Compact, then commit"),
+    query: defineLocalizedText("Grid 정보 조회", "Query Grid information"),
+    refresh: defineLocalizedText("레이아웃 갱신", "Refresh layout"),
+  },
+  controls: defineLocalizedText("공식 API Handle 컨트롤", "Official API Handle controls"),
+  dashboard: defineLocalizedText("공식 API Handle dashboard", "Official API Handle dashboard"),
+  description: defineLocalizedText(
+    "ref를 통해 안전한 Comins method와 공식 GridStack API를 구분하여 호출합니다.",
+    "Use a ref to call safe Comins methods and official GridStack APIs through distinct boundaries.",
+  ),
+  kicker: defineLocalizedText("고급 예제", "Advanced example"),
+  status: {
+    initialHandle: defineLocalizedText("Handle 작업을 선택하세요.", "Choose a Handle operation."),
+    initialQuery: defineLocalizedText("Grid 정보를 조회하세요.", "Query the Grid information."),
+    notReady: defineLocalizedText("GridStack이 아직 준비되지 않았습니다.", "GridStack is not ready yet."),
+  },
+  statusLabels: {
+    handle: defineLocalizedText("Handle 실행 결과", "Handle execution result"),
+    query: defineLocalizedText("GridStack 조회 결과", "GridStack query result"),
+  },
+  title: defineLocalizedText("공식 API Handle", "Official API Handle"),
+} as const;
+
 export const widgetPlaygroundCopy = {
   controls: defineLocalizedText("위젯 예제 컨트롤", "Widget example controls"),
   dashboard: defineLocalizedText("위젯 대시보드", "Widget dashboard"),

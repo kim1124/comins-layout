@@ -2,6 +2,7 @@ import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import type { Root } from "react-dom/client";
 import { BrowserRouter, useLocation } from "react-router";
+import type { DashboardGridHandle } from "../../src";
 
 import { DocsShell } from "./docs/DocsShell";
 import { PlaygroundLocaleProvider } from "./i18n/playground-locale";
@@ -21,6 +22,7 @@ const canonicalPaths = new Set([
   "/api",
   "/docs/getting-started",
   "/examples/advanced",
+  "/examples/advanced/handle",
   "/examples/layout",
   "/examples/layout/columns",
   "/examples/layout/lock",
@@ -70,6 +72,7 @@ function ExampleApp() {
     case "/api":
     case "/docs/getting-started":
     case "/examples/advanced":
+    case "/examples/advanced/handle":
     case "/examples/layout":
     case "/examples/layout/columns":
     case "/examples/layout/lock":
@@ -85,7 +88,9 @@ function ExampleApp() {
 declare global {
   interface Window {
     __cominsGridLayoutExampleRoot?: Root;
+    __cominsGridLayoutHandleExample?: { getHandle: () => DashboardGridHandle | null };
     __cominsGridLayoutLastUnmount?: { routePath: string } | string;
+    __retainedCominsGridLayoutHandle?: DashboardGridHandle | null;
   }
 }
 
