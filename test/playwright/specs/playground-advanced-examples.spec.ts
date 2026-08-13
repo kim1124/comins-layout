@@ -276,3 +276,126 @@ test.describe("Official API Handle", () => {
     await expect(page.getByRole("button", { name: /위젯 추가|전체 삭제|삭제/ })).toHaveCount(0);
   });
 });
+
+test.describe("Advanced state and column cache", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1400 });
+    await page.goto("/examples/advanced/state");
+  });
+
+  test("distinguishes layout snapshot from full state and column cache", async ({ page }) => {
+    await page.getByText("레이아웃 JSON 편집기").click();
+    await page.getByText("전체 상태 및 컬럼 캐시 JSON 편집기").click();
+    await page.getByRole("button", { name: "레이아웃 저장" }).click();
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+
+    const layoutEditor = page.getByRole("textbox", { name: "레이아웃 JSON", exact: true });
+    const layout = JSON.parse(await layoutEditor.inputValue());
+    const state = JSON.parse(await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue());
+
+    expect(layout).toEqual(expect.objectContaining({ columns: 12, widgets: expect.any(Array) }));
+    expect(layout).not.toHaveProperty("layoutsByColumn");
+    expect(state).toHaveProperty("layoutsByColumn.12");
+    expect(state.widgets[0]).toHaveProperty("data.colorKey");
+
+    const target = layout.widgets.find((widget: { id: string }) => widget.id === "sales");
+    expect(target).toBeDefined();
+    target.y = 8;
+    await layoutEditor.fill(JSON.stringify(layout));
+    await page.getByRole("button", { name: "레이아웃 복원" }).click();
+    await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-y", "8");
+  });
+
+  test("keeps editor and geometry when nested state is invalid", async ({ page }) => {
+    await page.getByText("전체 상태 및 컬럼 캐시 JSON 편집기").click();
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const editor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    const savedState = await editor.inputValue();
+    const before = await page.locator(".grid-stack-item").evaluateAll((elements) => elements.map((element) => ({
+      h: element.getAttribute("data-layout-h"),
+      id: element.getAttribute("gs-id"),
+      w: element.getAttribute("data-layout-w"),
+      x: element.getAttribute("data-layout-x"),
+      y: element.getAttribute("data-layout-y"),
+    })));
+    const invalidCases = [
+      (state: { widgets: Array<{ data?: { colorKey?: unknown } }> }) => {
+        if (!state.widgets[0]?.data) throw new Error("Expected widget data");
+        state.widgets[0].data.colorKey = { privateValue: "INVALID_COLOR_KEY" };
+      },
+      (state: { widgets: Array<{ layout?: { w?: number } }> }) => {
+        if (!state.widgets[0]?.layout) throw new Error("Expected widget layout");
+        state.widgets[0].layout.w = 0;
+      },
+    ];
+
+    for (const invalidate of invalidCases) {
+      const state = JSON.parse(savedState);
+      invalidate(state);
+      const invalid = JSON.stringify(state);
+      await editor.fill(invalid);
+      await page.getByRole("button", { name: "전체 상태 복원" }).click();
+
+      await expect(editor).toHaveValue(invalid);
+      await expect(page.getByRole("status", { name: "전체 상태 저장 복원 상태" })).toHaveText(
+        "JSON 형식 또는 상태 값을 확인해 주세요.",
+      );
+      await expect.poll(() => page.locator(".grid-stack-item").evaluateAll((elements) => elements.map((element) => ({
+        h: element.getAttribute("data-layout-h"),
+        id: element.getAttribute("gs-id"),
+        w: element.getAttribute("data-layout-w"),
+        x: element.getAttribute("data-layout-x"),
+        y: element.getAttribute("data-layout-y"),
+      })))).toEqual(before);
+      expect((await page.locator('[role="status"]').allTextContents()).join("\n")).not.toContain("INVALID_COLOR_KEY");
+    }
+  });
+
+  test("keeps the Grid mounted while JSON details are toggled", async ({ page }) => {
+    await page.getByTestId("dashboard-grid").evaluate((element) => {
+      element.setAttribute("data-mount-probe", "state-details");
+    });
+
+    await page.getByText("레이아웃 JSON 편집기").click();
+    await page.getByText("전체 상태 및 컬럼 캐시 JSON 편집기").click();
+    await page.getByText("레이아웃 JSON 편집기").click();
+
+    await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-mount-probe", "state-details");
+  });
+
+  test("rejects invalid layout geometry and unsupported active columns", async ({ page }) => {
+    await page.getByText("레이아웃 JSON 편집기").click();
+    await page.getByText("전체 상태 및 컬럼 캐시 JSON 편집기").click();
+    const before = await page.locator(".grid-stack-item").evaluateAll((elements) => elements.map((element) => ({
+      h: element.getAttribute("data-layout-h"),
+      id: element.getAttribute("gs-id"),
+      w: element.getAttribute("data-layout-w"),
+      x: element.getAttribute("data-layout-x"),
+      y: element.getAttribute("data-layout-y"),
+    })));
+    const invalidLayout = '{"columns":12,"widgets":[{"id":"sales","x":0,"y":0,"w":0,"h":2}]}';
+    const invalidState = '{"columns":99,"widgets":[]}';
+
+    const layoutEditor = page.getByRole("textbox", { name: "레이아웃 JSON", exact: true });
+    await layoutEditor.fill(invalidLayout);
+    await page.getByRole("button", { name: "레이아웃 복원" }).click();
+    await expect(layoutEditor).toHaveValue(invalidLayout);
+    await expect(page.getByRole("status", { name: "활성 레이아웃 저장 복원 상태" })).toHaveText(
+      "JSON 형식 또는 레이아웃 값을 확인해 주세요.",
+    );
+
+    await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").fill(invalidState);
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+    await expect(page.getByLabel("전체 상태 및 컬럼 캐시 JSON")).toHaveValue(invalidState);
+    await expect(page.getByRole("status", { name: "전체 상태 저장 복원 상태" })).toHaveText(
+      "JSON 형식 또는 상태 값을 확인해 주세요.",
+    );
+    await expect.poll(() => page.locator(".grid-stack-item").evaluateAll((elements) => elements.map((element) => ({
+      h: element.getAttribute("data-layout-h"),
+      id: element.getAttribute("gs-id"),
+      w: element.getAttribute("data-layout-w"),
+      x: element.getAttribute("data-layout-x"),
+      y: element.getAttribute("data-layout-y"),
+    })))).toEqual(before);
+  });
+});

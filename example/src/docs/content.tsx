@@ -619,6 +619,28 @@ const localizedDocsPages: LocalizedDocsPage[] = [
     title: text("공식 API Handle", "Official API Handle"),
   },
   {
+    category: text("예제", "Examples"),
+    examples: [
+      {
+        codeSamples: [{ code: layoutSample, language: "ts", title: text("상태와 컬럼 캐시", "State and column cache") }],
+        description: text(
+          "레이아웃 snapshot과 전체 상태, 12→6→12 컬럼 캐시의 저장 범위와 복원 결과를 비교합니다.",
+          "Compare the persistence scope and restoration behavior of layout snapshots, full state, and the 12→6→12 column cache.",
+        ),
+        liveExampleId: "advanced-state",
+        title: text("전체 상태와 컬럼 캐시", "Full state and column cache"),
+      },
+    ],
+    label: text("상태·컬럼 캐시", "State and column cache"),
+    navParent: text("고급 예제", "Advanced examples"),
+    path: "/examples/advanced/state",
+    summary: text(
+      "geometry-only 레이아웃과 위젯 데이터·컬럼별 캐시를 포함하는 전체 상태의 차이를 확인합니다.",
+      "Compare geometry-only layouts with full state containing widget data and per-column caches.",
+    ),
+    title: text("전체 상태와 컬럼 캐시", "Full state and column cache"),
+  },
+  {
     category: text("API", "API"),
     examples: [],
     label: text("API", "API"),

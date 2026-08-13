@@ -25,6 +25,12 @@ export type AdvancedLayoutStatus =
   | { type: "restored" }
   | { type: "saved" };
 
+export type AdvancedStateEditorStatus =
+  | { type: "initial" }
+  | { type: "invalid" }
+  | { type: "restored" }
+  | { type: "saved" };
+
 export type AdvancedHandleStatus =
   | { type: "compacted"; layout: "compact" | "list" }
   | { type: "notReady" }
@@ -390,6 +396,54 @@ export const advancedHandleCopy = {
   title: defineLocalizedText("공식 API Handle", "Official API Handle"),
 } as const;
 
+export const advancedStateCopy = {
+  actions: {
+    restoreFull: defineLocalizedText("전체 상태 복원", "Restore full state"),
+    restoreLayout: defineLocalizedText("레이아웃 복원", "Restore layout"),
+    saveFull: defineLocalizedText("전체 상태 저장", "Save full state"),
+    saveLayout: defineLocalizedText("레이아웃 저장", "Save layout"),
+  },
+  columns: defineLocalizedText("컬럼 선택", "Select columns"),
+  controls: defineLocalizedText("상태 및 컬럼 캐시 컨트롤", "State and column cache controls"),
+  dashboard: defineLocalizedText("상태 및 컬럼 캐시 dashboard", "State and column cache dashboard"),
+  description: defineLocalizedText(
+    "현재 좌표만 저장하는 레이아웃 snapshot과 위젯 데이터·컬럼별 캐시까지 저장하는 전체 상태를 비교합니다.",
+    "Compare a geometry-only layout snapshot with full state containing widget data and per-column caches.",
+  ),
+  editors: {
+    full: defineLocalizedText("전체 상태 및 컬럼 캐시 JSON 편집기", "Full state and column cache JSON editor"),
+    layout: defineLocalizedText("레이아웃 JSON 편집기", "Layout JSON editor"),
+  },
+  kicker: defineLocalizedText("고급 예제", "Advanced example"),
+  status: {
+    full: {
+      initial: defineLocalizedText("전체 상태를 저장하거나 복원해 보세요.", "Save or restore full state."),
+      invalid: defineLocalizedText("JSON 형식 또는 상태 값을 확인해 주세요.", "Check the JSON format or state values."),
+      restored: defineLocalizedText("전체 상태와 컬럼 캐시를 복원했습니다.", "Restored the full state and column cache."),
+      saved: defineLocalizedText("전체 상태와 컬럼 캐시를 저장했습니다.", "Saved the full state and column cache."),
+    },
+    layout: {
+      initial: defineLocalizedText("레이아웃을 저장하거나 복원해 보세요.", "Save or restore the layout."),
+      invalid: defineLocalizedText("JSON 형식 또는 레이아웃 값을 확인해 주세요.", "Check the JSON format or layout values."),
+      restored: defineLocalizedText("레이아웃을 복원했습니다.", "Restored the layout."),
+      saved: defineLocalizedText("레이아웃을 저장했습니다.", "Saved the layout."),
+    },
+  },
+  table: {
+    cache: defineLocalizedText("컬럼 캐시", "Column cache"),
+    cacheDescription: defineLocalizedText("12→6→12처럼 컬럼별 좌표를 독립적으로 보존합니다.", "Preserves independent geometry per column, such as 12→6→12."),
+    full: defineLocalizedText("전체 상태", "Full state"),
+    fullDescription: defineLocalizedText("위젯 데이터와 현재 좌표, 이전 좌표, 컬럼별 캐시를 저장합니다.", "Stores widget data, current and previous geometry, and per-column caches."),
+    layout: defineLocalizedText("레이아웃 snapshot", "Layout snapshot"),
+    layoutDescription: defineLocalizedText("현재 컬럼과 위젯 좌표만 저장합니다.", "Stores only current columns and widget geometry."),
+    memory: defineLocalizedText("기본 레이아웃 저장·복원", "Basic layout save and restore"),
+    memoryDescription: defineLocalizedText("레이아웃 예제의 메모리 내 임시 저장이며 JSON 편집이나 전체 상태는 포함하지 않습니다.", "The Layout example keeps a temporary in-memory snapshot without JSON editing or full state."),
+    subject: defineLocalizedText("구분", "Type"),
+    value: defineLocalizedText("저장 범위", "Stored scope"),
+  },
+  title: defineLocalizedText("전체 상태와 컬럼 캐시", "Full state and column cache"),
+} as const;
+
 export const widgetPlaygroundCopy = {
   controls: defineLocalizedText("위젯 예제 컨트롤", "Widget example controls"),
   dashboard: defineLocalizedText("위젯 대시보드", "Widget dashboard"),
@@ -486,6 +540,14 @@ export function formatLayoutOperationStatus(status: LayoutOperationStatus, local
 
 export function formatAdvancedLayoutStatus(status: AdvancedLayoutStatus, locale: PlaygroundLocale): string {
   return resolveLocalizedText(advancedPlaygroundCopy.status.layout[status.type], locale);
+}
+
+export function formatAdvancedStateStatus(
+  kind: "full" | "layout",
+  status: AdvancedStateEditorStatus,
+  locale: PlaygroundLocale,
+): string {
+  return resolveLocalizedText(advancedStateCopy.status[kind][status.type], locale);
 }
 
 export function formatAdvancedHandleStatus(status: AdvancedHandleStatus, locale: PlaygroundLocale): string {

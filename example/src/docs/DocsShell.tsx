@@ -9,6 +9,7 @@ import { defineLocalizedText, usePlaygroundLocale } from "../i18n/playground-loc
 import { playgroundMessages } from "../i18n/messages";
 import { AdvancedPlayground } from "../playground/AdvancedPlayground";
 import { AdvancedHandlePlayground } from "../playground/AdvancedHandlePlayground";
+import { AdvancedStatePlayground } from "../playground/AdvancedStatePlayground";
 import { LayoutColumnsPlayground } from "../playground/LayoutColumnsPlayground";
 import { LayoutLockPlayground } from "../playground/LayoutLockPlayground";
 import { LayoutPlayground } from "../playground/LayoutPlayground";
@@ -371,6 +372,8 @@ function LivePlayground({ id }: { id: PlaygroundExampleId }) {
       return <AdvancedPlayground />;
     case "advanced-handle":
       return <AdvancedHandlePlayground />;
+    case "advanced-state":
+      return <AdvancedStatePlayground />;
     case "layout":
       return <LayoutPlayground />;
     case "layout-columns":

@@ -581,3 +581,38 @@ test("localizes Advanced engine controls without resetting engine state", async 
     y: element.getAttribute("data-layout-y"),
   }))).toEqual(trafficGeometry);
 });
+
+test("localizes the Advanced state route without replacing editor text, saved state, or user literals", async ({ page }) => {
+  await page.goto("/examples/advanced/state");
+  await page.getByText("전체 상태 및 컬럼 캐시 JSON 편집기").click();
+  await page.getByRole("button", { name: "전체 상태 저장" }).click();
+  const editor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+  const state = JSON.parse(await editor.inputValue()) as {
+    widgets: Array<{ data?: { fixtureCopyKey?: string }; id: string; title?: string }>;
+  };
+  const sales = state.widgets.find((widget) => widget.id === "sales");
+  expect(sales).toBeDefined();
+  if (!sales) throw new Error("Expected sales fixture widget");
+  sales.title = "사용자 보존 제목";
+  if (sales.data) delete sales.data.fixtureCopyKey;
+  const userState = JSON.stringify(state, null, 2);
+  await editor.fill(userState);
+  await page.getByTestId("dashboard-grid").evaluate((element) => {
+    element.setAttribute("data-mount-probe", "state-locale");
+  });
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page).toHaveURL(/\/examples\/advanced\/state$/);
+  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(userState);
+  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-mount-probe", "state-locale");
+  await page.getByRole("button", { name: "Restore full state" }).click();
+  await expect(page.getByRole("status", { name: "Full state save and restore status" })).toHaveText(
+    "Restored the full state and column cache.",
+  );
+  await expect(page.getByTestId("dashboard-widget-sales")).toContainText("사용자 보존 제목");
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "한" }).click();
+  await expect(page.getByLabel("전체 상태 및 컬럼 캐시 JSON")).toHaveValue(userState);
+  await expect(page.getByTestId("dashboard-widget-sales")).toContainText("사용자 보존 제목");
+});

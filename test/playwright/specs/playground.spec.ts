@@ -257,9 +257,8 @@ test.describe("Widget Playground", () => {
 
 });
 
-// Task 9 Handle contracts now run on /examples/advanced/handle in playground-advanced-examples.spec.ts.
-// Keep the state, invalid-state, fail-closed, and external-drop contracts visible here until Tasks 10 and 12 move them.
-test.describe.skip("Advanced child-route migration contracts (Tasks 10 and 12)", () => {
+// Task 12 will move the two explicitly skipped external-drop contracts to its child route.
+test.describe("Advanced state child-route contracts", () => {
   const diagnosticsByTest = new Map<string, string[]>();
 
   test.beforeEach(async ({ page }, testInfo) => {
@@ -274,7 +273,9 @@ test.describe.skip("Advanced child-route migration contracts (Tasks 10 and 12)",
       diagnostics.push(`[pageerror] ${error.message}`);
     });
     await page.setViewportSize({ width: 1280, height: 1400 });
-    await page.goto("/examples/advanced");
+    await page.goto("/examples/advanced/state");
+    await page.getByText("레이아웃 JSON 편집기").click();
+    await page.getByText("전체 상태 및 컬럼 캐시 JSON 편집기").click();
   });
 
   test.afterEach(async ({}, testInfo) => {
@@ -282,7 +283,7 @@ test.describe.skip("Advanced child-route migration contracts (Tasks 10 and 12)",
     diagnosticsByTest.delete(testInfo.testId);
   });
 
-  test("deletes only through the configured 300x300 typed external target callback", async ({ page }) => {
+  test.skip("deletes only through the configured 300x300 typed external target callback", async ({ page }) => {
     await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
     await expect(page.locator(".grid-stack")).toHaveCount(1);
     await expect(page.getByText("드래그한 위젯을 여기에 놓으세요.")).toBeVisible();
@@ -303,7 +304,7 @@ test.describe.skip("Advanced child-route migration contracts (Tasks 10 and 12)",
     await expect(page.getByRole("button", { name: /GridStack (addWidget|removeWidget|destroy)/i })).toHaveCount(0);
   });
 
-  test("keeps the widget and target status unchanged when a drag ends outside the target", async ({ page }) => {
+  test.skip("keeps the widget and target status unchanged when a drag ends outside the target", async ({ page }) => {
     const widget = page.getByTestId("dashboard-widget-sales");
     const initialStatus = "위젯을 삭제 영역으로 드래그해 보세요.";
     await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toHaveText(initialStatus);
@@ -348,6 +349,15 @@ test.describe.skip("Advanced child-route migration contracts (Tasks 10 and 12)",
     expect(Object.keys(savedState.layoutsByColumn).sort()).toEqual(["12", "6"]);
     expect(savedState.layoutsByColumn["6"]?.widgets).toEqual(modifiedSix);
     expect(savedState.layoutsByColumn["12"]?.widgets).toEqual(modifiedTwelve);
+    for (const [columns, snapshot] of Object.entries(savedState.layoutsByColumn)) {
+      for (const widget of snapshot.widgets) {
+        expect(widget.x).toBeGreaterThanOrEqual(0);
+        expect(widget.y).toBeGreaterThanOrEqual(0);
+        expect(widget.w).toBeGreaterThan(0);
+        expect(widget.h).toBeGreaterThan(0);
+        expect(widget.x + widget.w).toBeLessThanOrEqual(Number(columns));
+      }
+    }
 
     await page.getByRole("button", { name: "전체 삭제" }).click();
     await expect(page.locator(".grid-stack-item")).toHaveCount(0);
@@ -408,26 +418,17 @@ test.describe.skip("Advanced child-route migration contracts (Tasks 10 and 12)",
     expect((await page.locator('[role="status"]').allTextContents()).join("\n")).not.toContain("RAW_");
   });
 
-  test("routes responsive viewport columns through the same reducer cache keys as manual selection", async ({ page }) => {
+  test("keeps manual column changes in the same reducer cache", async ({ page }) => {
     const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
     const activeColumns = page.getByRole("status", { name: "활성 컬럼 상태" });
     const cacheKeys = page.getByRole("status", { name: "사용 가능한 컬럼 캐시" });
-    const responsiveToggle = page.getByRole("button", { name: "반응형 컬럼 사용" });
-
     await columnSelect.selectOption("6");
     await columnSelect.selectOption("12");
     await expect(cacheKeys).toHaveText("사용 가능한 캐시 컬럼: 6, 12");
 
-    await responsiveToggle.click();
-    await expect(responsiveToggle).toHaveAttribute("aria-pressed", "true");
-    await page.setViewportSize({ width: 800, height: 1000 });
+    await columnSelect.selectOption("6");
     await expect(activeColumns).toHaveText("현재 6컬럼입니다.");
     await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "6");
-    await expect(cacheKeys).toHaveText("사용 가능한 캐시 컬럼: 6, 12");
-
-    await page.setViewportSize({ width: 1280, height: 1000 });
-    await expect(activeColumns).toHaveText("현재 12컬럼입니다.");
-    await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "12");
     await expect(cacheKeys).toHaveText("사용 가능한 캐시 컬럼: 6, 12");
   });
 
@@ -566,6 +567,27 @@ test.describe.skip("Advanced child-route migration contracts (Tasks 10 and 12)",
     const restoredState = JSON.parse(await stateEditor.inputValue()) as { layoutsByColumn: Record<string, unknown> };
     expect(restoredState.layoutsByColumn).not.toHaveProperty("99");
     expect(Object.keys(restoredState.layoutsByColumn).sort()).toEqual(["12", "6"]);
+  });
+
+  test("keeps top-level active geometry authoritative over the active cache", async ({ page }) => {
+    const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const state = JSON.parse(await stateEditor.inputValue()) as {
+      widgets: Array<{ id: string; layout: IdentifiedWidgetLayout }>;
+      layoutsByColumn: Record<string, { widgets: IdentifiedWidgetLayout[] }>;
+    };
+    const topLevel = state.widgets.find((widget) => widget.id === "sales");
+    const cached = state.layoutsByColumn["12"]?.widgets.find((widget) => widget.id === "sales");
+    expect(topLevel).toBeDefined();
+    expect(cached).toBeDefined();
+    if (!topLevel || !cached) throw new Error("Expected sales geometry in active state and cache");
+    topLevel.layout.y = 8;
+    cached.y = 10;
+
+    await stateEditor.fill(JSON.stringify(state));
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+
+    await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-y", "8");
   });
 
 });

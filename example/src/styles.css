@@ -1250,6 +1250,76 @@ button.dashboard-widget-body[data-selected="true"] {
   padding: 10px;
 }
 
+.playground-state-controls {
+  display: grid;
+  gap: 20px;
+}
+
+.playground-state-toolbar {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.playground-state-toolbar p {
+  color: #52645f;
+  font-size: 13px;
+  margin: 0 0 8px;
+}
+
+.playground-state-comparison {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.playground-state-comparison th,
+.playground-state-comparison td {
+  border: 1px solid var(--comins-color-border);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.playground-state-comparison th {
+  background: #f8fafc;
+  color: #334155;
+  white-space: nowrap;
+}
+
+.playground-state-editors {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.example-state-editor {
+  border: 1px solid var(--comins-color-border);
+  border-radius: var(--comins-radius-md);
+  padding: 10px 12px;
+}
+
+.example-state-editor > summary {
+  color: #334155;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.example-state-editor[open] > summary {
+  margin-bottom: 12px;
+}
+
+.example-state-editor .example-layout-json {
+  margin-top: 12px;
+}
+
+@media (max-width: 860px) {
+  .playground-state-editors {
+    grid-template-columns: 1fr;
+  }
+}
+
 .playground-grid-region {
   display: block;
 }
