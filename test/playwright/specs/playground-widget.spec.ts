@@ -34,9 +34,14 @@ test("refreshes only content through a loader while preserving widget state", as
   const background = await body.evaluate((node) => getComputedStyle(node).backgroundColor);
   const before = await body.locator("strong").textContent();
 
-  await widget.getByRole("button", { name: "위젯 1 새로고침" }).click();
+  const refreshButton = widget.getByRole("button", { name: "위젯 1 새로고침" });
+  const otherRefreshButton = page.getByTestId("dashboard-widget-widget-2").getByRole("button", { name: "위젯 2 새로고침" });
+  await refreshButton.click();
   await expect(widget.getByRole("status", { name: "위젯 1 콘텐츠 새로고침 중" })).toBeVisible();
+  await expect(refreshButton).toBeDisabled();
+  await expect(otherRefreshButton).toBeEnabled();
   await expect(widget.getByRole("status", { name: "위젯 1 콘텐츠 새로고침 중" })).toHaveCount(0, { timeout: 1_000 });
+  await expect(refreshButton).toBeEnabled();
   await expect(body.locator("strong")).not.toHaveText(before ?? "");
 
   expect(await widgetGeometry(widget)).toEqual(geometry);

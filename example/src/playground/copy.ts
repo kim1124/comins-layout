@@ -394,9 +394,10 @@ export function resolveDashboardActionLabels(locale: PlaygroundLocale) {
 export function createPresentedWidgets(
   widgets: DashboardWidget<ExampleWidgetData>[],
   locale: PlaygroundLocale,
+  indexedFixtures = false,
 ): DashboardWidget<ExampleWidgetData>[] {
   return widgets.map((widget) => {
-    const presentation = resolveWidgetPresentation(widget, locale);
+    const presentation = resolveWidgetPresentation(widget, locale, indexedFixtures);
     return {
       ...widget,
       data: widget.data ? { ...widget.data, description: presentation.description } : widget.data,
@@ -408,6 +409,7 @@ export function createPresentedWidgets(
 export function resolveWidgetPresentation(
   widget: DashboardWidget<ExampleWidgetData>,
   locale: PlaygroundLocale,
+  indexedFixture = false,
 ): { description: string; title: string } {
   const generatedDescription = getGeneratedDescriptionPresentation(widget.data?.generatedDescriptionKey);
 
@@ -427,7 +429,7 @@ export function resolveWidgetPresentation(
     };
   }
 
-  if (widget.data?.fixtureIndex !== undefined) {
+  if (indexedFixture && widget.data?.fixtureIndex !== undefined) {
     const fixtureIndex = widget.data.fixtureIndex;
     return {
       description: locale === "ko" ? `위젯 ${fixtureIndex} 콘텐츠` : `Widget ${fixtureIndex} content`,

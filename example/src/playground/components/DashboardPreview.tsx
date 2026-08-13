@@ -16,6 +16,7 @@ type DashboardPreviewProps = {
   onWidgetRemove?: DashboardGridProps<ExampleWidgetData>["onRemoveWidget"];
   onWidgetSelect?: (id: string) => void;
   isWidgetRefreshing?: (id: string) => boolean;
+  indexedFixturePresentation?: boolean;
   renderWidgetActions?: NonNullable<DashboardGridProps<ExampleWidgetData>["renderWidgetActions"]>;
   resizable?: boolean;
   selectedWidgetId?: string;
@@ -32,6 +33,7 @@ export function DashboardPreview({
   onWidgetRemove,
   onWidgetSelect,
   isWidgetRefreshing,
+  indexedFixturePresentation = false,
   renderWidgetActions,
   resizable = true,
   selectedWidgetId,
@@ -39,7 +41,10 @@ export function DashboardPreview({
   showWidgetCount = true,
 }: DashboardPreviewProps) {
   const { locale, text } = usePlaygroundLocale();
-  const widgets = useMemo(() => createPresentedWidgets(dashboard.widgets, locale), [dashboard.widgets, locale]);
+  const widgets = useMemo(
+    () => createPresentedWidgets(dashboard.widgets, locale, indexedFixturePresentation),
+    [dashboard.widgets, indexedFixturePresentation, locale],
+  );
 
   return (
     <>

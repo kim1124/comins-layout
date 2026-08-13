@@ -207,6 +207,7 @@ export function WidgetPlayground() {
       <section aria-label={text(widgetPlaygroundCopy.dashboard)} className="playground-grid-region">
         <DashboardPreview
           dashboard={dashboard}
+          indexedFixturePresentation
           isWidgetRefreshing={widgetRefresh.isRefreshing}
           selectedWidgetId={selectedWidgetId}
           showWidgetCount={false}
@@ -232,6 +233,7 @@ export function WidgetPlayground() {
                 </button>
                 <button
                   aria-label={`${title} ${text(widgetPlaygroundCopy.actions.refresh)}`}
+                  disabled={widgetRefresh.isRefreshing(widget.id)}
                   type="button"
                   onClick={() => widgetRefresh.refresh(widget.id)}
                 >
@@ -288,7 +290,7 @@ export function WidgetPlayground() {
           initialDraft={{
             colorKey: editTargetWidget?.data?.colorKey ?? pastelKeyForIndex(0),
             height: editTargetWidget?.layout.h ?? 2,
-            title: editTargetWidget ? resolveWidgetPresentation(editTargetWidget, locale).title : "",
+            title: editTargetWidget ? resolveWidgetPresentation(editTargetWidget, locale, true).title : "",
             value: editTargetWidget?.data?.value ?? "",
             width: editTargetWidget?.layout.w ?? 2,
           }}
