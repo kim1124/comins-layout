@@ -103,23 +103,13 @@ export function AdvancedPlayground() {
     value: key,
   }));
 
-  const toggleFloat = () => {
-    if (!floatEnabled) {
-      const floatProbe = dashboard.widgets.find(({ id }) => id === "alerts");
-      if (floatProbe) {
-        dashboard.commands.updateWidgetLayout(floatProbe.id, { ...floatProbe.layout, y: 4 });
-      }
-    }
-    setFloatEnabled((value) => !value);
-  };
-
   const toggles = [
     {
       description: advancedPlaygroundCopy.descriptions.controls.float,
       enabled: floatEnabled,
       key: "float",
       labels: advancedPlaygroundCopy.toggles.float,
-      toggle: toggleFloat,
+      toggle: () => setFloatEnabled((value) => !value),
     },
     {
       description: advancedPlaygroundCopy.descriptions.controls.animate,

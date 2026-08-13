@@ -139,7 +139,14 @@ test.describe("Advanced engine options", () => {
     const packedY = Number(await alerts.getAttribute("gs-y"));
 
     await page.getByRole("button", { name: "Float 사용" }).click();
+    await alerts.scrollIntoViewIfNeeded();
+    await dragWidget(page, alerts, 0, 260);
     await expect.poll(async () => Number(await alerts.getAttribute("gs-y"))).toBeGreaterThan(packedY);
+    const floatingY = Number(await alerts.getAttribute("gs-y"));
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()));
+    }));
+    await expect(alerts).toHaveAttribute("gs-y", String(floatingY));
 
     await page.getByRole("button", { name: "Float 해제" }).click();
     await expect.poll(async () => Number(await alerts.getAttribute("gs-y"))).toBe(packedY);
