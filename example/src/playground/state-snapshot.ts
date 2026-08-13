@@ -19,29 +19,52 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function isLayout(value: unknown): value is DashboardWidgetLayout {
+function isPositiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function hasValidLayoutLimits(value: Record<string, unknown>, columns: DashboardColumnCount): boolean {
+  if (!layoutLimitKeys.every((key) => value[key] === undefined || isPositiveInteger(value[key]))) {
+    return false;
+  }
+
+  const minW = value.minW as number | undefined;
+  const minH = value.minH as number | undefined;
+  const maxW = value.maxW as number | undefined;
+  const maxH = value.maxH as number | undefined;
+  return (
+    (minW === undefined || minW <= columns) &&
+    (maxW === undefined || maxW <= columns) &&
+    (minW === undefined || maxW === undefined || minW <= maxW) &&
+    (minH === undefined || maxH === undefined || minH <= maxH)
+  );
+}
+
+function isLayout(value: unknown, columns: DashboardColumnCount): value is DashboardWidgetLayout {
   return (
     isRecord(value) &&
     typeof value.id === "string" &&
     [value.x, value.y, value.w, value.h].every(
-      (coordinate) => typeof coordinate === "number" && Number.isFinite(coordinate),
+      (coordinate) => typeof coordinate === "number" && Number.isInteger(coordinate),
     ) &&
-    layoutLimitKeys.every(
-      (key) => value[key] === undefined || (typeof value[key] === "number" && Number.isFinite(value[key])),
-    ) &&
+    hasValidLayoutLimits(value, columns) &&
+    (value.x as number) >= 0 &&
+    (value.y as number) >= 0 &&
     (value.w as number) > 0 &&
-    (value.h as number) > 0
+    (value.h as number) > 0 &&
+    (value.x as number) + (value.w as number) <= columns
   );
 }
 
 function isPreviousLayoutMap(
   value: unknown,
   widgetIds: ReadonlySet<string>,
+  columns: DashboardColumnCount,
 ): value is Record<string, DashboardWidgetLayout> {
   return (
     isRecord(value) &&
     Object.entries(value).every(
-      ([id, layout]) => widgetIds.has(id) && isLayout(layout) && layout.id === id,
+      ([id, layout]) => widgetIds.has(id) && isLayout(layout, columns) && layout.id === id,
     )
   );
 }
@@ -49,23 +72,24 @@ function isPreviousLayoutMap(
 function isColumnLayoutSnapshot(
   value: unknown,
   widgetIds: ReadonlySet<string>,
+  columns: DashboardColumnCount,
 ): value is DashboardColumnLayoutSnapshot {
-  if (!isRecord(value) || !Array.isArray(value.widgets) || !value.widgets.every(isLayout)) {
+  if (!isRecord(value) || !Array.isArray(value.widgets) || !value.widgets.every((layout) => isLayout(layout, columns))) {
     return false;
   }
 
   return (
     new Set(value.widgets.map((layout) => layout.id)).size === value.widgets.length &&
     value.widgets.every((layout) => widgetIds.has(layout.id)) &&
-    isPreviousLayoutMap(value.previousLayouts, widgetIds)
+    isPreviousLayoutMap(value.previousLayouts, widgetIds, columns)
   );
 }
 
-function isWidget<TData>(value: unknown): value is DashboardWidget<TData> {
+function isWidget<TData>(value: unknown, columns: DashboardColumnCount): value is DashboardWidget<TData> {
   return (
     isRecord(value) &&
     typeof value.id === "string" &&
-    isLayout(value.layout) &&
+    isLayout(value.layout, columns) &&
     value.layout.id === value.id &&
     (value.title === undefined || typeof value.title === "string") &&
     booleanWidgetMetadataKeys.every(
@@ -79,7 +103,11 @@ function isSupportedColumns(value: unknown): value is DashboardColumnCount {
 }
 
 export function sanitizeDashboardLayoutSnapshot(value: unknown): DashboardLayoutSnapshot | undefined {
-  if (!isRecord(value) || !isSupportedColumns(value.columns) || !Array.isArray(value.widgets) || !value.widgets.every(isLayout)) {
+  if (!isRecord(value) || !isSupportedColumns(value.columns) || !Array.isArray(value.widgets)) {
+    return undefined;
+  }
+  const columns = value.columns;
+  if (!value.widgets.every((layout) => isLayout(layout, columns))) {
     return undefined;
   }
 
@@ -89,7 +117,7 @@ export function sanitizeDashboardLayoutSnapshot(value: unknown): DashboardLayout
   }
 
   return {
-    columns: value.columns,
+    columns,
     widgets: value.widgets.map((layout) => ({ ...layout })),
   };
 }
@@ -100,8 +128,9 @@ export function sanitizeDashboardStateSnapshot<TData>(
   if (!isRecord(value) || !isSupportedColumns(value.columns) || !Array.isArray(value.widgets)) {
     return undefined;
   }
+  const columns = value.columns;
 
-  if (!value.widgets.every((widget) => isWidget<TData>(widget))) {
+  if (!value.widgets.every((widget) => isWidget<TData>(widget, columns))) {
     return undefined;
   }
 
@@ -111,7 +140,7 @@ export function sanitizeDashboardStateSnapshot<TData>(
     return undefined;
   }
 
-  if (value.previousLayouts !== undefined && !isPreviousLayoutMap(value.previousLayouts, widgetIds)) {
+  if (value.previousLayouts !== undefined && !isPreviousLayoutMap(value.previousLayouts, widgetIds, columns)) {
     return undefined;
   }
 
@@ -122,17 +151,21 @@ export function sanitizeDashboardStateSnapshot<TData>(
     }
 
     const supportedLayouts: DashboardLayoutsByColumn = {};
-    Object.entries(value.layoutsByColumn).forEach(([column, snapshot]) => {
-      if (!supportedColumnKeys.has(column) || !isColumnLayoutSnapshot(snapshot, widgetIds)) {
-        return;
+    for (const [column, snapshot] of Object.entries(value.layoutsByColumn)) {
+      if (!supportedColumnKeys.has(column)) {
+        continue;
       }
-      supportedLayouts[Number(column) as DashboardColumnCount] = snapshot;
-    });
+      const supportedColumns = Number(column) as DashboardColumnCount;
+      if (!isColumnLayoutSnapshot(snapshot, widgetIds, supportedColumns)) {
+        return undefined;
+      }
+      supportedLayouts[supportedColumns] = snapshot;
+    }
     layoutsByColumn = supportedLayouts;
   }
 
   return {
-    columns: value.columns,
+    columns,
     widgets,
     ...(value.previousLayouts === undefined ? {} : { previousLayouts: value.previousLayouts }),
     ...(layoutsByColumn === undefined ? {} : { layoutsByColumn }),

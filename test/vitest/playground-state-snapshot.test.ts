@@ -58,20 +58,29 @@ describe("sanitizeDashboardStateSnapshot", () => {
     })).toBeUndefined();
   });
 
-  it("keeps authoritative top-level state while discarding malformed supported and unsupported caches", () => {
+  it.each([
+    ["negative x", { id: "sales", x: -1, y: 0, w: 3, h: 2 }],
+    ["negative y", { id: "sales", x: 0, y: -1, w: 3, h: 2 }],
+    ["fractional x", { id: "sales", x: 0.5, y: 0, w: 3, h: 2 }],
+    ["fractional y", { id: "sales", x: 0, y: 0.5, w: 3, h: 2 }],
+    ["fractional width", { id: "sales", x: 0, y: 0, w: 3.5, h: 2 }],
+    ["fractional height", { id: "sales", x: 0, y: 0, w: 3, h: 2.5 }],
+    ["zero width", { id: "sales", x: 0, y: 0, w: 0, h: 2 }],
+    ["zero height", { id: "sales", x: 0, y: 0, w: 3, h: 0 }],
+    ["column overflow", { id: "sales", x: 10, y: 0, w: 3, h: 2 }],
+    ["fractional minimum width", { id: "sales", x: 0, y: 0, w: 3, h: 2, minW: 1.5 }],
+    ["zero minimum height", { id: "sales", x: 0, y: 0, w: 3, h: 2, minH: 0 }],
+    ["minimum width beyond columns", { id: "sales", x: 0, y: 0, w: 3, h: 2, minW: 13 }],
+    ["maximum width below minimum width", { id: "sales", x: 0, y: 0, w: 3, h: 2, minW: 3, maxW: 2 }],
+    ["maximum height below minimum height", { id: "sales", x: 0, y: 0, w: 3, h: 2, minH: 3, maxH: 2 }],
+  ])("rejects active layout %s", (_case, layout) => {
+    expect(sanitizeDashboardLayoutSnapshot({ columns: 12, widgets: [layout] })).toBeUndefined();
+  });
+
+  it("keeps authoritative top-level state and ignores only unsupported cache keys", () => {
     const sanitized = sanitizeDashboardStateSnapshot({
       ...createValidSnapshot(),
       layoutsByColumn: {
-        6: {
-          widgets: [{ id: "sales", x: "PRIVATE_CACHE_VALUE", y: 0, w: 3, h: 2 }],
-          previousLayouts: {},
-        },
-        8: {
-          widgets: [{ id: "sales", x: 1, y: 0, w: 4, h: 2 }],
-          previousLayouts: {
-            unknown: { id: "unknown", x: 0, y: 0, w: 4, h: 2 },
-          },
-        },
         10: {
           widgets: [{ id: "sales", x: 2, y: 0, w: 5, h: 2 }],
           previousLayouts: {},
@@ -108,6 +117,54 @@ describe("sanitizeDashboardStateSnapshot", () => {
   });
 
   it.each([
+    ["negative active x", { ...validWidget.layout, x: -1 }],
+    ["negative active y", { ...validWidget.layout, y: -1 }],
+    ["fractional active x", { ...validWidget.layout, x: 4.5 }],
+    ["fractional active width", { ...validWidget.layout, w: 7.5 }],
+    ["active column overflow", { ...validWidget.layout, x: 5, w: 8 }],
+  ])("rejects %s before restore dispatch", (_case, layout) => {
+    const snapshot = createValidSnapshot();
+    snapshot.widgets[0] = { ...validWidget, data: { ...validWidget.data }, layout: { ...layout } };
+    expect(sanitizeDashboardStateSnapshot(snapshot)).toBeUndefined();
+  });
+
+  it.each([
+    ["malformed widget value", { id: "sales", x: "PRIVATE", y: 0, w: 3, h: 2 }, {}],
+    ["negative widget x", { id: "sales", x: -1, y: 0, w: 3, h: 2 }, {}],
+    ["fractional widget height", { id: "sales", x: 0, y: 0, w: 3, h: 2.5 }, {}],
+    ["widget column overflow", { id: "sales", x: 4, y: 0, w: 3, h: 2 }, {}],
+    ["widget invalid width limits", { id: "sales", x: 0, y: 0, w: 3, h: 2, minW: 4, maxW: 2 }, {}],
+    ["negative previous y", { id: "sales", x: 0, y: 0, w: 3, h: 2 }, { sales: { id: "sales", x: 0, y: -1, w: 3, h: 2 } }],
+    ["fractional previous x", { id: "sales", x: 0, y: 0, w: 3, h: 2 }, { sales: { id: "sales", x: 0.5, y: 0, w: 3, h: 2 } }],
+    ["previous column overflow", { id: "sales", x: 0, y: 0, w: 3, h: 2 }, { sales: { id: "sales", x: 4, y: 0, w: 3, h: 2 } }],
+    ["unknown previous id", { id: "sales", x: 0, y: 0, w: 3, h: 2 }, { unknown: { id: "unknown", x: 0, y: 0, w: 2, h: 2 } }],
+  ])("rejects the whole snapshot for supported cache %s", (_case, layout, previousLayouts) => {
+    expect(sanitizeDashboardStateSnapshot({
+      ...createValidSnapshot(),
+      layoutsByColumn: {
+        6: { widgets: [layout], previousLayouts },
+        99: "IGNORED_UNSUPPORTED_CACHE",
+      },
+    })).toBeUndefined();
+  });
+
+  it("ignores a malformed unsupported cache while preserving valid supported caches", () => {
+    const sanitized = sanitizeDashboardStateSnapshot({
+      ...createValidSnapshot(),
+      layoutsByColumn: {
+        6: {
+          widgets: [{ id: "sales", x: 0, y: 0, w: 3, h: 2 }],
+          previousLayouts: {},
+        },
+        99: { widgets: [{ id: "sales", x: -999, y: -999, w: 0, h: 0 }] },
+      },
+    });
+
+    expect(sanitized).toBeDefined();
+    expect(Object.keys(sanitized?.layoutsByColumn ?? {})).toEqual(["6"]);
+  });
+
+  it.each([
     ["unsupported columns", { ...createValidSnapshot(), columns: 13 }],
     ["missing widgets", { columns: 12 }],
     ["duplicate widget ids", { ...createValidSnapshot(), widgets: [validWidget, validWidget] }],
@@ -124,6 +181,27 @@ describe("sanitizeDashboardStateSnapshot", () => {
       {
         ...createValidSnapshot(),
         previousLayouts: { unknown: { id: "unknown", x: 0, y: 0, w: 2, h: 2 } },
+      },
+    ],
+    [
+      "negative top-level restore y",
+      {
+        ...createValidSnapshot(),
+        previousLayouts: { sales: { id: "sales", x: 0, y: -1, w: 2, h: 2 } },
+      },
+    ],
+    [
+      "fractional top-level restore x",
+      {
+        ...createValidSnapshot(),
+        previousLayouts: { sales: { id: "sales", x: 0.5, y: 0, w: 2, h: 2 } },
+      },
+    ],
+    [
+      "top-level restore column overflow",
+      {
+        ...createValidSnapshot(),
+        previousLayouts: { sales: { id: "sales", x: 11, y: 0, w: 2, h: 2 } },
       },
     ],
     ["non-object cache map", { ...createValidSnapshot(), layoutsByColumn: [] }],

@@ -398,4 +398,46 @@ test.describe("Advanced state and column cache", () => {
       y: element.getAttribute("data-layout-y"),
     })))).toEqual(before);
   });
+
+  test("rejects a malformed supported cache atomically", async ({ page }) => {
+    const columnSelect = page.getByRole("combobox", { name: "컬럼 선택" });
+    await columnSelect.selectOption("6");
+    await columnSelect.selectOption("12");
+    await page.getByText("전체 상태 및 컬럼 캐시 JSON 편집기").click();
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    const editor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
+    const savedStateJson = await editor.inputValue();
+    const malformed = JSON.parse(savedStateJson) as {
+      layoutsByColumn: Record<string, { widgets: Array<{ x: number }> }>;
+    };
+    const cachedWidget = malformed.layoutsByColumn["6"]?.widgets[0];
+    expect(cachedWidget).toBeDefined();
+    if (!cachedWidget) throw new Error("Expected a 6-column cached widget");
+    cachedWidget.x = -1;
+    const malformedJson = JSON.stringify(malformed);
+    const before = await page.locator(".grid-stack-item").evaluateAll((elements) => elements.map((element) => ({
+      h: element.getAttribute("data-layout-h"),
+      id: element.getAttribute("gs-id"),
+      w: element.getAttribute("data-layout-w"),
+      x: element.getAttribute("data-layout-x"),
+      y: element.getAttribute("data-layout-y"),
+    })));
+
+    await editor.fill(malformedJson);
+    await page.getByRole("button", { name: "전체 상태 복원" }).click();
+
+    await expect(editor).toHaveValue(malformedJson);
+    await expect(page.getByRole("status", { name: "전체 상태 저장 복원 상태" })).toHaveText(
+      "JSON 형식 또는 상태 값을 확인해 주세요.",
+    );
+    await expect.poll(() => page.locator(".grid-stack-item").evaluateAll((elements) => elements.map((element) => ({
+      h: element.getAttribute("data-layout-h"),
+      id: element.getAttribute("gs-id"),
+      w: element.getAttribute("data-layout-w"),
+      x: element.getAttribute("data-layout-x"),
+      y: element.getAttribute("data-layout-y"),
+    })))).toEqual(before);
+    await page.getByRole("button", { name: "전체 상태 저장" }).click();
+    await expect(editor).toHaveValue(savedStateJson);
+  });
 });
