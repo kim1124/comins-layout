@@ -103,7 +103,7 @@ test("keeps every Widget header action inside its card at 360px", async ({ page 
     expect(widgetBox, `widget ${index + 1} card geometry`).not.toBeNull();
     expect(headerBox, `widget ${index + 1} header geometry`).not.toBeNull();
     expect(actionsBox, `widget ${index + 1} action geometry`).not.toBeNull();
-    await expect(buttons).toHaveCount(4);
+    await expect(buttons).toHaveCount(3);
 
     const card = widgetBox!;
     const headerGeometry = headerBox!;

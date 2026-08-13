@@ -80,11 +80,14 @@ const advancedEngineSample = `<DashboardGrid
 
 const safeHandleSample = `const layoutRef = useRef<DashboardGridHandle>(null);
 
-<DashboardGrid ref={layoutRef} />;
+<DashboardGrid
+  ref={layoutRef}
+  renderWidgetActions={(widget) => <WidgetActions widget={widget} />}
+  renderWidget={(widget) => <WidgetContent widget={widget} />}
+/>;
 
-layoutRef.current?.refresh();
 layoutRef.current?.compact();
-layoutRef.current?.commitLayout();`;
+layoutRef.current?.grid?.getColumn();`;
 
 const officialGridStackHandleSample = `layoutRef.current?.grid?.getColumn();
 layoutRef.current?.grid?.getRow();
@@ -249,6 +252,12 @@ const localizedApiFeatures: LocalizedApiFeatureSection[] = [
         type: "Partial<DashboardWidgetActionLabels>",
         description: text("위젯 header action 접근성 label을 변경합니다.", "Changes accessibility labels for widget header actions."),
         detail: text("maximize, minimize, restore, remove label을 consumer 언어 정책에 맞게 바꿀 수 있습니다.", "Lets consumers adapt maximize, minimize, restore, and remove labels to their language policy."),
+      },
+      {
+        name: "renderWidgetActions",
+        type: "(widget) => ReactNode",
+        description: text("위젯 header action을 consumer가 직접 렌더링합니다.", "Lets the consumer render widget header actions."),
+        detail: text("기본 action을 대체하며 showControls=false이면 custom action을 포함한 모든 action을 숨깁니다.", "Overrides the default actions; showControls=false hides all actions, including custom actions."),
       },
       {
         name: "onRemoveWidget",
@@ -461,8 +470,8 @@ const localizedApiFeatures: LocalizedApiFeatureSection[] = [
       {
         name: "DashboardGridHandle",
         type: "type",
-        description: text("getGridStack, refresh, compact, commitLayout을 제공하는 advanced public handle입니다.", "The advanced public handle providing getGridStack, refresh, compact, and commitLayout."),
-        detail: text("getGridStack()은 escape hatch입니다. controlled example에서는 raw GridStack add/remove/destroy를 호출하지 않습니다.", "getGridStack() is an escape hatch. Controlled examples do not call raw GridStack add/remove/destroy."),
+        description: text("readonly grid, getGridStack, refresh, compact, commitLayout을 제공하는 advanced public handle입니다.", "The advanced public handle providing readonly grid, getGridStack, refresh, compact, and commitLayout."),
+        detail: text("grid는 live readonly property이고 getGridStack()도 호환성을 위해 유지됩니다. controlled example에서는 raw GridStack add/remove/destroy를 호출하지 않습니다.", "grid is a live read-only property and getGridStack() remains compatible. Controlled examples do not call raw GridStack add/remove/destroy."),
       },
       {
         name: "DashboardWidgetResizeFrameEvent / DashboardResizeScheduler",
@@ -628,8 +637,8 @@ const localizedDocsPages: LocalizedDocsPage[] = [
           { code: officialGridStackHandleSample, language: "ts", title: text("공식 GridStack API", "Official GridStack API") },
         ],
         description: text(
-          "raw addWidget(), removeWidget(), destroy() API를 호출하면 controlled React 상태와 컬럼 캐시가 GridStack 배치와 달라질 수 있습니다. 관리되는 변경에는 안전한 Comins method를 우선 사용하세요.",
-          "Calling raw addWidget(), removeWidget(), or destroy() APIs can make controlled React state and the column cache diverge from the GridStack layout. Prefer safe Comins methods for managed mutations.",
+          "raw addWidget(), removeWidget(), destroy() API를 호출하면 controlled React 상태와 컬럼 캐시가 GridStack 배치와 달라질 수 있습니다. 관리되는 변경에는 안전한 compact()와 commitLayout()을 우선 사용하세요.",
+          "Calling raw addWidget(), removeWidget(), or destroy() APIs can make controlled React state and the column cache diverge from the GridStack layout. Prefer safe compact() and commitLayout() operations for managed mutations.",
         ),
         liveExampleId: "advanced-handle",
         title: text("공식 API Handle", "Official API Handle"),

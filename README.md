@@ -148,6 +148,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `refreshKey` | `number` | — | Requests an adapter refresh when the value changes |
 | `showControls` | `boolean` | `true` | Shows widget header actions |
 | `actionLabels` | `Partial<DashboardWidgetActionLabels>` | built-in labels | Overrides accessible action labels |
+| `renderWidgetActions` | `(widget) => ReactNode` | built-in actions | Replaces the default widget header actions with consumer-owned actions |
 | `onColumnsChange` | `(columns) => void` | — | Receives an actual responsive engine column change once per animation frame |
 | `onLayoutCommit` | `(snapshot) => void` | — | Receives a committed layout snapshot |
 | `onWidgetLayoutChange` | `(id, layout) => void` | — | Receives each committed widget geometry update |
@@ -240,31 +241,39 @@ Use a ref only when the package commands do not cover an engine-level operation:
 import { useRef } from "react";
 import { DashboardGrid, type DashboardGridHandle } from "comins-grid-layout";
 
-const gridRef = useRef<DashboardGridHandle>(null);
+const layoutRef = useRef<DashboardGridHandle>(null);
 
-<DashboardGrid ref={gridRef} widgets={widgets} renderWidget={renderWidget} />;
+<DashboardGrid
+  ref={layoutRef}
+  renderWidgetActions={(widget) => <WidgetActions widget={widget} />}
+  renderWidget={(widget) => <WidgetContent widget={widget} />}
+/>
 
-const grid = gridRef.current?.getGridStack();
+layoutRef.current?.compact();
+layoutRef.current?.grid?.getColumn();
+
+const grid = layoutRef.current?.getGridStack();
 grid?.batchUpdate();
 grid?.float(true);
 grid?.batchUpdate(false);
 
-const snapshot = gridRef.current?.commitLayout();
-const compacted = gridRef.current?.compact("compact", true);
-gridRef.current?.refresh();
+const snapshot = layoutRef.current?.commitLayout();
+layoutRef.current?.refresh();
 ```
 
-| Handle method | Return type | Purpose |
+| Handle member | Return type | Purpose |
 | --- | --- | --- |
+| `grid` | `GridStack \| null` | Read-only live engine instance while the grid is mounted |
 | `getGridStack` | `GridStack \| null` | Borrow the live engine instance while the grid is mounted |
 | `refresh` | `void` | Recalculate sizing and dynamic handles without reordering widgets |
 | `compact` | `DashboardLayoutSnapshot \| null` | Run GridStack `compact()` explicitly, commit once, and return the snapshot |
 | `commitLayout` | `DashboardLayoutSnapshot \| null` | Commit direct engine geometry changes to the controlled callback contract |
 
-- `getGridStack()` is an escape hatch: it returns `null` before initialization and after unmount.
+- `renderWidgetActions` overrides the default actions. `showControls={false}` hides all actions, including custom actions.
+- The read-only live `grid` property is the preferred direct access path. `getGridStack()` remains compatible; both return `null` before initialization and after unmount.
 - GridStack methods that emit `change` are committed automatically; `commitLayout()` is for commands that do not emit it and suppresses identical duplicate commits. For `batchUpdate()`, call `commitLayout()` after `batchUpdate(false)`.
 - A committed interaction calls `onWidgetLayoutChange`, then `onLayoutCommit`, then the corresponding drag/resize stop callback. High-frequency drag events remain available only on the borrowed GridStack instance.
-- The controlled example does not call raw GridStack add/remove/destroy. Use Comins `addWidget` and `removeWidget` for React content; raw GridStack CRUD only changes engine/DOM state and may be replaced by the next controlled React render.
+- The controlled example does not call raw GridStack add/remove/destroy. Raw `addWidget`, `removeWidget`, or `destroy` calls can diverge from the engine layout and column cache; in other words, controlled React state can diverge from both. Prefer safe Comins `compact()` and `commitLayout()` methods for managed changes.
 - Do not call `destroy()` or remove package listeners on the borrowed instance; `DashboardGrid` owns the engine lifecycle.
 
 ## Persistence

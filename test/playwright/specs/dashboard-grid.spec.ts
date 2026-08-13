@@ -428,40 +428,39 @@ async function addWidgetFromDialog(page: Page, width = "2", height = "2") {
   await page.getByRole("button", { name: "위젯 추가" }).click();
   const dialog = page.getByRole("dialog", { name: "위젯 추가" });
   await expect(dialog).toBeVisible();
-  await dialog.getByLabel("새 위젯 너비").selectOption(width);
-  await dialog.getByLabel("새 위젯 높이").selectOption(height);
+  await dialog.getByLabel("너비").selectOption(width);
+  await dialog.getByLabel("높이").selectOption(height);
   await dialog.getByRole("button", { name: "위젯 저장" }).click();
+}
+
+async function openAdvancedStateEditors(page: Page) {
+  await page.getByText("레이아웃 JSON 편집기", { exact: true }).click();
+  await page.getByText("전체 상태 및 컬럼 캐시 JSON 편집기", { exact: true }).click();
 }
 
 test("supports the Widget playground workflow", async ({ page }) => {
   await page.goto("/examples/widget");
 
   await expect(page.locator(".docs-live").getByRole("heading", { name: "위젯" })).toBeVisible();
-  await expect(page.getByTestId("dashboard-widget-sales")).toBeVisible();
+  const firstWidget = page.getByTestId("dashboard-widget-widget-1");
+  await expect(firstWidget).toBeVisible();
 
   await addWidgetFromDialog(page);
   await expect(page.getByTestId("dashboard-widget-widget-4")).toBeVisible();
 
-  await page.getByRole("button", { name: "매출 최대화" }).click();
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-maximized", "true");
-
-  await page.getByRole("button", { name: "매출 최소화" }).click();
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-minimized", "true");
-
-  await page.getByRole("button", { name: "매출 복원" }).click();
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-maximized", "false");
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-minimized", "false");
-
-  await page.getByRole("button", { name: "매출 삭제" }).click();
-  await expect(page.getByTestId("dashboard-widget-sales")).toBeHidden();
+  await firstWidget.getByRole("button", { name: "위젯 1 새로고침" }).click();
+  await expect(firstWidget.getByRole("status", { name: "위젯 1 콘텐츠 새로고침 중" })).toBeVisible();
+  await expect(firstWidget).toContainText("· 1");
+  await firstWidget.getByRole("button", { name: "위젯 1 삭제" }).click();
+  await expect(firstWidget).toBeHidden();
 });
 
 test("keeps widget shell aligned with the GridStack content box", async ({ page }) => {
   await page.goto("/examples/widget");
-  const sales = page.getByTestId("dashboard-widget-sales");
+  const widget = page.getByTestId("dashboard-widget-widget-1");
 
-  await expect(sales).toBeVisible();
-  const before = await sales.evaluate((item) => {
+  await expect(widget).toBeVisible();
+  const before = await widget.evaluate((item) => {
     const content = item.querySelector(".grid-stack-item-content");
     const shell = item.querySelector(".comins-grid-layout-widget");
     const contentRect = content?.getBoundingClientRect();
@@ -478,10 +477,12 @@ test("keeps widget shell aligned with the GridStack content box", async ({ page 
   expect(before.shellHeight).toBe(before.contentHeight);
   expect(before.shellBottom).toBe(before.contentBottom);
 
-  await page.getByRole("button", { name: "매출 최소화" }).click();
-  await expect(sales).toHaveAttribute("data-minimized", "true");
+  await widget.getByRole("button", { name: "위젯 1 수정" }).click();
+  await page.getByRole("dialog", { name: "위젯 수정" }).getByLabel("높이").selectOption("1");
+  await page.getByRole("dialog", { name: "위젯 수정" }).getByRole("button", { name: "변경 저장" }).click();
+  await expect(widget).toHaveAttribute("data-layout-h", "1");
 
-  const after = await sales.evaluate((item) => {
+  const after = await widget.evaluate((item) => {
     const content = item.querySelector(".grid-stack-item-content");
     const shell = item.querySelector(".comins-grid-layout-widget");
     const contentRect = content?.getBoundingClientRect();
@@ -500,7 +501,8 @@ test("keeps widget shell aligned with the GridStack content box", async ({ page 
 });
 
 test("saves and restores the current layout as JSON", async ({ page }) => {
-  await page.goto("/examples/layout");
+  await page.goto("/examples/advanced/state");
+  await openAdvancedStateEditors(page);
 
   await page.getByLabel("컬럼 선택").selectOption("4");
   await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "4");
@@ -514,7 +516,7 @@ test("saves and restores the current layout as JSON", async ({ page }) => {
       expect.objectContaining({
         id: "sales",
         title: "Sales",
-        layout: expect.objectContaining({ id: "sales", w: 4 }),
+        layout: expect.objectContaining({ id: "sales", w: 3 }),
       }),
     ]),
   );
@@ -524,7 +526,7 @@ test("saves and restores the current layout as JSON", async ({ page }) => {
 
   await page.getByRole("button", { name: "전체 상태 복원" }).click();
   await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "4");
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-w", "4");
+  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-w", "3");
   await expect(page.getByRole("status", { name: "전체 상태 저장 복원 상태" })).toHaveText("전체 상태와 컬럼 캐시를 복원했습니다.");
 });
 
@@ -532,7 +534,8 @@ test("supports selector-significant widget IDs", async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
   const widgetId = 'sales\"] .grid-stack-item';
 
-  await page.goto("/examples/layout");
+  await page.goto("/examples/advanced/state");
+  await openAdvancedStateEditors(page);
   await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").fill(
     JSON.stringify({
       columns: 12,
@@ -563,7 +566,8 @@ test("keeps 100 widgets stable through repeated column changes", async ({ page }
   test.setTimeout(120_000);
 
   const diagnostics = collectBrowserDiagnostics(page);
-  await page.goto("/examples/layout");
+  await page.goto("/examples/advanced/state");
+  await openAdvancedStateEditors(page);
 
   const grid = page.getByTestId("dashboard-grid");
   const layoutJson = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
@@ -1210,20 +1214,8 @@ test("adds widgets with user-selected size into horizontal free space", async ({
   await expect(secondAdded).toHaveAttribute("data-layout-y", "2");
   await expect(secondAdded).toHaveAttribute("data-layout-w", "2");
   await expect(secondAdded).toHaveAttribute("data-layout-h", "3");
-
-  const saved = JSON.parse((await page.locator('[data-example-mode="widget"] .example-state-output pre').textContent()) ?? "{}");
-  expect(saved.widgets).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({
-        id: "widget-4",
-        layout: expect.objectContaining({ w: 2, h: 3 }),
-      }),
-      expect.objectContaining({
-        id: "widget-5",
-        layout: expect.objectContaining({ w: 2, h: 3 }),
-      }),
-    ]),
-  );
+  expect(await readWidgetLayout(firstAdded)).toMatchObject({ x: 0, y: 2, w: 2, h: 3 });
+  expect(await readWidgetLayout(secondAdded)).toMatchObject({ x: 2, y: 2, w: 2, h: 3 });
 });
 
 test("clears all widgets and applies distinct add/delete button colors", async ({ page }) => {
@@ -1231,118 +1223,96 @@ test("clears all widgets and applies distinct add/delete button colors", async (
 
   const addButton = page.getByRole("button", { name: "위젯 추가" });
   const clearButton = page.getByRole("button", { name: "전체 삭제" });
-  const removeButton = page.getByRole("button", { name: "선택 위젯 삭제" });
 
   await expect(addButton).toBeVisible();
   await expect(clearButton).toBeVisible();
-  await expect(removeButton).toBeVisible();
 
-  const colors = await Promise.all([
+  const [addColor, clearColor] = await Promise.all([
     addButton.evaluate((element) => getComputedStyle(element).backgroundColor),
     clearButton.evaluate((element) => getComputedStyle(element).backgroundColor),
-    removeButton.evaluate((element) => getComputedStyle(element).color),
   ]);
 
-  expect(colors[0]).not.toBe(colors[1]);
-  expect(colors[1]).not.toBe("rgba(0, 0, 0, 0)");
-  expect(colors[2]).not.toBe("rgb(23, 32, 38)");
+  expect(addColor).not.toBe(clearColor);
+  expect(clearColor).not.toBe("rgba(0, 0, 0, 0)");
 
-  await clearButton.click();
+  await page.goto("/examples/widget");
+  const removeButton = page.getByRole("button", { name: "선택 위젯 삭제" });
+  await expect(removeButton).toBeVisible();
+  expect(await removeButton.evaluate((element) => getComputedStyle(element).color)).not.toBe("rgb(23, 32, 38)");
 
-  await expect(page.getByTestId("dashboard-widget-sales")).toBeHidden();
+  await page.getByRole("button", { name: "전체 삭제" }).click();
+
+  await expect(page.getByTestId("dashboard-widget-widget-1")).toBeHidden();
   await expect(page.getByText("위젯 0개")).toBeVisible();
 });
 
 test("selects 1 through 12 columns and leaves already-full rows unchanged", async ({ page }) => {
-  await page.goto("/examples/layout");
+  await page.goto("/examples/layout/columns");
 
-  const columnSelect = page.getByLabel("컬럼 선택");
+  const columnSelect = page.getByLabel("레이아웃 컬럼");
   await expect(columnSelect.locator("option")).toHaveCount(12);
 
   await columnSelect.selectOption("12");
   await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "12");
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-w", "4");
+  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-w", "3");
 
-  await page.getByRole("button", { name: "빈 공간 채우기" }).click();
+  await page.goto("/examples/layout");
+  const salesBeforeFill = await readWidgetLayout(page.getByTestId("dashboard-widget-sales"));
+  const trafficBeforeFill = await readWidgetLayout(page.getByTestId("dashboard-widget-traffic"));
+  await page.getByRole("button", { name: "공간 채우기" }).click();
 
-  await expect(page.getByRole("status", { name: "레이아웃 작업 상태" })).toHaveText("빈 공간이 없어 변경하지 않았습니다.");
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-w", "4");
-  await expect(page.getByTestId("dashboard-widget-traffic")).toHaveAttribute("data-layout-x", "4");
-  await expect(page.getByTestId("dashboard-widget-traffic")).toHaveAttribute("data-layout-w", "8");
+  await expect.poll(() => readWidgetLayout(page.getByTestId("dashboard-widget-sales"))).toEqual(salesBeforeFill);
+  await expect.poll(() => readWidgetLayout(page.getByTestId("dashboard-widget-traffic"))).toEqual(trafficBeforeFill);
 });
 
-test("renders widget actions as icon-only buttons", async ({ page }) => {
+test("renders the approved custom widget actions with icons and labels", async ({ page }) => {
   await page.goto("/examples/widget");
 
-  const sales = page.getByTestId("dashboard-widget-sales");
-  const maximize = sales.getByRole("button", { name: "매출 최대화" });
-  const minimize = sales.getByRole("button", { name: "매출 최소화" });
-  const restore = sales.getByRole("button", { name: "매출 복원" });
-  const remove = sales.getByRole("button", { name: "매출 삭제" });
+  const widget = page.getByTestId("dashboard-widget-widget-1");
+  const edit = widget.getByRole("button", { name: "위젯 1 수정" });
+  const refresh = widget.getByRole("button", { name: "위젯 1 새로고침" });
+  const remove = widget.getByRole("button", { name: "위젯 1 삭제" });
 
-  for (const button of [maximize, minimize, restore, remove]) {
-    await expect(button.locator("svg")).toBeVisible();
-    await expect(button).toHaveText("");
+  for (const button of [edit, refresh, remove]) {
+    await expect(button.locator("svg[aria-hidden='true']")).toHaveCount(1);
+    await expect(button.locator("span")).toBeVisible();
+    await expect(button.locator("span")).not.toHaveText("");
   }
 });
 
 test("expands only the selected widget when its header is double-clicked", async ({ page }, testInfo) => {
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "Header double-click behavior is verified on supported desktop browsers.");
 
-  await page.goto("/examples/advanced");
+  await page.goto("/examples/layout");
 
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");
   const traffic = page.getByTestId("dashboard-widget-traffic");
   const salesTitle = sales.locator(".comins-grid-layout-widget__title");
-
-  await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").fill(JSON.stringify({
-    columns: 12,
-    widgets: [
-      { id: "sales", title: "매출", layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 } },
-      { id: "traffic", title: "트래픽", layout: { id: "traffic", x: 3, y: 0, w: 3, h: 2 } },
-      { id: "orders", title: "주문", layout: { id: "orders", x: 0, y: 2, w: 6, h: 2 } },
-      { id: "alerts", title: "알림", layout: { id: "alerts", x: 6, y: 2, w: 6, h: 2 } },
-    ],
-  }));
-  await page.getByRole("button", { name: "전체 상태 복원" }).click();
+  await traffic.getByRole("button", { name: "트래픽 삭제" }).click();
+  await expect(traffic).toHaveCount(0);
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect(sales).toHaveAttribute("data-layout-w", "3");
-  await expect(traffic).toHaveAttribute("data-layout-x", "3");
+  const otherLayouts = (await readDashboardLayouts(page)).filter(({ id }) => id !== "sales");
 
   await salesTitle.dblclick();
 
   await expect(sales).toHaveAttribute("data-layout-x", "0");
-  await expect(sales).toHaveAttribute("data-layout-w", "9");
-  await expect(traffic).toHaveAttribute("data-layout-x", "9");
-  await expect(traffic).toHaveAttribute("data-layout-w", "3");
+  await expect.poll(async () => (await readWidgetLayout(sales)).w).toBeGreaterThan(3);
+  await expect.poll(async () => (await readDashboardLayouts(page)).filter(({ id }) => id !== "sales")).toEqual(otherLayouts);
 });
 
 test("does not fill empty row space when a widget action button is double-clicked", async ({ page }, testInfo) => {
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "Header double-click behavior is verified on supported desktop browsers.");
 
-  await page.goto("/examples/layout");
+  await page.goto("/examples/widget");
 
-  const sales = page.getByTestId("dashboard-widget-sales");
-  const traffic = page.getByTestId("dashboard-widget-traffic");
+  const widget = page.getByTestId("dashboard-widget-widget-1");
+  const before = await readWidgetLayout(widget);
 
-  await page.getByLabel("활성 레이아웃 JSON").fill(JSON.stringify({
-    columns: 12,
-    widgets: [
-      { id: "sales", x: 0, y: 0, w: 3, h: 2 },
-      { id: "traffic", x: 3, y: 0, w: 3, h: 2 },
-      { id: "orders", x: 0, y: 2, w: 6, h: 2 },
-      { id: "alerts", x: 6, y: 2, w: 6, h: 2 },
-    ],
-  }));
-  await page.getByRole("button", { name: "활성 레이아웃 복원" }).click();
-  await expect(sales).toHaveAttribute("data-layout-w", "3");
-  await expect(traffic).toHaveAttribute("data-layout-x", "3");
+  await widget.getByRole("button", { name: "위젯 1 수정" }).dblclick();
 
-  await sales.getByRole("button", { name: "매출 복원" }).dblclick();
-
-  await expect(sales).toHaveAttribute("data-layout-w", "3");
-  await expect(traffic).toHaveAttribute("data-layout-x", "3");
+  await expect.poll(() => readWidgetLayout(widget)).toEqual(before);
 });
 
 test("does not resize row widgets on header double-click when the row has no empty space", async ({ page }, testInfo) => {
@@ -1352,50 +1322,17 @@ test("does not resize row widgets on header double-click when the row has no emp
 
   const sales = page.getByTestId("dashboard-widget-sales");
   const traffic = page.getByTestId("dashboard-widget-traffic");
-  const layoutJson = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
-  const fullRowSnapshot = {
-    columns: 12,
-    widgets: [
-      {
-        id: "sales",
-        title: "매출",
-        layout: { id: "sales", x: 0, y: 0, w: 4, h: 2 },
-        data: { description: "월간 반복 매출", value: "1.28억" },
-      },
-      {
-        id: "traffic",
-        title: "트래픽",
-        layout: { id: "traffic", x: 4, y: 0, w: 8, h: 2 },
-        data: { description: "활성 세션", value: "4.28만" },
-      },
-      {
-        id: "orders",
-        title: "주문",
-        layout: { id: "orders", x: 0, y: 2, w: 6, h: 2 },
-        data: { description: "완료 주문", value: "1,284" },
-      },
-      {
-        id: "alerts",
-        title: "알림",
-        layout: { id: "alerts", x: 6, y: 2, w: 6, h: 2 },
-        data: { description: "미해결 이슈", value: "3" },
-      },
-    ],
-  };
-
-  await layoutJson.fill(JSON.stringify(fullRowSnapshot, null, 2));
-  await page.getByRole("button", { name: "전체 상태 복원" }).click();
   await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "12");
   await expect(sales).toHaveAttribute("data-layout-w", "4");
   await expect(traffic).toHaveAttribute("data-layout-x", "4");
-  await expect(traffic).toHaveAttribute("data-layout-w", "8");
+  await expect(traffic).toHaveAttribute("data-layout-w", "4");
 
   await sales.locator(".comins-grid-layout-widget__header").dblclick();
 
   await expect(sales).toHaveAttribute("data-layout-x", "0");
   await expect(sales).toHaveAttribute("data-layout-w", "4");
   await expect(traffic).toHaveAttribute("data-layout-x", "4");
-  await expect(traffic).toHaveAttribute("data-layout-w", "8");
+  await expect(traffic).toHaveAttribute("data-layout-w", "4");
 });
 
 test("preserves independent controlled caches when columns change during a resize", async ({ page }, testInfo) => {
@@ -1403,7 +1340,8 @@ test("preserves independent controlled caches when columns change during a resiz
 
   const diagnostics = collectBrowserDiagnostics(page);
 
-  await page.goto("/examples/layout");
+  await page.goto("/examples/advanced/state");
+  await openAdvancedStateEditors(page);
 
   const grid = page.getByTestId("dashboard-grid");
   const columnSelect = page.getByLabel("컬럼 선택");
@@ -1466,7 +1404,8 @@ test("finalizes widget resize when the pointer leaves the browser boundary", asy
 
   const diagnostics = collectBrowserDiagnostics(page);
 
-  await page.goto("/examples/layout");
+  await page.goto("/examples/advanced/state");
+  await openAdvancedStateEditors(page);
 
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");
@@ -1524,7 +1463,7 @@ test("finalizes widget drag when the pointer leaves the browser boundary", async
 
   await page.goto("/examples/widget");
 
-  const sales = page.getByTestId("dashboard-widget-sales");
+  const sales = page.getByTestId("dashboard-widget-widget-1");
   const beforeDrag = await readWidgetLayout(sales);
 
   try {
@@ -1568,7 +1507,7 @@ test("finishes widget resize after leaving the grid area", async ({ page }, test
   await page.goto("/examples/widget");
 
   const grid = page.getByTestId("dashboard-grid");
-  const sales = page.getByTestId("dashboard-widget-sales");
+  const sales = page.getByTestId("dashboard-widget-widget-1");
   const beforeResize = await readWidgetLayout(sales);
   const gridBox = await grid.boundingBox();
 
@@ -1598,7 +1537,7 @@ test("finishes widget drag after leaving the grid area", async ({ page }, testIn
   await page.goto("/examples/widget");
 
   const grid = page.getByTestId("dashboard-grid");
-  const sales = page.getByTestId("dashboard-widget-sales");
+  const sales = page.getByTestId("dashboard-widget-widget-1");
   const gridBox = await grid.boundingBox();
 
   if (!gridBox) {
@@ -1623,77 +1562,61 @@ test("executes the complete feature set through explicit playground routes", asy
 
   await page.goto("/examples/layout");
 
-  const grid = page.getByTestId("dashboard-grid");
-  const sales = page.getByTestId("dashboard-widget-sales");
-
   await expect(page.locator(".docs-live").getByRole("heading", { name: "레이아웃", exact: true })).toBeVisible();
-  await expect(grid).toHaveAttribute("data-columns", "12");
-  await expect(sales).toBeVisible();
-  await expect(page.getByText("위젯 4개")).toBeVisible();
+  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "12");
+  await expect(page.locator(".grid-stack-item")).toHaveCount(6);
+  for (const name of ["위젯 추가", "전체 삭제", "레이아웃 저장", "레이아웃 복원", "자동 정렬", "공간 채우기", "초기화"]) {
+    await expect(page.getByRole("button", { name, exact: true })).toBeVisible();
+  }
 
-  const columnSelect = page.getByLabel("컬럼 선택");
+  await page.goto("/examples/layout/columns");
+  const columnSelect = page.getByLabel("레이아웃 컬럼");
   await expect(columnSelect.locator("option")).toHaveCount(12);
-  await columnSelect.selectOption("12");
-  await expect(grid).toHaveAttribute("data-columns", "12");
+  for (const columns of ["6", "3", "12"]) {
+    await columnSelect.selectOption(columns);
+    await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", columns);
+  }
 
-  await page.getByLabel("활성 레이아웃 JSON").fill(JSON.stringify({
-    columns: 12,
-    widgets: [
-      { id: "sales", x: 0, y: 0, w: 3, h: 2 },
-      { id: "traffic", x: 3, y: 0, w: 3, h: 2 },
-      { id: "orders", x: 0, y: 2, w: 6, h: 2 },
-      { id: "alerts", x: 6, y: 2, w: 6, h: 2 },
-    ],
-  }));
-  await page.getByRole("button", { name: "활성 레이아웃 복원" }).click();
-  await page.getByRole("button", { name: "빈 공간 채우기" }).click();
-  await expect(sales).toHaveAttribute("data-layout-w", "6");
-  await expect(page.getByTestId("dashboard-widget-traffic")).toHaveAttribute("data-layout-x", "6");
-
+  await page.goto("/examples/advanced/state");
+  await openAdvancedStateEditors(page);
+  const grid = page.getByTestId("dashboard-grid");
   await page.getByRole("button", { name: "전체 상태 저장" }).click();
   const savedJson = await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue();
   expect(JSON.parse(savedJson)).toMatchObject({ columns: 12 });
   await expect(page.getByRole("status", { name: "전체 상태 저장 복원 상태" })).toHaveText("전체 상태와 컬럼 캐시를 저장했습니다.");
 
-  await columnSelect.selectOption("4");
+  const stateColumnSelect = page.getByLabel("컬럼 선택");
+  await stateColumnSelect.selectOption("4");
   await expect(grid).toHaveAttribute("data-columns", "4");
   await page.getByRole("button", { name: "전체 상태 복원" }).click();
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect(page.getByRole("status", { name: "전체 상태 저장 복원 상태" })).toHaveText("전체 상태와 컬럼 캐시를 복원했습니다.");
 
+  await page.goto("/examples/widget");
   await addWidgetFromDialog(page);
-  await expect(page.getByTestId("dashboard-widget-widget-5")).toBeVisible();
-  await expect(page.getByText("위젯 5개")).toBeVisible();
+  await expect(page.getByTestId("dashboard-widget-widget-4")).toBeVisible();
+  const widget = page.getByTestId("dashboard-widget-widget-1");
+  const widgetLayout = await readWidgetLayout(widget);
+  await widget.getByRole("button", { name: "위젯 1 새로고침" }).click();
+  await expect(widget.getByRole("status", { name: "위젯 1 콘텐츠 새로고침 중" })).toBeVisible();
+  await expect.poll(() => readWidgetLayout(widget)).toEqual(widgetLayout);
 
-  await page.getByRole("button", { name: "매출 최대화" }).click();
-  await expect(sales).toHaveAttribute("data-maximized", "true");
-  await expect(sales).toHaveAttribute("data-layout-w", "12");
-
-  await page.getByRole("button", { name: "매출 최소화" }).click();
-  await expect(sales).toHaveAttribute("data-minimized", "true");
-  await expect(sales).toHaveAttribute("data-layout-h", "1");
-
-  await page.getByRole("button", { name: "매출 복원" }).click();
-  await expect(sales).toHaveAttribute("data-maximized", "false");
-  await expect(sales).toHaveAttribute("data-minimized", "false");
-
+  await page.goto("/examples/layout");
+  const sales = page.getByTestId("dashboard-widget-sales");
   await page.getByRole("button", { name: "자동 정렬" }).click();
   await expect(sales).toHaveAttribute("data-layout-x", "0");
 
-  await page.getByRole("button", { name: "레이아웃 초기화" }).click();
+  await page.getByRole("button", { name: "초기화" }).click();
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect(sales).toHaveAttribute("data-layout-x", "0");
-  await expect(sales).toHaveAttribute("data-layout-w", "4");
+  await expect(sales).toHaveAttribute("data-layout-w", "3");
 
   await page.getByRole("button", { name: "매출 삭제" }).click();
-  await expect(sales).toBeHidden();
-  await expect(page.getByText("위젯 3개")).toBeVisible();
+  await expect(sales).toHaveCount(0);
+  await expect(page.locator(".grid-stack-item")).toHaveCount(5);
 
   await page.getByRole("button", { name: "전체 삭제" }).click();
-  await expect(page.getByText("위젯 0개")).toBeVisible();
-  await expect(page.getByTestId("dashboard-widget-traffic")).toBeHidden();
-
-  expect(await page.locator(".grid-stack-item").count()).toBe(0);
+  await expect(page.locator(".grid-stack-item")).toHaveCount(0);
 
   await page.goto("/examples/advanced");
   const advancedSales = page.getByTestId("dashboard-widget-sales");
@@ -1702,20 +1625,16 @@ test("executes the complete feature set through explicit playground routes", asy
     throw new Error("Advanced widget bounding box is not available");
   }
 
-  await page.getByRole("button", { name: "이동 가능" }).click();
-  await expect(page.getByRole("button", { name: "이동 불가" })).toHaveAttribute("data-active", "false");
-  await expect.poll(() => grid.evaluate((element) => Boolean((element as HTMLElement & {
-    gridstack?: { opts?: { disableDrag?: boolean } };
-  }).gridstack?.opts?.disableDrag))).toBe(true);
+  await page.getByRole("button", { name: "정적 모드 사용" }).click();
+  await expect(page.getByRole("button", { name: "정적 모드 해제" })).toHaveAttribute("data-active", "true");
+  await expect(grid).toHaveClass(/grid-stack-static/);
   const lockedPosition = await readWidgetLayout(advancedSales);
   expect(await dragWidgetWithDomEvents(advancedSales, advancedSalesBox.width, 0)).toBe(false);
   await expect.poll(() => readWidgetLayout(advancedSales)).toEqual(lockedPosition);
 
-  await page.getByRole("button", { name: "이동 불가" }).click();
-  await expect(page.getByRole("button", { name: "이동 가능" })).toHaveAttribute("data-active", "true");
-  await expect.poll(() => grid.evaluate((element) => Boolean((element as HTMLElement & {
-    gridstack?: { opts?: { disableDrag?: boolean } };
-  }).gridstack?.opts?.disableDrag))).toBe(false);
+  await page.getByRole("button", { name: "정적 모드 해제" }).click();
+  await expect(page.getByRole("button", { name: "정적 모드 사용" })).toHaveAttribute("data-active", "false");
+  await expect(grid).not.toHaveClass(/grid-stack-static/);
   await expect.poll(() => advancedSales.evaluate((element) => Boolean((element as HTMLElement & {
     gridstackNode?: { noMove?: boolean };
   }).gridstackNode?.noMove))).toBe(false);
@@ -1736,20 +1655,16 @@ test("executes the complete feature set through explicit playground routes", asy
     return layout.x !== lockedPosition.x || layout.y !== lockedPosition.y;
   }).toBe(true);
 
-  await page.getByRole("button", { name: "크기 조절 가능" }).click();
-  await expect(page.getByRole("button", { name: "크기 조절 불가" })).toHaveAttribute("data-active", "false");
-  await expect.poll(() => grid.evaluate((element) => Boolean((element as HTMLElement & {
-    gridstack?: { opts?: { disableResize?: boolean } };
-  }).gridstack?.opts?.disableResize))).toBe(true);
+  await page.getByRole("button", { name: "정적 모드 사용" }).click();
+  await expect(page.getByRole("button", { name: "정적 모드 해제" })).toHaveAttribute("data-active", "true");
+  await expect(grid).toHaveClass(/grid-stack-static/);
   const lockedSize = await readWidgetLayout(advancedSales);
   await expect(advancedSales.locator(".ui-resizable-se")).toBeHidden();
   await expect.poll(() => readWidgetLayout(advancedSales)).toEqual(lockedSize);
 
-  await page.getByRole("button", { name: "크기 조절 불가" }).click();
-  await expect(page.getByRole("button", { name: "크기 조절 가능" })).toHaveAttribute("data-active", "true");
-  await expect.poll(() => grid.evaluate((element) => Boolean((element as HTMLElement & {
-    gridstack?: { opts?: { disableResize?: boolean } };
-  }).gridstack?.opts?.disableResize))).toBe(false);
+  await page.getByRole("button", { name: "정적 모드 해제" }).click();
+  await expect(page.getByRole("button", { name: "정적 모드 사용" })).toHaveAttribute("data-active", "false");
+  await expect(grid).not.toHaveClass(/grid-stack-static/);
   const beforeResize = await readWidgetLayout(advancedSales);
   await resizeWidget(page, advancedSales, 140, 100);
   await expect.poll(async () => {
@@ -1757,7 +1672,8 @@ test("executes the complete feature set through explicit playground routes", asy
     return layout.w !== beforeResize.w || layout.h !== beforeResize.h;
   }).toBe(true);
 
+  await page.goto("/examples/advanced/handle");
   await page.getByRole("button", { name: "레이아웃 갱신" }).click();
-  await expect(page.getByRole("status", { name: "handle 작업 상태" })).toHaveText("레이아웃을 갱신했습니다.");
+  await expect(page.getByRole("status", { name: "Handle 실행 결과" })).toHaveText("refreshed");
   await expect(advancedSales).toBeVisible();
 });

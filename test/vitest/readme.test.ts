@@ -63,6 +63,14 @@ describe("consumer README", () => {
     ]) expect(readme).toContain(text);
   });
 
+  it("documents custom header actions and the live grid property", () => {
+    for (const name of ["renderWidgetActions", "grid", "getGridStack"]) {
+      expect(readme).toContain(`\`${name}\``);
+    }
+    expect(readme).toContain("raw GridStack add/remove/destroy");
+    expect(readme).toContain("controlled React state can diverge");
+  });
+
   it("keeps the checked-in animation within the GIF contract", () => {
     const header = readFileSync(gifPath).subarray(0, 6).toString("ascii");
     expect(["GIF87a", "GIF89a"]).toContain(header);

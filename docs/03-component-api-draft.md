@@ -16,6 +16,7 @@ type DashboardGridProps<TWidgetData = unknown> = {
   refreshKey?: number;
   showControls?: boolean;
   actionLabels?: Partial<DashboardWidgetActionLabels>;
+  renderWidgetActions?: (widget: DashboardWidget<TWidgetData>) => React.ReactNode;
   onColumnsChange?: (columns: DashboardColumnCount) => void;
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetLayout) => void;
@@ -126,6 +127,7 @@ type DashboardGridCommands<TData = unknown> = {
 
 ```ts
 interface DashboardGridHandle {
+  readonly grid: GridStack | null;
   getGridStack(): GridStack | null;
   refresh(): void;
   compact(layout?: "compact" | "list", doSort?: boolean): DashboardLayoutSnapshot | null;
@@ -133,7 +135,20 @@ interface DashboardGridHandle {
 }
 ```
 
-The handle is an optional advanced escape hatch. Comins commands remain the primary React state and CRUD API. The returned GridStack instance is borrowed; DashboardGrid owns initialization, listeners, and destruction. A controlled example must not call raw GridStack `addWidget`, `removeWidget`, or `destroy`; use the documented handle methods and Comins commands instead.
+`renderWidgetActions` overrides the built-in header actions. `showControls=false` hides every header action, including a custom renderer.
+
+```tsx
+<DashboardGrid
+  ref={layoutRef}
+  renderWidgetActions={(widget) => <WidgetActions widget={widget} />}
+  renderWidget={(widget) => <WidgetContent widget={widget} />}
+/>
+
+layoutRef.current?.compact();
+layoutRef.current?.grid?.getColumn();
+```
+
+The handle is an optional advanced escape hatch. Comins commands remain the primary React state and CRUD API. `grid` is a read-only live property and `getGridStack()` remains compatible; both are `null` outside the mounted engine lifecycle. The returned GridStack instance is borrowed, and DashboardGrid owns initialization, listeners, and destruction. Prefer safe `compact()` and `commitLayout()` operations. Raw GridStack `addWidget`, `removeWidget`, or `destroy` calls can make controlled React state and the column cache diverge from engine layout.
 
 ## Option Semantics
 

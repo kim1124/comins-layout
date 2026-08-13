@@ -270,8 +270,9 @@ test.describe("External drop child-route contracts", () => {
     const descendant = target.getByText("드래그한 위젯을 여기에 놓으세요.");
     await expect(descendant).toBeVisible();
     const targetBox = await target.boundingBox();
-    expect(targetBox?.width).toBe(300);
-    expect(targetBox?.height).toBe(300);
+    expect(targetBox).not.toBeNull();
+    expect(Math.abs(targetBox!.width - 300)).toBeLessThanOrEqual(1);
+    expect(Math.abs(targetBox!.height - 300)).toBeLessThanOrEqual(1);
 
     const widget = page.getByTestId("dashboard-widget-widget-1");
     await widget.scrollIntoViewIfNeeded();

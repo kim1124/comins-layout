@@ -144,6 +144,11 @@ test("uses code notation without Korean connectors in the English API", async ({
   await expect(apiReference).not.toContainText("와");
   await expect(apiReference).toContainText("widget | widget id");
   await expect(apiReference).toContainText("void | DashboardColumnCount");
+  await expect(apiReference).toContainText("renderWidgetActions");
+  await expect(apiReference).toContainText("Overrides the default actions; showControls=false hides all actions, including custom actions.");
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "한" }).click();
+  await expect(apiReference).toContainText("기본 action을 대체하며 showControls=false이면 custom action을 포함한 모든 action을 숨깁니다.");
 });
 
 test("preserves the docs example DOM node while locale copy changes", async ({ page }) => {

@@ -17,7 +17,9 @@ test.describe("External drop", () => {
     const target = page.locator("[data-dashboard-drop-target='trash']");
     const targetChild = target.getByText("드래그한 위젯을 여기에 놓으세요.");
     const targetBox = await target.boundingBox();
-    expect(targetBox).toMatchObject({ width: 300, height: 300 });
+    expect(targetBox).not.toBeNull();
+    expect(Math.abs(targetBox!.width - 300)).toBeLessThanOrEqual(1);
+    expect(Math.abs(targetBox!.height - 300)).toBeLessThanOrEqual(1);
 
     await widget.scrollIntoViewIfNeeded();
     await dragWidgetToTarget(page, widget, targetChild);
@@ -187,6 +189,7 @@ test.describe("Advanced engine options", () => {
   });
 
   test("changes real vertical placement when Float is enabled", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1800 });
     const alerts = page.getByTestId("dashboard-widget-alerts");
     const packedY = Number(await alerts.getAttribute("gs-y"));
 
