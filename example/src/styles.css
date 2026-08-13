@@ -1158,6 +1158,15 @@ button.dashboard-widget-body[data-selected="true"] {
   margin: 0;
 }
 
+.playground-advanced-controls {
+  grid-template-columns: minmax(240px, 0.7fr) minmax(0, 1.3fr);
+}
+
+.playground-advanced-options {
+  display: grid;
+  gap: 12px;
+}
+
 .playground-layout-toolbar {
   flex-wrap: nowrap;
   overflow-x: auto;
@@ -1260,6 +1269,10 @@ button.dashboard-widget-body[data-selected="true"] {
 
   .playground-controls {
     padding: 0 12px;
+  }
+
+  .playground-advanced-controls {
+    grid-template-columns: 1fr;
   }
 
   .playground-controls .example-actions {

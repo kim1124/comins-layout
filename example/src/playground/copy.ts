@@ -213,23 +213,35 @@ export const advancedPlaygroundCopy = {
   controls: defineLocalizedText("고급 예제 컨트롤", "Advanced example controls"),
   dashboard: defineLocalizedText("고급 예제 dashboard", "Advanced example dashboard"),
   description: defineLocalizedText(
-    "반응형 컬럼, 안전한 GridStack handle, 외부 드롭을 제어 상태와 함께 검증합니다.",
-    "Verify responsive columns, a safe GridStack handle, and external drop with controlled state.",
+    "반응형 컬럼과 지원되는 GridStack 엔진 옵션의 실제 동작을 확인합니다.",
+    "Verify responsive columns and the real behavior of supported GridStack engine options.",
   ),
-  kicker: defineLocalizedText("개발 예제", "Development example"),
+  kicker: defineLocalizedText("반응형·엔진 옵션", "Responsive and engine options"),
   title: defineLocalizedText("고급 예제", "Advanced example"),
   groups: {
-    columns: defineLocalizedText("고급 컬럼과 엔진 옵션", "Advanced columns and engine options"),
+    engine: defineLocalizedText("엔진 옵션", "Engine options"),
+    responsive: defineLocalizedText("반응형 컬럼", "Responsive columns"),
     externalDrop: defineLocalizedText("외부 드롭 삭제 예제", "External drop delete example"),
     fullState: defineLocalizedText("전체 상태 저장 복원", "Full state save and restore"),
     handle: defineLocalizedText("공개 handle 예제", "Public handle example"),
     widgetCrud: defineLocalizedText("고급 위젯 CRUD", "Advanced widget CRUD"),
   },
   headings: {
-    columns: defineLocalizedText("컬럼과 엔진 옵션", "Columns and engine options"),
+    engine: defineLocalizedText("엔진 옵션", "Engine options"),
+    responsive: defineLocalizedText("반응형 컬럼", "Responsive columns"),
     fullState: defineLocalizedText("전체 상태와 컬럼 캐시", "Full state and column cache"),
     handle: defineLocalizedText("안전한 공개 handle", "Safe public handle"),
     widgets: defineLocalizedText("제어 위젯", "Controlled widgets"),
+  },
+  descriptions: {
+    engine: defineLocalizedText(
+      "GridStack의 배치, 렌더링과 상호작용 옵션을 변경합니다.",
+      "Change GridStack layout, rendering, and interaction options.",
+    ),
+    responsive: defineLocalizedText(
+      "화면 너비에 따라 컬럼이 자동으로 변경됩니다.",
+      "Columns change automatically with the viewport width.",
+    ),
   },
   actions: {
     clearAll: sharedPlaygroundCopy.clearAll,
@@ -241,15 +253,41 @@ export const advancedPlaygroundCopy = {
     save: defineLocalizedText("전체 상태 저장", "Save full state"),
   },
   toggles: {
-    float: defineLocalizedText("Float 사용", "Use float"),
-    locked: defineLocalizedText("레이아웃 잠금", "Layout locked"),
-    movable: defineLocalizedText("이동 가능", "Movable"),
-    notMovable: defineLocalizedText("이동 불가", "Not movable"),
-    notResizable: defineLocalizedText("크기 조절 불가", "Not resizable"),
-    resizable: defineLocalizedText("크기 조절 가능", "Resizable"),
-    responsive: defineLocalizedText("반응형 컬럼 사용", "Use responsive columns"),
-    unlocked: defineLocalizedText("레이아웃 해제", "Layout unlocked"),
+    animate: {
+      disable: defineLocalizedText("애니메이션 해제", "Disable animation"),
+      enable: defineLocalizedText("애니메이션 사용", "Enable animation"),
+    },
+    float: {
+      disable: defineLocalizedText("Float 해제", "Disable float"),
+      enable: defineLocalizedText("Float 사용", "Enable float"),
+    },
+    responsive: {
+      disable: defineLocalizedText("반응형 컬럼 해제", "Disable responsive columns"),
+      enable: defineLocalizedText("반응형 컬럼 사용", "Enable responsive columns"),
+    },
+    rtl: {
+      disable: defineLocalizedText("RTL 해제", "Disable RTL"),
+      enable: defineLocalizedText("RTL 사용", "Enable RTL"),
+    },
+    sizeToContent: {
+      disable: defineLocalizedText("콘텐츠 높이 해제", "Disable content height"),
+      enable: defineLocalizedText("콘텐츠 높이 사용", "Enable content height"),
+    },
+    staticGrid: {
+      disable: defineLocalizedText("정적 모드 해제", "Disable static mode"),
+      enable: defineLocalizedText("정적 모드 사용", "Enable static mode"),
+    },
   },
+  selects: {
+    cellHeight: defineLocalizedText("셀 높이", "Cell height"),
+    margin: defineLocalizedText("여백", "Margin"),
+    rowLimit: defineLocalizedText("행 제한", "Row limit"),
+  },
+  rowLimits: [
+    { key: "none", label: defineLocalizedText("제한 없음", "No limit") },
+    { key: "two-eight", label: defineLocalizedText("2–8행", "Rows 2–8") },
+    { key: "four-twelve", label: defineLocalizedText("4–12행", "Rows 4–12") },
+  ],
   externalDrop: {
     description: defineLocalizedText("드래그한 위젯을 여기에 놓으세요.", "Drop a dragged widget here."),
     label: defineLocalizedText("위젯을 여기에 놓으면 삭제됩니다", "Drop a widget here to delete it"),

@@ -445,12 +445,11 @@ test("uses indexed fixture presentation until an edited Widget has user-owned da
 });
 
 
-test("localizes shared fallback CRUD generated add copy in Layout and Advanced", async ({ page }) => {
+test("localizes shared fallback CRUD generated add copy in Layout", async ({ page }) => {
   await initializePlaygroundLocale(page, "en");
 
   for (const fixture of [
     { addedId: "widget-7", defaultTitle: "Widget 7", route: "/examples/layout" },
-    { addedId: "widget-5", defaultTitle: "Widget 5", route: "/examples/advanced" },
   ] as const) {
     await page.goto(fixture.route);
     await page.getByRole("button", { name: "Add widget" }).click();
@@ -531,38 +530,18 @@ test("localizes the dynamic column route without resetting its live state", asyn
   expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
 });
 
-test("localizes Advanced copy and semantic status without resetting engine state", async ({ page }) => {
+test("localizes Advanced engine controls without resetting engine state", async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1100 });
   await page.goto("/examples/advanced");
 
-  const responsiveToggle = page.getByRole("button", { name: "반응형 컬럼 사용" });
-  const floatToggle = page.getByRole("button", { name: "Float 사용" });
-  const movableToggle = page.getByRole("button", { name: "이동 가능" });
-  const resizableToggle = page.getByRole("button", { name: "크기 조절 가능" });
-  const lockToggle = page.getByRole("button", { name: "레이아웃 해제" });
-  await responsiveToggle.click();
-  await floatToggle.click();
-  await expect(page.getByRole("status", { name: "GridStack 읽기 전용 상태" })).toHaveText(
-    /^column=6; row=\d+; float=true$/,
-  );
-
-  const externalDropTarget = page.locator("[data-dashboard-drop-target='trash']");
-  await page.getByTestId("dashboard-widget-sales").locator(".comins-grid-layout-widget__title").dragTo(externalDropTarget);
-  await expect(page.getByTestId("dashboard-widget-sales")).toBeHidden();
-  const externalDropDiagnostic = await page.getByRole("status", { name: "외부 드롭 처리 상태" }).textContent();
-  expect(externalDropDiagnostic).toMatch(/^target=trash; widget=sales; columns=6; layout=\d+,\d+,\d+,\d+$/);
-
-  await page.getByRole("button", { name: "compact 정렬 후 커밋" }).click();
-  await expect(page.getByRole("status", { name: "handle 작업 상태" })).toHaveText("compact 정렬을 커밋했습니다.");
-  await movableToggle.click();
-  await resizableToggle.click();
-  await lockToggle.click();
-  await page.getByRole("button", { name: "전체 상태 저장" }).click();
-
-  const savedState = await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").inputValue();
-  const savedLayoutsByColumn = (JSON.parse(savedState) as { layoutsByColumn: Record<string, unknown> }).layoutsByColumn;
-  expect(Object.keys(savedLayoutsByColumn).sort()).toEqual(["12", "6"]);
-  const queryDiagnostic = await page.getByRole("status", { name: "GridStack 읽기 전용 상태" }).textContent();
+  await page.getByRole("button", { name: "반응형 컬럼 사용" }).click();
+  await page.getByRole("button", { name: "Float 사용" }).click();
+  await page.getByRole("button", { name: "정적 모드 사용" }).click();
+  await page.getByRole("combobox", { name: "셀 높이" }).selectOption("80");
+  await page.getByRole("combobox", { name: "여백" }).selectOption("12");
+  await page.getByRole("combobox", { name: "행 제한" }).selectOption("two-eight");
+  await expect(page.locator(".grid-stack")).toHaveAttribute("data-columns", "6");
+  await expect(page.locator(".grid-stack")).toHaveClass(/grid-stack-static/);
   const trafficGeometry = await page.getByTestId("dashboard-widget-traffic").evaluate((element) => ({
     h: element.getAttribute("data-layout-h"),
     w: element.getAttribute("data-layout-w"),
@@ -575,38 +554,26 @@ test("localizes Advanced copy and semantic status without resetting engine state
 
   await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
 
-  await expect(page.getByLabel("Full state and column cache JSON")).toHaveValue(savedState);
-  await page.getByRole("button", { name: "Save full state" }).click();
-  const localizedState = JSON.parse(await page.getByLabel("Full state and column cache JSON").inputValue()) as {
-    layoutsByColumn: Record<string, unknown>;
-  };
-  expect(localizedState.layoutsByColumn).toEqual(savedLayoutsByColumn);
   await expect(page).toHaveURL(/\/examples\/advanced$/);
   expect(await page.evaluate(() => window.__cominsGridLayoutLastUnmount)).toBeUndefined();
-  await expect(page.locator(".playground-header").getByText("Development example", { exact: true })).toBeVisible();
+  await expect(page.locator(".playground-header").getByText("Responsive and engine options", { exact: true })).toBeVisible();
   await expect(page.locator(".playground-header").getByRole("heading", { name: "Advanced example" })).toBeVisible();
-  await expect(page.getByText("Verify responsive columns, a safe GridStack handle, and external drop with controlled state.")).toBeVisible();
+  await expect(page.getByText("Verify responsive columns and the real behavior of supported GridStack engine options.")).toBeVisible();
   await expect(page.locator(".playground-controls")).toHaveAttribute("aria-label", "Advanced example controls");
-  await expect(page.getByRole("button", { name: "Use responsive columns" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: "Use float" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("button", { name: "Not movable" })).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByRole("button", { name: "Not resizable" })).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByRole("button", { name: "Layout locked" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByRole("combobox", { name: "Select columns" })).toHaveValue("6");
-  await expect(page.getByRole("status", { name: "Active column status" })).toHaveText("Currently using 6 columns.");
-  await expect(page.getByRole("status", { name: "Available column cache" })).toHaveText("Available cached columns: 6, 12");
-  await expect(page.getByRole("status", { name: "Handle operation status" })).toHaveText("Committed the compact arrangement.");
-  await expect(page.getByRole("status", { name: "Controlled layout commit status" })).toHaveText(
-    "Committed the 6-column layout to React state.",
-  );
-  await expect(page.getByRole("status", { name: "Full state save and restore status" })).toHaveText(
-    "Saved the full state and column cache.",
-  );
-  await expect(page.getByRole("status", { name: "Read-only GridStack status" })).toHaveText(queryDiagnostic ?? "");
-  await expect(page.getByRole("status", { name: "External drop status" })).toHaveText(externalDropDiagnostic ?? "");
-  await expect(page.getByText("3 widgets", { exact: true })).toBeVisible();
+  await expect(page.getByText("Columns change automatically with the viewport width.")).toBeVisible();
+  await expect(page.getByText("Change GridStack layout, rendering, and interaction options.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Disable responsive columns" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Disable float" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: "Disable static mode" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("combobox", { name: "Cell height" })).toHaveValue("80");
+  await expect(page.getByRole("combobox", { name: "Margin" })).toHaveValue("12");
+  await expect(page.getByRole("combobox", { name: "Row limit" })).toHaveValue("two-eight");
+  await expect(page.getByText("4 widgets", { exact: true })).toBeVisible();
   await expect(page.locator(".playground-grid-region")).toHaveAttribute("aria-label", "Advanced example dashboard");
-  await expect(page.getByTestId("dashboard-widget-traffic").getByRole("button", { name: "Traffic maximize" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /JSON/ })).toHaveCount(0);
+  await expect(page.locator("[data-dashboard-drop-target]")).toHaveCount(0);
+  await expect(page.locator(".grid-stack")).toHaveAttribute("data-columns", "6");
+  await expect(page.locator(".grid-stack")).toHaveClass(/grid-stack-static/);
   expect(await page.getByTestId("dashboard-widget-traffic").evaluate((element) => ({
     h: element.getAttribute("data-layout-h"),
     w: element.getAttribute("data-layout-w"),

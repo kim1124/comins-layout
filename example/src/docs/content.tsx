@@ -62,6 +62,22 @@ const widgetLockSample = `dashboard.commands.updateWidget("sales", { movable: fa
 dashboard.commands.updateWidget("sales", { resizable: false });
 dashboard.commands.updateWidget("sales", { locked: true });`;
 
+const advancedEngineSample = `<DashboardGrid
+  engineOptions={{
+    animate,
+    cellHeight,
+    float,
+    margin,
+    maxRow,
+    minRow,
+    rtl,
+    sizeToContent,
+    staticGrid,
+  }}
+  responsive={responsiveEnabled ? responsiveOptions : undefined}
+  widgets={dashboard.widgets}
+/>`;
+
 const componentApiSample = `import { DashboardGrid } from "comins-grid-layout";
 
 <DashboardGrid
@@ -547,16 +563,22 @@ const localizedDocsPages: LocalizedDocsPage[] = [
     category: text("예제", "Examples"),
     examples: [
       {
-        codeSamples: [{ code: `${layoutSample}\n\n${widgetLockSample}`, language: "ts", title: text("고급 제어 상태", "Advanced controlled state") }],
-        description: text("responsive column, public handle query, external drop, 전체 상태와 컬럼 cache 복원을 제어된 React state로 확인합니다.", "Review responsive columns, public handle queries, external drops, whole state, and column cache restoration with controlled React state."),
+        codeSamples: [{ code: advancedEngineSample, language: "tsx", title: text("엔진 옵션 연결", "Engine option wiring") }],
+        description: text(
+          "화면 너비에 따른 반응형 컬럼과 지원되는 GridStack 엔진 옵션의 실제 변화를 확인합니다.",
+          "Review responsive columns by viewport width and real changes from supported GridStack engine options.",
+        ),
         liveExampleId: "advanced",
-        title: text("고급 제어 예제", "Advanced controlled example"),
+        title: text("반응형·엔진 옵션", "Responsive and engine options"),
       },
     ],
     label: text("반응형·엔진 옵션", "Responsive and engine options"),
     navParent: text("고급 예제", "Advanced examples"),
     path: "/examples/advanced",
-    summary: text("responsive, handle, external drop, 전체 상태 cache 흐름입니다.", "Responsive, handle, external drop, and complete state cache flow."),
+    summary: text(
+      "반응형 컬럼과 지원되는 GridStack 엔진 옵션의 실제 동작을 비교합니다.",
+      "Compare responsive columns and the real behavior of supported GridStack engine options.",
+    ),
     title: text("고급 예제", "Advanced example"),
   },
   {
