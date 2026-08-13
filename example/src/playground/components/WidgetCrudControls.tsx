@@ -10,9 +10,35 @@ import { pastelKeyForIndex } from "../palette";
 import type { DashboardRuntime } from "../types";
 import { WidgetFormDialog } from "./WidgetFormDialog";
 import type { WidgetDraft } from "./WidgetFormDialog";
+import type { DashboardWidget } from "../../../../src";
+import type { ExampleWidgetData } from "../types";
 
 export type NewWidgetDraft = WidgetDraft;
 export type EditedWidgetDraft = Pick<WidgetDraft, "title" | "value">;
+export type DefaultWidgetEditCommands = Pick<DashboardRuntime["commands"], "updateWidget" | "updateWidgetLayout">;
+
+export function applyDefaultWidgetEdit(
+  commands: DefaultWidgetEditCommands,
+  selectedWidget: DashboardWidget<ExampleWidgetData>,
+  draft: WidgetDraft,
+) {
+  const generatedDescriptionKey = selectedWidget.data?.fixtureCopyKey
+    ? "editedWidget"
+    : selectedWidget.data?.generatedDescriptionKey;
+
+  commands.updateWidgetLayout(selectedWidget.id, { h: draft.height, w: draft.width });
+  commands.updateWidget(selectedWidget.id, {
+    data: {
+      ...selectedWidget.data,
+      description: selectedWidget.data?.description ?? `${draft.title} dashboard widget`,
+      ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
+      colorKey: draft.colorKey,
+      contentRevision: (selectedWidget.data?.contentRevision ?? 0) + 1,
+      value: draft.value,
+    },
+    title: draft.title,
+  });
+}
 
 type WidgetCrudControlsProps = {
   addDialogOpen?: boolean;
@@ -121,21 +147,7 @@ export function WidgetCrudControls({
     if (onEditWidget) {
       onEditWidget({ title: draft.title, value: draft.value });
     } else {
-      const generatedDescriptionKey = selectedWidget.data?.fixtureCopyKey
-        ? "editedWidget"
-        : selectedWidget.data?.generatedDescriptionKey;
-
-      dashboard.commands.updateWidget(selectedWidget.id, {
-        data: {
-          ...selectedWidget.data,
-          description: selectedWidget.data?.description ?? `${draft.title} dashboard widget`,
-          ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
-          colorKey: draft.colorKey,
-          contentRevision: (selectedWidget.data?.contentRevision ?? 0) + 1,
-          value: draft.value,
-        },
-        title: draft.title,
-      });
+      applyDefaultWidgetEdit(dashboard.commands, selectedWidget, draft);
     }
     setEditDialogOpen(false);
   };
