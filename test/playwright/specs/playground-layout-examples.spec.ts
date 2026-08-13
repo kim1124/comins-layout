@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   dragWidget,
   readDashboardGeometry,
+  readWidgetGeometry,
   resizeWidget,
   type WidgetGeometry,
 } from "../helpers/dashboard-interactions";
@@ -54,8 +55,22 @@ test("restores the exact saved geometry after drag and resize", async ({ page })
   await page.getByRole("button", { name: "레이아웃 저장", exact: true }).click();
   const before = await readDashboardGeometry(page);
 
-  await dragWidget(page, page.getByTestId("dashboard-widget-sales"), 180, 120);
-  await resizeWidget(page, page.getByTestId("dashboard-widget-traffic"), 120, 80);
+  const firstWidget = page.getByTestId("dashboard-widget-sales");
+  const beforeDrag = await readWidgetGeometry(firstWidget);
+  await dragWidget(page, firstWidget, 180, 120);
+  await expect.poll(async () => {
+    const afterDrag = await readWidgetGeometry(firstWidget);
+    return afterDrag.x !== beforeDrag.x || afterDrag.y !== beforeDrag.y;
+  }).toBe(true);
+
+  const secondWidget = page.getByTestId("dashboard-widget-traffic");
+  const beforeResize = await readWidgetGeometry(secondWidget);
+  await resizeWidget(page, secondWidget, 120, 80);
+  await expect.poll(async () => {
+    const afterResize = await readWidgetGeometry(secondWidget);
+    return afterResize.w !== beforeResize.w || afterResize.h !== beforeResize.h;
+  }).toBe(true);
+
   await expect.poll(() => readDashboardGeometry(page)).not.toEqual(before);
 
   await page.getByRole("button", { name: "레이아웃 복원", exact: true }).click();
