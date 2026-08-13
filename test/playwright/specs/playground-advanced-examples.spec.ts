@@ -441,3 +441,74 @@ test.describe("Advanced state and column cache", () => {
     await expect(editor).toHaveValue(savedStateJson);
   });
 });
+
+test.describe("Dashboard events", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1200 });
+    await page.goto("/examples/advanced/events");
+  });
+
+  test("logs columns, drag, resize frame and commit events", async ({ page }) => {
+    await expect(page).toHaveURL(/\/examples\/advanced\/events$/);
+    const navigation = page.getByRole("navigation", { name: "문서 메뉴" });
+    await expect(navigation.getByRole("link", { name: "이벤트" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("searchbox", { name: "전체 문서 검색" })).toBeVisible();
+    await expect(page.locator(".grid-stack")).toHaveCount(1);
+    await expect(page.locator("[data-dashboard-drop-target]")).toHaveCount(0);
+
+    const log = page.getByRole("log");
+    await expect(log).toHaveAttribute("aria-live", "polite");
+    const entries = log.locator("[data-event-name]");
+
+    const widget = page.getByTestId("dashboard-widget-sales");
+    const beforeDrag = await readWidgetGeometry(widget);
+    await dragWidget(page, widget, 180, 120);
+    await expect.poll(() => readWidgetGeometry(widget)).not.toEqual(beforeDrag);
+    await expect(entries.filter({ hasText: "onWidgetDragStart" })).not.toHaveCount(0);
+    await expect(entries.filter({ hasText: "onWidgetDragStop" })).not.toHaveCount(0);
+    await expect(entries.filter({ hasText: "onLayoutCommit" })).not.toHaveCount(0);
+
+    const resizableWidget = page.getByTestId("dashboard-widget-traffic");
+    const beforeResize = await readWidgetGeometry(resizableWidget);
+    await resizeWidget(page, resizableWidget, 120, 80);
+    await expect.poll(async () => {
+      const afterResize = await readWidgetGeometry(resizableWidget);
+      return afterResize.w !== beforeResize.w || afterResize.h !== beforeResize.h;
+    }).toBe(true);
+    await expect(entries.filter({ hasText: "onWidgetResizeStart" })).not.toHaveCount(0);
+    await expect(entries.filter({ hasText: "onWidgetResizeStop" })).not.toHaveCount(0);
+    const frameEntry = entries.filter({ hasText: "onWidgetResizeFrame" }).last();
+    await expect(frameEntry).toContainText(/width=\d+/);
+    await expect(frameEntry).toContainText(/height=\d+/);
+    await expect(frameEntry).not.toContainText("x=");
+
+    const names = await entries.evaluateAll((nodes) => nodes.map((node) => node.getAttribute("data-event-name")));
+    expect(names.lastIndexOf("onWidgetDragStart")).toBeLessThan(names.lastIndexOf("onWidgetDragStop"));
+    expect(names.lastIndexOf("onWidgetResizeStart")).toBeLessThan(names.lastIndexOf("onWidgetResizeStop"));
+    expect(names.at(-1)).toBe("onWidgetResizeStop");
+
+    await page.getByRole("combobox", { name: "레이아웃 컬럼" }).selectOption("6");
+    await expect(page.locator(".grid-stack")).toHaveAttribute("data-columns", "6");
+    await expect(entries.filter({ hasText: "onColumnsChange" })).toContainText("columns=6");
+
+    for (let index = 0; index < 12; index += 1) {
+      await page.getByRole("combobox", { name: "레이아웃 컬럼" }).selectOption(index % 2 === 0 ? "5" : "6");
+    }
+    await expect(entries).toHaveCount(10);
+    await expect(entries.last()).toContainText("onColumnsChange columns=6");
+  });
+
+  test("localizes the bounded event explanation without exposing external drop", async ({ page }) => {
+    await expect(page.getByText("최근 10개의 공개 callback 이벤트를 발생 순서대로 표시합니다.")).toBeVisible();
+    await expect(page.getByRole("log")).toContainText("아직 기록된 이벤트가 없습니다.");
+    await page.getByRole("searchbox", { name: "전체 문서 검색" }).fill("callback 이벤트");
+    const eventResult = page.getByRole("option", { name: /^문서 이벤트/ });
+    await expect(eventResult).toBeVisible();
+    await eventResult.click();
+    await expect(page).toHaveURL(/\/examples\/advanced\/events$/);
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    await expect(page.getByText("Shows the ten most recent public callback events in occurrence order.")).toBeVisible();
+    await expect(page.getByRole("log")).toContainText("No events recorded yet.");
+    await expect(page.getByText(/external drop/i)).toHaveCount(0);
+  });
+});

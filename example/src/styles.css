@@ -1314,8 +1314,45 @@ button.dashboard-widget-body[data-selected="true"] {
   margin-top: 12px;
 }
 
+.playground-event-controls {
+  align-items: start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+}
+
+.playground-event-log {
+  background: #f8fafc;
+  border: 1px solid var(--comins-color-border);
+  border-radius: var(--comins-radius-md);
+  min-height: 72px;
+  overflow: auto;
+  padding: 10px 12px;
+}
+
+.playground-event-log p,
+.playground-event-log ol {
+  margin: 0;
+}
+
+.playground-event-log ol {
+  display: grid;
+  gap: 4px;
+  list-style-position: inside;
+  padding: 0;
+}
+
+.playground-event-log code {
+  color: #334155;
+  font-size: 11px;
+}
+
 @media (max-width: 860px) {
   .playground-state-editors {
+    grid-template-columns: 1fr;
+  }
+
+  .playground-event-controls {
     grid-template-columns: 1fr;
   }
 }

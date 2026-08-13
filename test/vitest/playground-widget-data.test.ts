@@ -4,6 +4,10 @@ import {
 } from "../../example/src/playground/components/WidgetCrudControls";
 import { createLayoutPlaygroundFixture } from "../../example/src/playground/fixtures";
 import {
+  appendBoundedEvent,
+  type PlaygroundEventEntry,
+} from "../../example/src/playground/event-log";
+import {
   PASTEL_COLORS,
   pastelColor,
   pastelKeyForIndex,
@@ -13,6 +17,37 @@ import type { DashboardLayoutState } from "../../src";
 import type { ExampleWidgetData } from "../../example/src/playground/types";
 
 describe("playground widget data", () => {
+  it("keeps the newest ten serializable events", () => {
+    const events = Array.from({ length: 12 }, (_, index) => ({
+      name: "onColumnsChange" as const,
+      columns: index + 1,
+    }));
+    const source: PlaygroundEventEntry[] = [];
+    const result = events.reduce(
+      (log, event) => appendBoundedEvent(log, event),
+      source,
+    );
+
+    expect(result).toHaveLength(10);
+    expect(result[0]).toEqual({ name: "onColumnsChange", columns: 3 });
+    expect(result[9]).toEqual({ name: "onColumnsChange", columns: 12 });
+    expect(source).toEqual([]);
+    expect(JSON.parse(JSON.stringify(result))).toEqual(result);
+  });
+
+  it("handles explicit and edge event limits without retaining non-finite payloads", () => {
+    const entry = { name: "onWidgetResizeFrame" as const, id: "sales", width: 320, height: 180 };
+    const three = [entry, entry, entry, entry].reduce(
+      (log, event) => appendBoundedEvent(log, event, 3.9),
+      [] as PlaygroundEventEntry[],
+    );
+
+    expect(three).toHaveLength(3);
+    expect(appendBoundedEvent(three, entry, 0)).toEqual([]);
+    expect(appendBoundedEvent(three, { ...entry, width: Number.POSITIVE_INFINITY }, 10)).toBe(three);
+    expect(appendBoundedEvent(three, entry, Number.NaN)).toHaveLength(4);
+  });
+
   it("assigns stable pastel colors by widget index", () => {
     expect(pastelKeyForIndex(0)).toBe("mint");
     expect(pastelKeyForIndex(PASTEL_COLORS.length)).toBe("mint");

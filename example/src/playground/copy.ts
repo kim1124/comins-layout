@@ -444,6 +444,20 @@ export const advancedStateCopy = {
   title: defineLocalizedText("전체 상태와 컬럼 캐시", "Full state and column cache"),
 } as const;
 
+export const advancedEventsCopy = {
+  columns: defineLocalizedText("레이아웃 컬럼", "Layout columns"),
+  controls: defineLocalizedText("이벤트 예제 컨트롤", "Event example controls"),
+  dashboard: defineLocalizedText("이벤트 예제 dashboard", "Event example dashboard"),
+  description: defineLocalizedText(
+    "최근 10개의 공개 callback 이벤트를 발생 순서대로 표시합니다.",
+    "Shows the ten most recent public callback events in occurrence order.",
+  ),
+  empty: defineLocalizedText("아직 기록된 이벤트가 없습니다.", "No events recorded yet."),
+  kicker: defineLocalizedText("고급 예제", "Advanced example"),
+  log: defineLocalizedText("최근 dashboard 이벤트", "Recent dashboard events"),
+  title: defineLocalizedText("이벤트", "Events"),
+} as const;
+
 export const widgetPlaygroundCopy = {
   controls: defineLocalizedText("위젯 예제 컨트롤", "Widget example controls"),
   dashboard: defineLocalizedText("위젯 대시보드", "Widget dashboard"),

@@ -90,6 +90,18 @@ const officialGridStackHandleSample = `layoutRef.current?.grid?.getColumn();
 layoutRef.current?.grid?.getRow();
 layoutRef.current?.grid?.cellHeight(80);`;
 
+const eventCallbacksSample = `<DashboardGrid
+  columns={dashboard.columns}
+  widgets={dashboard.widgets}
+  onColumnsChange={(columns) => record({ name: "onColumnsChange", columns })}
+  onLayoutCommit={(snapshot) => record({ name: "onLayoutCommit", columns: snapshot.columns })}
+  onWidgetDragStart={(event) => recordInteraction("onWidgetDragStart", event)}
+  onWidgetDragStop={(event) => recordInteraction("onWidgetDragStop", event)}
+  onWidgetResizeStart={(event) => recordInteraction("onWidgetResizeStart", event)}
+  onWidgetResizeFrame={(event) => record({ name: "onWidgetResizeFrame", ...event })}
+  onWidgetResizeStop={(event) => recordInteraction("onWidgetResizeStop", event)}
+/>;`;
+
 const componentApiSample = `import { DashboardGrid } from "comins-grid-layout";
 
 <DashboardGrid
@@ -639,6 +651,28 @@ const localizedDocsPages: LocalizedDocsPage[] = [
       "Compare geometry-only layouts with full state containing widget data and per-column caches.",
     ),
     title: text("전체 상태와 컬럼 캐시", "Full state and column cache"),
+  },
+  {
+    category: text("예제", "Examples"),
+    examples: [
+      {
+        codeSamples: [{ code: eventCallbacksSample, language: "tsx", title: text("공개 callback 이벤트", "Public callback events") }],
+        description: text(
+          "컬럼 변경, 레이아웃 커밋, 이동과 리사이즈 callback의 발생 순서와 직렬화 가능한 payload를 확인합니다.",
+          "Inspect the occurrence order and serializable payloads of column, layout commit, drag, and resize callbacks.",
+        ),
+        liveExampleId: "advanced-events",
+        title: text("이벤트", "Events"),
+      },
+    ],
+    label: text("이벤트", "Events"),
+    navParent: text("고급 예제", "Advanced examples"),
+    path: "/examples/advanced/events",
+    summary: text(
+      "최근 10개의 공개 callback 이벤트와 해당 payload를 발생 순서대로 확인합니다.",
+      "Review the ten most recent public callback events and their payloads in occurrence order.",
+    ),
+    title: text("이벤트", "Events"),
   },
   {
     category: text("API", "API"),
