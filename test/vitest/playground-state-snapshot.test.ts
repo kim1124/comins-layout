@@ -1,5 +1,6 @@
 import { createDashboardLayoutState } from "../../src";
 import {
+  sanitizeDashboardLayoutSnapshot,
   sanitizeDashboardStateSnapshot,
   sanitizeExampleDashboardStateSnapshot,
 } from "../../example/src/playground/state-snapshot";
@@ -26,7 +27,37 @@ function createValidSnapshot() {
   };
 }
 
+function createValidExampleSnapshot() {
+  return {
+    columns: 12,
+    widgets: [{
+      id: "sales",
+      title: "Sales",
+      layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 },
+      data: {
+        description: "Monthly recurring revenue",
+        fixtureCopyKey: "sales",
+        value: "128M",
+      },
+    }],
+  };
+}
+
 describe("sanitizeDashboardStateSnapshot", () => {
+  it("keeps only valid active layout geometry", () => {
+    expect(sanitizeDashboardLayoutSnapshot({
+      columns: 12,
+      widgets: [{ id: "sales", x: 0, y: 0, w: 3, h: 2 }],
+    })).toEqual({
+      columns: 12,
+      widgets: [{ id: "sales", x: 0, y: 0, w: 3, h: 2 }],
+    });
+    expect(sanitizeDashboardLayoutSnapshot({
+      columns: 12,
+      widgets: [{ id: "sales", x: 0, y: 0, w: 3, h: 2 }, { id: "sales", x: 3, y: 0, w: 3, h: 2 }],
+    })).toBeUndefined();
+  });
+
   it("keeps authoritative top-level state while discarding malformed supported and unsupported caches", () => {
     const sanitized = sanitizeDashboardStateSnapshot({
       ...createValidSnapshot(),
@@ -125,6 +156,27 @@ describe("sanitizeDashboardStateSnapshot", () => {
 });
 
 describe("sanitizeExampleDashboardStateSnapshot", () => {
+  it("normalizes legacy example data without color or revision", () => {
+    const snapshot = createValidExampleSnapshot();
+    const result = sanitizeExampleDashboardStateSnapshot(snapshot);
+    expect(result?.widgets[0]?.data).toMatchObject({ colorKey: "mint", contentRevision: 0 });
+    expect(result?.widgets[0]).not.toBe(snapshot.widgets[0]);
+    expect(result?.widgets[0]?.data).not.toBe(snapshot.widgets[0]?.data);
+    expect(snapshot.widgets[0]?.data).not.toHaveProperty("colorKey");
+    expect(snapshot.widgets[0]?.data).not.toHaveProperty("contentRevision");
+  });
+
+  it.each([
+    ["colorKey", "private-color"],
+    ["contentRevision", -1],
+    ["contentRevision", 1.5],
+    ["fixtureIndex", 0],
+  ])("rejects invalid %s before restore", (key, invalid) => {
+    const snapshot = createValidExampleSnapshot();
+    (snapshot.widgets[0]!.data as Record<string, unknown>)[key] = invalid;
+    expect(sanitizeExampleDashboardStateSnapshot(snapshot)).toBeUndefined();
+  });
+
   it.each(["description", "value"] as const)("rejects object %s data before restore dispatch", (key) => {
     const data: Record<string, unknown> = {
       description: "Monthly recurring revenue",
@@ -140,7 +192,7 @@ describe("sanitizeExampleDashboardStateSnapshot", () => {
     expect(sanitizeExampleDashboardStateSnapshot(snapshot)).toBeUndefined();
   });
 
-  it("accepts string render data while preserving safe fallback for prototype-like presentation keys", () => {
+  it("normalizes string render data while preserving safe fallback for prototype-like presentation keys", () => {
     const snapshot = {
       ...createValidSnapshot(),
       widgets: [{
@@ -155,6 +207,16 @@ describe("sanitizeExampleDashboardStateSnapshot", () => {
       }],
     };
 
-    expect(sanitizeExampleDashboardStateSnapshot(snapshot)).toEqual(snapshot);
+    expect(sanitizeExampleDashboardStateSnapshot(snapshot)).toEqual({
+      ...snapshot,
+      widgets: [{
+        ...snapshot.widgets[0],
+        data: {
+          ...snapshot.widgets[0]?.data,
+          colorKey: "mint",
+          contentRevision: 0,
+        },
+      }],
+    });
   });
 });

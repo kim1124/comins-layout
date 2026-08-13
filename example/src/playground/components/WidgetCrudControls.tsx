@@ -1,35 +1,18 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
 
-import { DASHBOARD_COLUMN_COUNTS } from "../../../../src";
 import { Dialog } from "../../components/ui/dialog";
 import { Select } from "../../components/ui/select";
-import type { SelectOption } from "../../components/ui/select";
 import { usePlaygroundLocale } from "../../i18n/playground-locale";
 import { resolveWidgetPresentation, sharedPlaygroundCopy } from "../copy";
 import { createWidget } from "../fixtures";
+import { pastelKeyForIndex } from "../palette";
 import type { DashboardRuntime } from "../types";
+import { WidgetFormDialog } from "./WidgetFormDialog";
+import type { WidgetDraft } from "./WidgetFormDialog";
 
-const columnOptions: SelectOption[] = DASHBOARD_COLUMN_COUNTS.map((column) => ({
-  label: String(column),
-  value: String(column),
-}));
-
-const heightOptions: SelectOption[] = [1, 2, 3, 4].map((height) => ({
-  label: String(height),
-  value: String(height),
-}));
-
-export type NewWidgetDraft = {
-  height: number;
-  title: string;
-  value: string;
-  width: number;
-};
-
-export type EditedWidgetDraft = Pick<NewWidgetDraft, "title" | "value">;
-
-type WidgetValidationError = "titleRequired" | "valueRequired" | null;
+export type NewWidgetDraft = WidgetDraft;
+export type EditedWidgetDraft = Pick<WidgetDraft, "title" | "value">;
 
 type WidgetCrudControlsProps = {
   addDialogOpen?: boolean;
@@ -48,122 +31,6 @@ type WidgetCrudControlsProps = {
   onEditWidget?: (draft: EditedWidgetDraft) => void;
   onSelectedWidgetIdChange?: (id: string | undefined) => void;
 };
-
-type WidgetDialogFormProps = {
-  initialTitle: string;
-  initialValue: string;
-  mode: "add" | "edit";
-  open: boolean;
-  resetKey: string;
-  scope: string;
-  onCancel: () => void;
-  onSubmit: (draft: NewWidgetDraft) => void;
-};
-
-function WidgetDialogForm({
-  initialTitle,
-  initialValue,
-  mode,
-  open,
-  resetKey,
-  scope,
-  onCancel,
-  onSubmit,
-}: WidgetDialogFormProps) {
-  const { text } = usePlaygroundLocale();
-  const [draftTitle, setDraftTitle] = useState(initialTitle);
-  const [draftValue, setDraftValue] = useState(initialValue);
-  const [height, setHeight] = useState(2);
-  const [titleError, setTitleError] = useState<WidgetValidationError>(null);
-  const [valueError, setValueError] = useState<WidgetValidationError>(null);
-  const [width, setWidth] = useState(2);
-  const previousOpen = useRef(false);
-  const previousResetKey = useRef(resetKey);
-
-  useEffect(() => {
-    const shouldReset = open && (!previousOpen.current || previousResetKey.current !== resetKey);
-    previousOpen.current = open;
-    previousResetKey.current = resetKey;
-
-    if (!shouldReset) {
-      return;
-    }
-
-    setDraftTitle(initialTitle);
-    setDraftValue(initialValue);
-    setHeight(2);
-    setTitleError(null);
-    setValueError(null);
-    setWidth(2);
-  }, [open, resetKey]);
-
-  const submit = () => {
-    const title = draftTitle.trim();
-    const value = draftValue.trim();
-    const nextTitleError: WidgetValidationError = title ? null : "titleRequired";
-    const nextValueError: WidgetValidationError = value ? null : "valueRequired";
-    setTitleError(nextTitleError);
-    setValueError(nextValueError);
-    if (nextTitleError || nextValueError) {
-      return;
-    }
-
-    onSubmit({ height, title, value, width });
-  };
-
-  return (
-    <div className="example-dialog-form">
-      <label className="example-input" htmlFor={`${scope}-widget-title`}>
-        <span>{text(sharedPlaygroundCopy.widgetName)}</span>
-        <input
-          aria-describedby={titleError ? `${scope}-widget-title-error` : undefined}
-          aria-invalid={Boolean(titleError)}
-          id={`${scope}-widget-title`}
-          value={draftTitle}
-          onChange={(event) => setDraftTitle(event.target.value)}
-        />
-        {titleError ? <span className="example-input-error" id={`${scope}-widget-title-error`}>{text(sharedPlaygroundCopy.validation[titleError])}</span> : null}
-      </label>
-      <label className="example-input" htmlFor={`${scope}-widget-value`}>
-        <span>{text(sharedPlaygroundCopy.value)}</span>
-        <input
-          aria-describedby={valueError ? `${scope}-widget-value-error` : undefined}
-          aria-invalid={Boolean(valueError)}
-          id={`${scope}-widget-value`}
-          value={draftValue}
-          onChange={(event) => setDraftValue(event.target.value)}
-        />
-        {valueError ? <span className="example-input-error" id={`${scope}-widget-value-error`}>{text(sharedPlaygroundCopy.validation[valueError])}</span> : null}
-      </label>
-      {mode === "add" ? (
-        <>
-          <Select
-            id={`${scope}-widget-width`}
-            label={text(sharedPlaygroundCopy.newWidgetWidth)}
-            options={columnOptions}
-            value={String(width)}
-            onChange={(value) => setWidth(Number(value))}
-          />
-          <Select
-            id={`${scope}-widget-height`}
-            label={text(sharedPlaygroundCopy.newWidgetHeight)}
-            options={heightOptions}
-            value={String(height)}
-            onChange={(value) => setHeight(Number(value))}
-          />
-        </>
-      ) : null}
-      <div className="example-dialog__footer">
-        <button type="button" onClick={onCancel}>
-          {text(sharedPlaygroundCopy.cancel)}
-        </button>
-        <button className="example-action-button example-action-button--add" type="button" onClick={submit}>
-          {text(mode === "add" ? sharedPlaygroundCopy.saveWidget : sharedPlaygroundCopy.saveChanges)}
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export function WidgetCrudControls({
   addDialogOpen,
@@ -234,6 +101,8 @@ export function WidgetCrudControls({
       const id = `widget-${number}`;
       dashboard.commands.addWidget(
         createWidget(id, draft.title, 0, 0, draft.width, draft.height, {
+          colorKey: draft.colorKey,
+          contentRevision: 0,
           description: "새 대시보드 위젯",
           generatedDescriptionKey: "newWidget",
           value: draft.value,
@@ -250,7 +119,7 @@ export function WidgetCrudControls({
     }
 
     if (onEditWidget) {
-      onEditWidget(draft);
+      onEditWidget({ title: draft.title, value: draft.value });
     } else {
       const generatedDescriptionKey = selectedWidget.data?.fixtureCopyKey
         ? "editedWidget"
@@ -258,8 +127,11 @@ export function WidgetCrudControls({
 
       dashboard.commands.updateWidget(selectedWidget.id, {
         data: {
+          ...selectedWidget.data,
           description: selectedWidget.data?.description ?? `${draft.title} dashboard widget`,
           ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
+          colorKey: draft.colorKey,
+          contentRevision: (selectedWidget.data?.contentRevision ?? 0) + 1,
           value: draft.value,
         },
         title: draft.title,
@@ -332,9 +204,14 @@ export function WidgetCrudControls({
         title={text(sharedPlaygroundCopy.dialog.add.title)}
         onOpenChange={setAddDialogOpen}
       >
-        <WidgetDialogForm
-          initialTitle={sharedPlaygroundCopy.generatedWidgetTitle[locale](nextNumber)}
-          initialValue={String(nextNumber)}
+        <WidgetFormDialog
+          initialDraft={{
+            colorKey: pastelKeyForIndex(nextNumber - 1),
+            height: 2,
+            title: sharedPlaygroundCopy.generatedWidgetTitle[locale](nextNumber),
+            value: String(nextNumber),
+            width: 2,
+          }}
           mode="add"
           open={resolvedAddDialogOpen}
           resetKey={`add-${nextNumber}`}
@@ -352,9 +229,14 @@ export function WidgetCrudControls({
           title={text(sharedPlaygroundCopy.dialog.edit.title)}
           onOpenChange={setEditDialogOpen}
         >
-          <WidgetDialogForm
-            initialTitle={selectedWidget ? resolveWidgetPresentation(selectedWidget, locale).title : ""}
-            initialValue={selectedWidget?.data?.value ?? ""}
+        <WidgetFormDialog
+          initialDraft={{
+            colorKey: selectedWidget?.data?.colorKey ?? pastelKeyForIndex(0),
+            height: selectedWidget?.layout.h ?? 2,
+            title: selectedWidget ? resolveWidgetPresentation(selectedWidget, locale).title : "",
+            value: selectedWidget?.data?.value ?? "",
+            width: selectedWidget?.layout.w ?? 2,
+          }}
             mode="edit"
             open={resolvedEditDialogOpen}
             resetKey={selectedWidget?.id ?? ""}

@@ -2,11 +2,13 @@ import { DASHBOARD_COLUMN_COUNTS } from "../../../src";
 import type {
   DashboardColumnCount,
   DashboardColumnLayoutSnapshot,
+  DashboardLayoutSnapshot,
   DashboardLayoutsByColumn,
   DashboardStateSnapshotInput,
   DashboardWidget,
   DashboardWidgetLayout,
 } from "../../../src";
+import { isPastelColorKey, pastelKeyForIndex } from "./palette";
 import type { ExampleWidgetData } from "./types";
 
 const layoutLimitKeys = ["minW", "minH", "maxW", "maxH"] as const;
@@ -76,6 +78,22 @@ function isSupportedColumns(value: unknown): value is DashboardColumnCount {
   return typeof value === "number" && DASHBOARD_COLUMN_COUNTS.includes(value as DashboardColumnCount);
 }
 
+export function sanitizeDashboardLayoutSnapshot(value: unknown): DashboardLayoutSnapshot | undefined {
+  if (!isRecord(value) || !isSupportedColumns(value.columns) || !Array.isArray(value.widgets) || !value.widgets.every(isLayout)) {
+    return undefined;
+  }
+
+  const widgetIds = value.widgets.map((layout) => layout.id);
+  if (new Set(widgetIds).size !== widgetIds.length) {
+    return undefined;
+  }
+
+  return {
+    columns: value.columns,
+    widgets: value.widgets.map((layout) => ({ ...layout })),
+  };
+}
+
 export function sanitizeDashboardStateSnapshot<TData>(
   value: unknown,
 ): DashboardStateSnapshotInput<TData> | undefined {
@@ -121,11 +139,19 @@ export function sanitizeDashboardStateSnapshot<TData>(
   };
 }
 
-function hasSafeExampleWidgetData(data: unknown): data is ExampleWidgetData {
+type LegacyExampleWidgetData = Omit<ExampleWidgetData, "colorKey" | "contentRevision"> &
+  Partial<Pick<ExampleWidgetData, "colorKey" | "contentRevision">>;
+
+function hasSafeExampleWidgetData(data: unknown): data is LegacyExampleWidgetData {
   return (
     isRecord(data) &&
     typeof data.description === "string" &&
-    typeof data.value === "string"
+    typeof data.value === "string" &&
+    (data.fixtureCopyKey === undefined || typeof data.fixtureCopyKey === "string") &&
+    (data.generatedDescriptionKey === undefined || typeof data.generatedDescriptionKey === "string") &&
+    (data.colorKey === undefined || isPastelColorKey(data.colorKey)) &&
+    (data.contentRevision === undefined || (typeof data.contentRevision === "number" && Number.isInteger(data.contentRevision) && data.contentRevision >= 0)) &&
+    (data.fixtureIndex === undefined || (typeof data.fixtureIndex === "number" && Number.isInteger(data.fixtureIndex) && data.fixtureIndex > 0))
   );
 }
 
@@ -137,5 +163,44 @@ export function sanitizeExampleDashboardStateSnapshot(
     return undefined;
   }
 
-  return snapshot as DashboardStateSnapshotInput<ExampleWidgetData>;
+  const widgets: DashboardWidget<ExampleWidgetData>[] = snapshot.widgets.map((widget, index) => {
+    if (widget.data === undefined) {
+      return { ...widget, layout: { ...widget.layout } } as DashboardWidget<ExampleWidgetData>;
+    }
+
+    const data = widget.data as LegacyExampleWidgetData;
+    const normalizedData: ExampleWidgetData = {
+      ...data,
+      colorKey: data.colorKey ?? pastelKeyForIndex(index),
+      contentRevision: data.contentRevision ?? 0,
+    };
+    return { ...widget, data: normalizedData, layout: { ...widget.layout } };
+  });
+
+  return {
+    columns: snapshot.columns,
+    widgets,
+    ...(snapshot.previousLayouts === undefined
+      ? {}
+      : {
+          previousLayouts: Object.fromEntries(
+            Object.entries(snapshot.previousLayouts).map(([id, layout]) => [id, { ...layout }]),
+          ),
+        }),
+    ...(snapshot.layoutsByColumn === undefined
+      ? {}
+      : {
+          layoutsByColumn: Object.fromEntries(
+            Object.entries(snapshot.layoutsByColumn).map(([column, columnSnapshot]) => [
+              column,
+              {
+                previousLayouts: Object.fromEntries(
+                  Object.entries(columnSnapshot.previousLayouts).map(([id, layout]) => [id, { ...layout }]),
+                ),
+                widgets: columnSnapshot.widgets.map((layout) => ({ ...layout })),
+              },
+            ]),
+          ) as DashboardLayoutsByColumn,
+        }),
+  };
 }

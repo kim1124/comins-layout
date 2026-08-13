@@ -951,6 +951,44 @@ button.dashboard-widget-body[data-selected="true"] {
   gap: 5px;
 }
 
+.example-palette-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.example-palette-fieldset legend {
+  color: #536674;
+  font-size: 13px;
+  margin-bottom: 5px;
+}
+
+.example-palette-options {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.example-palette-option {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  gap: 5px;
+  min-height: 31px;
+  padding: 4px 6px;
+}
+
+.example-palette-option:has(input:focus-visible) {
+  outline: 2px solid var(--comins-color-accent);
+  outline-offset: 2px;
+}
+
+.example-palette-option:has(input:checked) {
+  border-color: currentColor;
+}
+
 .example-dialog__footer {
   display: flex;
   gap: 8px;

@@ -63,6 +63,9 @@ export function WidgetPlayground() {
 
     dashboard.commands.updateWidget(selectedWidget.id, {
       data: {
+        ...selectedWidget.data,
+        colorKey: selectedWidget.data?.colorKey ?? "mint",
+        contentRevision: (selectedWidget.data?.contentRevision ?? 0) + 1,
         description: selectedWidget.data?.description ?? `${draft.title} dashboard widget`,
         ...(generatedDescriptionKey ? { generatedDescriptionKey } : {}),
         value: draft.value,

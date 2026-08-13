@@ -1,6 +1,7 @@
 import type { DashboardWidget } from "../../../src";
 import { defineLocalizedText, resolveLocalizedText } from "../i18n/playground-locale";
 import type { LocalizedText, PlaygroundLocale } from "../i18n/types";
+import type { PastelColorKey } from "./palette";
 import type { ExampleFixtureCopyKey, ExampleGeneratedDescriptionKey, ExampleWidgetData } from "./types";
 
 export type WidgetStatusTitle =
@@ -57,6 +58,7 @@ export const sharedPlaygroundCopy = {
   addWidget: defineLocalizedText("위젯 추가", "Add widget"),
   cancel: defineLocalizedText("취소", "Cancel"),
   clearAll: defineLocalizedText("전체 삭제", "Clear all"),
+  color: defineLocalizedText("색상", "Color"),
   closeDialog: defineLocalizedText("팝업 닫기", "Close dialog"),
   deleteSelectedWidget: defineLocalizedText("선택 위젯 삭제", "Delete selected widget"),
   dialog: {
@@ -119,6 +121,14 @@ export const sharedPlaygroundCopy = {
       ko: (keys: string) => `사용 가능한 캐시 컬럼: ${keys}`,
     },
   },
+  colors: {
+    lavender: defineLocalizedText("라벤더", "Lavender"),
+    lemon: defineLocalizedText("레몬", "Lemon"),
+    mint: defineLocalizedText("민트", "Mint"),
+    peach: defineLocalizedText("피치", "Peach"),
+    rose: defineLocalizedText("로즈", "Rose"),
+    sky: defineLocalizedText("하늘", "Sky"),
+  } satisfies Record<PastelColorKey, LocalizedText>,
 } as const;
 
 export const layoutPlaygroundCopy = {
