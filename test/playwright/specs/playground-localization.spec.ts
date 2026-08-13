@@ -16,6 +16,20 @@ test("switches the docs shell and locale search without changing the route", asy
   await expect(page.getByRole("article").getByRole("heading", { name: "Getting started" })).toBeVisible();
 });
 
+test("localizes the external drop route without remounting or losing its canonical path", async ({ page }) => {
+  await page.goto("/examples/advanced/external-drop");
+  await page.getByTestId("dashboard-grid").evaluate((element) => {
+    element.setAttribute("data-mount-probe", "external-drop-locale");
+  });
+
+  await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+
+  await expect(page).toHaveURL(/\/examples\/advanced\/external-drop$/);
+  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-mount-probe", "external-drop-locale");
+  await expect(page.getByRole("heading", { name: "External drop" }).first()).toBeVisible();
+  await expect(page.getByText("Dropping outside the target does not emit the callback, so the widget remains in controlled state.", { exact: true })).toBeVisible();
+});
+
 test("persists an English locale chosen from the default Korean UI across reload", async ({ page }) => {
   await page.goto("/docs/getting-started");
   const localeToggle = page.getByTestId("playground-locale-toggle");

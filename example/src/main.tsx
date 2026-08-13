@@ -23,6 +23,7 @@ const canonicalPaths = new Set([
   "/docs/getting-started",
   "/examples/advanced",
   "/examples/advanced/events",
+  "/examples/advanced/external-drop",
   "/examples/advanced/handle",
   "/examples/advanced/state",
   "/examples/layout",
@@ -75,6 +76,7 @@ function ExampleApp() {
     case "/docs/getting-started":
     case "/examples/advanced":
     case "/examples/advanced/events":
+    case "/examples/advanced/external-drop":
     case "/examples/advanced/handle":
     case "/examples/advanced/state":
     case "/examples/layout":

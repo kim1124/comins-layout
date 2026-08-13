@@ -1,6 +1,58 @@
 import { expect, test } from "@playwright/test";
 
-import { dragWidget, readWidgetGeometry, resizeWidget } from "../helpers/dashboard-interactions";
+import { dragWidget, dragWidgetToTarget, readWidgetGeometry, resizeWidget } from "../helpers/dashboard-interactions";
+
+test.describe("External drop", () => {
+  test("records external drop and updates controlled state", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1100 });
+    await page.goto("/examples/advanced/external-drop");
+
+    await expect(page).toHaveURL(/\/examples\/advanced\/external-drop$/);
+    await expect(page.locator(".grid-stack")).toHaveCount(1);
+    await expect(page.getByText("선택자는 문서 전체에서 확인되며 대상의 하위 요소에 놓아도 일치합니다.", { exact: true })).toBeVisible();
+    await expect(page.getByText("일치한 위젯의 삭제는 consumer가 React 제어 상태에 반영해야 합니다.", { exact: true })).toBeVisible();
+    await expect(page.getByText("중복 대상 ID와 유효하지 않은 선택자는 초기화 전에 오류로 거부됩니다.", { exact: true })).toBeVisible();
+
+    const widget = page.getByTestId("dashboard-widget-widget-1");
+    const target = page.locator("[data-dashboard-drop-target='trash']");
+    const targetChild = target.getByText("드래그한 위젯을 여기에 놓으세요.");
+    const targetBox = await target.boundingBox();
+    expect(targetBox).toMatchObject({ width: 300, height: 300 });
+
+    await widget.scrollIntoViewIfNeeded();
+    await dragWidgetToTarget(page, widget, targetChild);
+
+    await expect(widget).toHaveCount(0);
+    const log = page.getByRole("log");
+    await expect(log).toContainText(
+      "onWidgetExternalDrop target=trash widget=widget-1 columns=12 x=0 y=0 w=2 h=2",
+    );
+
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    await expect(page.getByText("Selectors are resolved across the document, and drops on target descendants still match.", { exact: true })).toBeVisible();
+    await expect(page.getByText("The consumer must reflect deletion of a matched widget in controlled React state.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Duplicate target IDs and invalid selectors are rejected before initialization.", { exact: true })).toBeVisible();
+  });
+
+  test("keeps the external drop target inside a 360px article", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 1000 });
+    await page.goto("/examples/advanced/external-drop");
+
+    const target = page.locator("[data-dashboard-drop-target='trash']");
+    const [targetBox, articleBox, rootWidths] = await Promise.all([
+      target.boundingBox(),
+      page.locator(".docs-article").boundingBox(),
+      page.locator("html").evaluate((element) => ({ client: element.clientWidth, scroll: element.scrollWidth })),
+    ]);
+    expect(targetBox).not.toBeNull();
+    expect(articleBox).not.toBeNull();
+    expect(targetBox!.width).toBeLessThanOrEqual(300);
+    expect(targetBox!.x).toBeGreaterThanOrEqual(articleBox!.x);
+    expect(targetBox!.x + targetBox!.width).toBeLessThanOrEqual(articleBox!.x + articleBox!.width);
+    expect(rootWidths.scroll).toBeLessThanOrEqual(rootWidths.client);
+    await expect(page.locator(".grid-stack")).toHaveCount(1);
+  });
+});
 
 test.describe("Advanced engine options", () => {
   test.beforeEach(async ({ page }) => {
@@ -509,6 +561,6 @@ test.describe("Dashboard events", () => {
     await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
     await expect(page.getByText("Shows the ten most recent public callback events in occurrence order.")).toBeVisible();
     await expect(page.getByRole("log")).toContainText("No events recorded yet.");
-    await expect(page.getByText(/external drop/i)).toHaveCount(0);
+    await expect(page.locator('[data-example-mode="advanced-events"]').getByText(/external drop/i)).toHaveCount(0);
   });
 });

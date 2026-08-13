@@ -102,6 +102,20 @@ const eventCallbacksSample = `<DashboardGrid
   onWidgetResizeStop={(event) => recordInteraction("onWidgetResizeStop", event)}
 />;`;
 
+const externalDropSample = `const externalDropTargets = [
+  { id: "trash", selector: "[data-dashboard-drop-target='trash']" },
+];
+
+<DashboardGrid
+  externalDropTargets={externalDropTargets}
+  onWidgetExternalDrop={(event) => {
+    if (event.targetId === "trash") {
+      dashboard.commands.removeWidget(event.widgetId);
+    }
+  }}
+  widgets={dashboard.widgets}
+/>;`;
+
 const componentApiSample = `import { DashboardGrid } from "comins-grid-layout";
 
 <DashboardGrid
@@ -673,6 +687,28 @@ const localizedDocsPages: LocalizedDocsPage[] = [
       "Review the ten most recent public callback events and their payloads in occurrence order.",
     ),
     title: text("이벤트", "Events"),
+  },
+  {
+    category: text("예제", "Examples"),
+    examples: [
+      {
+        codeSamples: [{ code: externalDropSample, language: "tsx", title: text("제어 외부 드롭", "Controlled external drop") }],
+        description: text(
+          "선택자는 문서 전체에서 확인되며 대상의 하위 요소에 놓아도 일치합니다. 일치한 위젯의 삭제는 consumer가 React 제어 상태에 반영해야 합니다. 중복 대상 ID와 유효하지 않은 선택자는 초기화 전에 오류로 거부됩니다.",
+          "Selectors are resolved across the document, and drops on target descendants still match. The consumer must reflect deletion of a matched widget in controlled React state. Duplicate target IDs and invalid selectors are rejected before initialization.",
+        ),
+        liveExampleId: "advanced-external-drop",
+        title: text("외부 드롭", "External drop"),
+      },
+    ],
+    label: text("외부 드롭", "External drop"),
+    navParent: text("고급 예제", "Advanced examples"),
+    path: "/examples/advanced/external-drop",
+    summary: text(
+      "허용된 외부 target에 놓인 위젯의 payload를 기록하고 React 제어 상태에서 삭제합니다.",
+      "Record the payload for a widget dropped on an allowed external target and remove it from controlled React state.",
+    ),
+    title: text("외부 드롭", "External drop"),
   },
   {
     category: text("API", "API"),

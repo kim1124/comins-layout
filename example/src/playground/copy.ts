@@ -396,6 +396,42 @@ export const advancedHandleCopy = {
   title: defineLocalizedText("공식 API Handle", "Official API Handle"),
 } as const;
 
+export const advancedExternalDropCopy = {
+  controls: defineLocalizedText("외부 드롭 대상과 이벤트", "External drop target and event"),
+  dashboard: defineLocalizedText("외부 드롭 dashboard", "External drop dashboard"),
+  description: defineLocalizedText(
+    "허용된 외부 target으로 위젯을 드래그해 callback payload와 제어 상태 반영을 확인합니다.",
+    "Drag a widget to an allowed external target to inspect the callback payload and controlled-state update.",
+  ),
+  empty: defineLocalizedText("아직 기록된 외부 드롭 이벤트가 없습니다.", "No external drop events recorded yet."),
+  guidance: [
+    defineLocalizedText(
+      "선택자는 문서 전체에서 확인되며 대상의 하위 요소에 놓아도 일치합니다.",
+      "Selectors are resolved across the document, and drops on target descendants still match.",
+    ),
+    defineLocalizedText(
+      "일치한 위젯의 삭제는 consumer가 React 제어 상태에 반영해야 합니다.",
+      "The consumer must reflect deletion of a matched widget in controlled React state.",
+    ),
+    defineLocalizedText(
+      "대상 밖에 놓으면 callback이 발생하지 않으며 위젯은 제어 상태에 남습니다.",
+      "Dropping outside the target does not emit the callback, so the widget remains in controlled state.",
+    ),
+    defineLocalizedText(
+      "중복 대상 ID와 유효하지 않은 선택자는 초기화 전에 오류로 거부됩니다.",
+      "Duplicate target IDs and invalid selectors are rejected before initialization.",
+    ),
+  ],
+  kicker: defineLocalizedText("대상 선택자·제어 상태", "Target selectors and controlled state"),
+  log: defineLocalizedText("외부 드롭 이벤트 로그", "External drop event log"),
+  target: {
+    description: defineLocalizedText("드래그한 위젯을 여기에 놓으세요.", "Drop a dragged widget here."),
+    label: defineLocalizedText("위젯을 여기에 놓으면 삭제됩니다", "Drop a widget here to delete it"),
+    title: defineLocalizedText("위젯 삭제 영역", "Widget delete area"),
+  },
+  title: defineLocalizedText("외부 드롭", "External drop"),
+} as const;
+
 export const advancedStateCopy = {
   actions: {
     restoreFull: defineLocalizedText("전체 상태 복원", "Restore full state"),

@@ -4,9 +4,9 @@ import { isDesktopBrowserProject } from "../project-policy";
 
 async function expectIntegratedPlayground(
   page: Page,
-  path: "/examples/widget" | "/examples/layout" | "/examples/layout/columns" | "/examples/layout/lock" | "/examples/advanced" | "/examples/advanced/handle",
-  heading: "위젯" | "레이아웃" | "컬럼 레이아웃 동적 수정" | "레이아웃 잠금 / 해제" | "고급 예제" | "공식 API Handle",
-  navLabel: "위젯" | "저장·복원" | "동적 컬럼" | "잠금·해제" | "반응형·엔진 옵션" | "공식 API Handle",
+  path: "/examples/widget" | "/examples/layout" | "/examples/layout/columns" | "/examples/layout/lock" | "/examples/advanced" | "/examples/advanced/external-drop" | "/examples/advanced/handle",
+  heading: "위젯" | "레이아웃" | "컬럼 레이아웃 동적 수정" | "레이아웃 잠금 / 해제" | "고급 예제" | "외부 드롭" | "공식 API Handle",
+  navLabel: "위젯" | "저장·복원" | "동적 컬럼" | "잠금·해제" | "반응형·엔진 옵션" | "외부 드롭" | "공식 API Handle",
 ) {
   await page.goto(path);
 
@@ -46,6 +46,7 @@ test.describe("gridstack docs playground routing", () => {
     await expect(navigation.getByRole("link", { name: "동적 컬럼" })).toHaveAttribute("href", "/examples/layout/columns");
     await expect(navigation.getByRole("link", { name: "잠금·해제" })).toHaveAttribute("href", "/examples/layout/lock");
     await expect(navigation.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
+    await expect(navigation.getByRole("link", { name: "외부 드롭" })).toHaveAttribute("href", "/examples/advanced/external-drop");
     await expect(navigation.getByRole("link", { name: "추가 / 삭제" })).toHaveCount(0);
     await expect(navigation.getByRole("link", { name: "종합 예제" })).toHaveCount(0);
 
@@ -70,6 +71,7 @@ test.describe("gridstack docs playground routing", () => {
     await expect(nav.getByText("고급 예제", { exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
     await expect(nav.getByRole("link", { name: "공식 API Handle" })).toHaveAttribute("href", "/examples/advanced/handle");
+    await expect(nav.getByRole("link", { name: "외부 드롭" })).toHaveAttribute("href", "/examples/advanced/external-drop");
 
     const rootBox = await rootLink.boundingBox();
     const childBox = await layoutChildLink.boundingBox();
@@ -93,6 +95,7 @@ test.describe("gridstack docs playground routing", () => {
       { label: "잠금·해제", path: "/examples/layout/lock" },
       { label: "반응형·엔진 옵션", path: "/examples/advanced" },
       { label: "공식 API Handle", path: "/examples/advanced/handle" },
+      { label: "외부 드롭", path: "/examples/advanced/external-drop" },
       { label: "API", path: "/api" },
     ] as const;
 
@@ -117,6 +120,24 @@ test.describe("gridstack docs playground routing", () => {
     await expectIntegratedPlayground(page, "/examples/layout/lock", "레이아웃 잠금 / 해제", "잠금·해제");
     await expectIntegratedPlayground(page, "/examples/advanced", "고급 예제", "반응형·엔진 옵션");
     await expectIntegratedPlayground(page, "/examples/advanced/handle", "공식 API Handle", "공식 API Handle");
+    await expectIntegratedPlayground(page, "/examples/advanced/external-drop", "외부 드롭", "외부 드롭");
+  });
+
+  test("searches and localizes the external drop child route", async ({ page }) => {
+    await page.goto("/docs/getting-started");
+
+    await page.getByRole("searchbox", { name: "전체 문서 검색" }).fill("외부 드롭");
+    const result = page.getByRole("option", { name: /^문서 외부 드롭/ });
+    await expect(result).toBeVisible();
+    await result.click();
+
+    await expect(page).toHaveURL(/\/examples\/advanced\/external-drop$/);
+    await expect(page.getByRole("navigation", { name: "문서 메뉴" }).getByRole("link", { name: "외부 드롭" }))
+      .toHaveAttribute("aria-current", "page");
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    await expect(page.getByRole("navigation", { name: "Docs menu" }).getByRole("link", { name: "External drop" }))
+      .toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("log", { name: "External drop event log" })).toContainText("No external drop events recorded yet.");
   });
 
   test("searches and localizes the official API Handle child route", async ({ page }) => {

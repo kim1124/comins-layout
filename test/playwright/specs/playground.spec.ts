@@ -257,7 +257,47 @@ test.describe("Widget Playground", () => {
 
 });
 
-// Task 12 will move the two explicitly skipped external-drop contracts to its child route.
+test.describe("External drop child-route contracts", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1400 });
+    await page.goto("/examples/advanced/external-drop");
+  });
+
+  test("deletes only through the configured 300x300 typed external target callback", async ({ page }) => {
+    await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
+    await expect(page.locator(".grid-stack")).toHaveCount(1);
+    const target = page.locator("[data-dashboard-drop-target='trash']");
+    const descendant = target.getByText("드래그한 위젯을 여기에 놓으세요.");
+    await expect(descendant).toBeVisible();
+    const targetBox = await target.boundingBox();
+    expect(targetBox?.width).toBe(300);
+    expect(targetBox?.height).toBe(300);
+
+    const widget = page.getByTestId("dashboard-widget-widget-1");
+    await widget.scrollIntoViewIfNeeded();
+    await dragWidgetToTarget(page, widget, descendant);
+
+    await expect(widget).toHaveCount(0);
+    await expect(page.getByRole("log", { name: "외부 드롭 이벤트 로그" })).toContainText(
+      "onWidgetExternalDrop target=trash widget=widget-1 columns=12 x=0 y=0 w=2 h=2",
+    );
+    await expect(page.getByRole("button", { name: /GridStack (addWidget|removeWidget|destroy)/i })).toHaveCount(0);
+  });
+
+  test("keeps the widget and event log unchanged when a drag ends outside the target", async ({ page }) => {
+    const widget = page.getByTestId("dashboard-widget-widget-1");
+    const initialLog = "아직 기록된 외부 드롭 이벤트가 없습니다.";
+    const before = await readWidgetLayout(widget);
+    await expect(page.getByRole("log", { name: "외부 드롭 이벤트 로그" })).toHaveText(initialLog);
+
+    await dragWidget(page, widget, 160, 100);
+
+    await expect(widget).toBeVisible();
+    await expect.poll(() => readWidgetLayout(widget)).not.toEqual(before);
+    await expect(page.getByRole("log", { name: "외부 드롭 이벤트 로그" })).toHaveText(initialLog);
+  });
+});
+
 test.describe("Advanced state child-route contracts", () => {
   const diagnosticsByTest = new Map<string, string[]>();
 
@@ -281,38 +321,6 @@ test.describe("Advanced state child-route contracts", () => {
   test.afterEach(async ({}, testInfo) => {
     expect(diagnosticsByTest.get(testInfo.testId), "Advanced Playground browser diagnostics").toEqual([]);
     diagnosticsByTest.delete(testInfo.testId);
-  });
-
-  test.skip("deletes only through the configured 300x300 typed external target callback", async ({ page }) => {
-    await expect(page.getByTestId("dashboard-grid")).toHaveCount(1);
-    await expect(page.locator(".grid-stack")).toHaveCount(1);
-    await expect(page.getByText("드래그한 위젯을 여기에 놓으세요.")).toBeVisible();
-
-    const target = page.locator("[data-dashboard-drop-target='trash']");
-    await expect(target).toBeVisible();
-    const targetBox = await target.boundingBox();
-    expect(targetBox?.width).toBe(300);
-    expect(targetBox?.height).toBe(300);
-
-    const widget = page.getByTestId("dashboard-widget-sales");
-    await dragWidgetToTarget(page, widget, target);
-
-    await expect(widget).toBeHidden();
-    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toContainText(
-      "target=trash; widget=sales; columns=12; layout=",
-    );
-    await expect(page.getByRole("button", { name: /GridStack (addWidget|removeWidget|destroy)/i })).toHaveCount(0);
-  });
-
-  test.skip("keeps the widget and target status unchanged when a drag ends outside the target", async ({ page }) => {
-    const widget = page.getByTestId("dashboard-widget-sales");
-    const initialStatus = "위젯을 삭제 영역으로 드래그해 보세요.";
-    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toHaveText(initialStatus);
-
-    await dragWidget(page, widget, 160, 0);
-
-    await expect(widget).toBeVisible();
-    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toHaveText(initialStatus);
   });
 
   test("round-trips independent 6 and 12 column geometry through the visible state cache", async ({ page }) => {

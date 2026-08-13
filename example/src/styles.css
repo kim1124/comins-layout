@@ -841,6 +841,28 @@ button {
   margin: 0;
 }
 
+.playground-external-drop-controls {
+  display: block;
+  padding: 0;
+}
+
+.playground-external-drop-layout {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  padding: 0 24px 24px;
+}
+
+.playground-external-drop-guidance {
+  display: grid;
+  gap: 6px;
+}
+
+.playground-external-drop-guidance p {
+  color: #536674;
+}
+
 .example-layout-json {
   display: grid;
   gap: 8px;
@@ -1460,6 +1482,11 @@ button.dashboard-widget-body[data-selected="true"] {
 
   .playground-controls .example-external-drop__target {
     width: min(300px, 100%);
+  }
+
+  .playground-external-drop-layout {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 0 12px 12px;
   }
 
   .playground-grid-region > .example-widget-count {
