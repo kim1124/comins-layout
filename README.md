@@ -218,8 +218,8 @@ Without `responsive`, `columns` is authoritative. With `responsive`, `columns` i
 | `resetLayout` | `(snapshot?) => void` | Reset to the initial state or a supplied layout/state snapshot |
 | `restoreLayout` | `(snapshot) => void` | Restore a complete state snapshot |
 | `refreshLayout` | `() => void` | Increment `refreshVersion` for adapter refresh |
-| `serializeLayout` | `() => DashboardLayoutSnapshot` | Serialize columns and geometry only |
-| `serializeState` | `() => DashboardStateSnapshot<TData>` | Serialize columns, widgets, and previous layouts |
+| `serializeLayout` | `() => DashboardLayoutSnapshot` | Serialize the active columns and geometry only |
+| `serializeState` | `() => DashboardStateSnapshot<TData>` | Serialize active state plus every cached column layout |
 
 ## Advanced GridStack access
 
@@ -250,22 +250,40 @@ gridRef.current?.refresh();
 | `compact` | `DashboardLayoutSnapshot \| null` | Run GridStack `compact()` explicitly, commit once, and return the snapshot |
 | `commitLayout` | `DashboardLayoutSnapshot \| null` | Commit direct engine geometry changes to the controlled callback contract |
 
-- `getGridStack()` returns `null` before initialization and after unmount.
+- `getGridStack()` is an escape hatch: it returns `null` before initialization and after unmount.
 - GridStack methods that emit `change` are committed automatically; `commitLayout()` is for commands that do not emit it and suppresses identical duplicate commits. For `batchUpdate()`, call `commitLayout()` after `batchUpdate(false)`.
 - A committed interaction calls `onWidgetLayoutChange`, then `onLayoutCommit`, then the corresponding drag/resize stop callback. High-frequency drag events remain available only on the borrowed GridStack instance.
-- Use Comins `addWidget` and `removeWidget` for React content. Raw GridStack CRUD only changes engine/DOM state and may be replaced by the next controlled React render.
+- The controlled example does not call raw GridStack add/remove/destroy. Use Comins `addWidget` and `removeWidget` for React content; raw GridStack CRUD only changes engine/DOM state and may be replaced by the next controlled React render.
 - Do not call `destroy()` or remove package listeners on the borrowed instance; `DashboardGrid` owns the engine lifecycle.
 
 ## Persistence
 
-Use `serializeState()` for complete persistence, including the `previousLayouts` required by maximize/minimize restore. Use `serializeLayout()` only when widget data and view state are stored elsewhere.
+`DashboardColumnLayoutSnapshot` stores one column count's widget geometry and its maximize/minimize `previousLayouts`. `DashboardLayoutsByColumn` is the partial `1..12` map of those snapshots. `DashboardStateSnapshot<TData>` always writes `layoutsByColumn: DashboardLayoutsByColumn`; `DashboardStateSnapshotInput<TData>` accepts the same optional `layoutsByColumn` member so legacy input remains valid.
+
+`serializeLayout()` is the active columns' layout-only snapshot and remains unchanged: it returns only the active `columns` and widget geometry. `serializeState()` is the complete state snapshot: it writes active `widgets`, active `previousLayouts`, and every cached `layoutsByColumn` entry. When a supplied active cache conflicts with top-level state, the active top-level `widgets` and `previousLayouts` are authoritative.
+
+Column changes retain each visited column's geometry. CRUD removes or adds the same widget identity across cached layouts, layout-only commands update only the active cache entry, and maximize/minimize/restore preserve the active cache's restore geometry.
 
 ```ts
-const stored = dashboard.commands.serializeState();
-localStorage.setItem("dashboard", JSON.stringify(stored));
+dashboard.commands.setColumns(12);
+// Arrange the 12-column dashboard, then keep its geometry while switching.
+dashboard.commands.setColumns(6);
+// Arrange the 6-column dashboard.
+dashboard.commands.setColumns(12); // Restores the cached 12-column geometry.
 
-const restored = JSON.parse(localStorage.getItem("dashboard") ?? "null");
-if (restored) dashboard.commands.restoreLayout(restored);
+const stored = dashboard.commands.serializeState(); // Includes the 12 -> 6 -> 12 cache.
+dashboard.commands.restoreLayout(stored);
+```
+
+Legacy snapshots can omit `layoutsByColumn` (and the older `previousLayouts`) and still restore the active state:
+
+```ts
+const legacySnapshot = {
+  columns: 6,
+  widgets: [{ id: "sales", layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 } }],
+};
+
+dashboard.commands.restoreLayout(legacySnapshot);
 ```
 
 ## Styling

@@ -1,7 +1,10 @@
-import { clampDashboardColumnCount } from "./columns";
+import { clampDashboardColumnCount, DASHBOARD_COLUMN_COUNTS } from "./columns";
 import type {
+  DashboardColumnCount,
+  DashboardColumnLayoutSnapshot,
   DashboardLayoutSnapshot,
   DashboardLayoutState,
+  DashboardLayoutsByColumn,
   DashboardStateSnapshot,
   DashboardStateSnapshotInput,
   DashboardWidget,
@@ -22,27 +25,69 @@ export function createDashboardLayoutState<TData = unknown>(
       ? normalizeWidget<TData>(widget, columns)
       : normalizeWidget<TData>({ id: widget.id, layout: widget }, columns),
   );
+  const previousLayouts = restorePreviousLayouts(snapshot, widgets, columns);
 
-  return {
+  return withActiveColumnSnapshot({
     columns,
     widgets,
-    previousLayouts: restorePreviousLayouts(snapshot, widgets, columns),
+    previousLayouts,
+    layoutsByColumn: normalizeLayoutsByColumn(snapshot, widgets, previousLayouts, columns),
     refreshVersion: 0,
-  };
+  });
 }
 
 export function addDashboardWidget<TData>(
   state: DashboardLayoutState<TData>,
   widget: DashboardWidget<TData>,
 ): DashboardLayoutState<TData> {
+  const stateWithActiveSnapshot = withActiveColumnSnapshot(state);
   const nextWidget = normalizeWidget(widget, state.columns);
   const exists = state.widgets.some((item) => item.id === nextWidget.id);
+  const widgets = exists
+    ? state.widgets.map((item) => (item.id === nextWidget.id ? nextWidget : item))
+    : [
+        ...state.widgets,
+        {
+          ...nextWidget,
+          layout: placeLayoutInFirstAvailableSpace(
+            state.widgets.map((item) => item.layout),
+            nextWidget.layout,
+            state.columns,
+          ),
+        },
+      ];
+  const layoutsByColumn = DASHBOARD_COLUMN_COUNTS.reduce<DashboardLayoutsByColumn>((next, columns) => {
+    const snapshot = stateWithActiveSnapshot.layoutsByColumn[columns];
+    if (!snapshot) {
+      return next;
+    }
+
+    if (columns === state.columns) {
+      next[columns] = createColumnLayoutSnapshot(widgets, state.previousLayouts, columns);
+      return next;
+    }
+
+    if (snapshot.widgets.some((layout) => layout.id === nextWidget.id)) {
+      next[columns] = snapshot;
+      return next;
+    }
+
+    const layout = placeLayoutInFirstAvailableSpace(
+      snapshot.widgets,
+      normalizeColumnLayout(nextWidget.layout, columns),
+      columns,
+    );
+    next[columns] = {
+      widgets: [...snapshot.widgets, layout],
+      previousLayouts: snapshot.previousLayouts,
+    };
+    return next;
+  }, {});
 
   return {
     ...state,
-    widgets: exists
-      ? state.widgets.map((item) => (item.id === nextWidget.id ? nextWidget : item))
-      : [...state.widgets, placeWidgetInFirstAvailableSpace(state, nextWidget)],
+    widgets,
+    layoutsByColumn,
   };
 }
 
@@ -51,7 +96,7 @@ export function updateDashboardWidget<TData>(
   id: DashboardWidgetId,
   patch: Partial<DashboardWidget<TData>>,
 ): DashboardLayoutState<TData> {
-  return {
+  const nextState = {
     ...state,
     widgets: state.widgets.map((widget) =>
       widget.id === id
@@ -60,10 +105,12 @@ export function updateDashboardWidget<TData>(
             ...patch,
             id: widget.id,
             layout: patch.layout ? { ...patch.layout, id: widget.id } : widget.layout,
-          })
+          }, state.columns)
         : widget,
     ),
   };
+
+  return patch.layout ? withActiveColumnSnapshot(nextState) : nextState;
 }
 
 export function updateDashboardWidgetLayout<TData>(
@@ -71,7 +118,7 @@ export function updateDashboardWidgetLayout<TData>(
   id: DashboardWidgetId,
   patch: Partial<Omit<DashboardWidgetLayout, "id">>,
 ): DashboardLayoutState<TData> {
-  return {
+  return withActiveColumnSnapshot({
     ...state,
     widgets: state.widgets.map((widget) =>
       widget.id === id
@@ -81,7 +128,7 @@ export function updateDashboardWidgetLayout<TData>(
           }
         : widget,
     ),
-  };
+  });
 }
 
 export function removeDashboardWidget<TData>(
@@ -89,19 +136,41 @@ export function removeDashboardWidget<TData>(
   id: DashboardWidgetId,
 ): DashboardLayoutState<TData> {
   const { [id]: _removed, ...previousLayouts } = state.previousLayouts;
+  const layoutsByColumn = DASHBOARD_COLUMN_COUNTS.reduce<DashboardLayoutsByColumn>((next, columns) => {
+    const snapshot = state.layoutsByColumn[columns];
+    if (!snapshot) {
+      return next;
+    }
+
+    const { [id]: _removedPrevious, ...cachedPreviousLayouts } = snapshot.previousLayouts;
+    next[columns] = {
+      widgets: snapshot.widgets.filter((layout) => layout.id !== id),
+      previousLayouts: cachedPreviousLayouts,
+    };
+    return next;
+  }, {});
 
   return {
     ...state,
     previousLayouts,
     widgets: state.widgets.filter((widget) => widget.id !== id),
+    layoutsByColumn,
   };
 }
 
 export function clearDashboardWidgets<TData>(state: DashboardLayoutState<TData>): DashboardLayoutState<TData> {
+  const layoutsByColumn = DASHBOARD_COLUMN_COUNTS.reduce<DashboardLayoutsByColumn>((next, columns) => {
+    if (state.layoutsByColumn[columns]) {
+      next[columns] = { widgets: [], previousLayouts: {} };
+    }
+    return next;
+  }, {});
+
   return {
     ...state,
     previousLayouts: {},
     widgets: [],
+    layoutsByColumn,
   };
 }
 
@@ -116,7 +185,7 @@ export function maximizeDashboardWidget<TData>(
 
   const previousLayouts = rememberPreviousLayout(state, widget);
 
-  return {
+  return withActiveColumnSnapshot({
     ...state,
     previousLayouts,
     widgets: state.widgets.map((item) =>
@@ -129,7 +198,7 @@ export function maximizeDashboardWidget<TData>(
           }
         : item,
     ),
-  };
+  });
 }
 
 export function minimizeDashboardWidget<TData>(
@@ -143,7 +212,7 @@ export function minimizeDashboardWidget<TData>(
 
   const previousLayouts = rememberPreviousLayout(state, widget);
 
-  return {
+  return withActiveColumnSnapshot({
     ...state,
     previousLayouts,
     widgets: state.widgets.map((item) =>
@@ -156,17 +225,22 @@ export function minimizeDashboardWidget<TData>(
           }
         : item,
     ),
-  };
+  });
 }
 
 export function restoreDashboardWidget<TData>(
   state: DashboardLayoutState<TData>,
   id: DashboardWidgetId,
 ): DashboardLayoutState<TData> {
+  const widget = state.widgets.find((item) => item.id === id);
+  if (!widget) {
+    return state;
+  }
+
   const previous = state.previousLayouts[id];
   const { [id]: _restored, ...previousLayouts } = state.previousLayouts;
 
-  return {
+  return withActiveColumnSnapshot({
     ...state,
     previousLayouts,
     widgets: state.widgets.map((widget) =>
@@ -179,7 +253,7 @@ export function restoreDashboardWidget<TData>(
           }
         : widget,
     ),
-  };
+  });
 }
 
 export function setDashboardColumns<TData>(
@@ -187,15 +261,43 @@ export function setDashboardColumns<TData>(
   columns: number,
 ): DashboardLayoutState<TData> {
   const nextColumns = clampDashboardColumnCount(columns);
+  if (nextColumns === state.columns) {
+    return state;
+  }
 
-  return {
-    ...state,
+  const stateWithSourceSnapshot = withActiveColumnSnapshot(state);
+  const targetSnapshot = stateWithSourceSnapshot.layoutsByColumn[nextColumns];
+  const targetLayouts = new Map(targetSnapshot?.widgets.map((layout) => [layout.id, layout]));
+  const widgetIds = new Set(state.widgets.map((widget) => widget.id));
+  const occupiedLayouts = (targetSnapshot?.widgets ?? [])
+    .filter((layout) => widgetIds.has(layout.id))
+    .map((layout) => normalizeColumnLayout(layout, nextColumns));
+  const widgets = state.widgets.map((widget) => {
+    const cachedLayout = targetLayouts.get(widget.id);
+    const layout = cachedLayout
+      ? normalizeColumnLayout(cachedLayout, nextColumns)
+      : placeLayoutInFirstAvailableSpace(
+          occupiedLayouts,
+          normalizeColumnLayout(widget.layout, nextColumns),
+          nextColumns,
+        );
+    if (!cachedLayout) {
+      occupiedLayouts.push(layout);
+    }
+    return { ...widget, layout };
+  });
+  const previousLayouts = createColumnLayoutSnapshot(
+    widgets,
+    targetSnapshot?.previousLayouts ?? {},
+    nextColumns,
+  ).previousLayouts;
+
+  return withActiveColumnSnapshot({
+    ...stateWithSourceSnapshot,
     columns: nextColumns,
-    widgets: state.widgets.map((widget) => ({
-      ...widget,
-      layout: normalizeLayout(widget.layout, nextColumns),
-    })),
-  };
+    widgets,
+    previousLayouts,
+  });
 }
 
 export function applyDashboardLayoutSnapshot<TData>(
@@ -204,15 +306,21 @@ export function applyDashboardLayoutSnapshot<TData>(
 ): DashboardLayoutState<TData> {
   const columns = clampDashboardColumnCount(snapshot.columns);
   const layouts = new Map(snapshot.widgets.map((layout) => [layout.id, layout]));
+  const stateWithSourceSnapshot = columns === state.columns ? state : withActiveColumnSnapshot(state);
+  const previousLayouts =
+    columns === state.columns
+      ? state.previousLayouts
+      : (stateWithSourceSnapshot.layoutsByColumn[columns]?.previousLayouts ?? {});
 
-  return {
-    ...state,
+  return withActiveColumnSnapshot({
+    ...stateWithSourceSnapshot,
     columns,
     widgets: state.widgets.map((widget) => ({
       ...widget,
       layout: normalizeLayout(layouts.get(widget.id) ?? widget.layout, columns),
     })),
-  };
+    previousLayouts,
+  });
 }
 
 export function autoArrangeDashboardWidgets<TData>(state: DashboardLayoutState<TData>): DashboardLayoutState<TData> {
@@ -220,7 +328,7 @@ export function autoArrangeDashboardWidgets<TData>(state: DashboardLayoutState<T
   let cursorY = 0;
   let rowHeight = 0;
 
-  return {
+  return withActiveColumnSnapshot({
     ...state,
     widgets: state.widgets.map((widget) => {
       const width = Math.min(widget.layout.w, state.columns);
@@ -245,7 +353,7 @@ export function autoArrangeDashboardWidgets<TData>(state: DashboardLayoutState<T
 
       return { ...widget, layout };
     }),
-  };
+  });
 }
 
 export function fitDashboardWidgetsToColumns<TData>(state: DashboardLayoutState<TData>): DashboardLayoutState<TData> {
@@ -279,13 +387,13 @@ export function fitDashboardWidgetsToColumns<TData>(state: DashboardLayoutState<
     });
   });
 
-  return {
+  return withActiveColumnSnapshot({
     ...state,
     widgets: state.widgets.map((widget) => ({
       ...widget,
       layout: nextLayouts.get(widget.id) ?? widget.layout,
     })),
-  };
+  });
 }
 
 export function fitDashboardWidgetToColumns<TData>(
@@ -314,13 +422,13 @@ export function fitDashboardWidgetToColumns<TData>(
     cursorX += width;
   });
 
-  return {
+  return withActiveColumnSnapshot({
     ...state,
     widgets: state.widgets.map((widget) => ({
       ...widget,
       layout: nextLayouts.get(widget.id) ?? widget.layout,
     })),
-  };
+  });
 }
 
 function hasEmptyColumnSpace<TData>(widgets: DashboardWidget<TData>[], columns: number): boolean {
@@ -355,6 +463,80 @@ export function serializeDashboardState<TData>(state: DashboardLayoutState<TData
         .filter((entry): entry is [DashboardWidgetId, DashboardWidgetLayout] => entry[1] !== undefined)
         .map(([id, layout]) => [id, { ...layout, id }]),
     ),
+    layoutsByColumn: DASHBOARD_COLUMN_COUNTS.reduce<DashboardLayoutsByColumn>((layoutsByColumn, columns) => {
+      const snapshot = state.layoutsByColumn[columns];
+      if (!snapshot) {
+        return layoutsByColumn;
+      }
+
+      layoutsByColumn[columns] = createColumnLayoutSnapshot(
+        snapshot.widgets.map((layout) => ({ id: layout.id, layout })),
+        snapshot.previousLayouts,
+        columns,
+      );
+      return layoutsByColumn;
+    }, {}),
+  };
+}
+
+function createColumnLayoutSnapshot<TData>(
+  widgets: DashboardWidget<TData>[],
+  previousLayouts: DashboardLayoutState<TData>["previousLayouts"],
+  columns: DashboardColumnCount,
+): DashboardColumnLayoutSnapshot {
+  const widgetIds = new Set(widgets.map((widget) => widget.id));
+
+  return {
+    widgets: widgets.map((widget) => normalizeColumnLayout({ ...widget.layout, id: widget.id }, columns)),
+    previousLayouts: Object.fromEntries(
+      Object.entries(previousLayouts)
+        .filter(
+          (entry): entry is [DashboardWidgetId, DashboardWidgetLayout] =>
+            entry[1] !== undefined && widgetIds.has(entry[0]) && entry[1].id === entry[0],
+        )
+        .map(([id, layout]) => [id, normalizeColumnLayout({ ...layout, id }, columns)]),
+    ),
+  };
+}
+
+function normalizeLayoutsByColumn<TData>(
+  snapshot: DashboardLayoutStateInput<TData>,
+  widgets: DashboardWidget<TData>[],
+  activePreviousLayouts: DashboardLayoutState<TData>["previousLayouts"],
+  activeColumns: DashboardColumnCount,
+): DashboardLayoutsByColumn {
+  if (!("layoutsByColumn" in snapshot) || !snapshot.layoutsByColumn) {
+    return {};
+  }
+
+  const widgetIds = new Set(widgets.map((widget) => widget.id));
+  const layoutsByColumn: DashboardLayoutsByColumn = {};
+
+  DASHBOARD_COLUMN_COUNTS.forEach((columns) => {
+    const cachedSnapshot = snapshot.layoutsByColumn?.[columns];
+    if (!cachedSnapshot || !Array.isArray(cachedSnapshot.widgets)) {
+      return;
+    }
+
+    const cachedWidgets = cachedSnapshot.widgets
+      .filter((layout): layout is DashboardWidgetLayout => Boolean(layout) && widgetIds.has(layout.id))
+      .map((layout) => ({ id: layout.id, layout: { ...layout, id: layout.id } }));
+    const cachedPreviousLayouts = cachedSnapshot.previousLayouts ?? {};
+
+    layoutsByColumn[columns] = createColumnLayoutSnapshot(cachedWidgets, cachedPreviousLayouts, columns);
+  });
+
+  layoutsByColumn[activeColumns] = createColumnLayoutSnapshot(widgets, activePreviousLayouts, activeColumns);
+  return layoutsByColumn;
+}
+
+function withActiveColumnSnapshot<TData>(state: DashboardLayoutState<TData>): DashboardLayoutState<TData> {
+  return {
+    ...state,
+    layoutsByColumn: {
+      ...state.layoutsByColumn,
+      [state.columns]: createColumnLayoutSnapshot(state.widgets, state.previousLayouts, state.columns),
+    },
   };
 }
 
@@ -376,18 +558,19 @@ function restorePreviousLayouts<TData>(
   );
 }
 
-function placeWidgetInFirstAvailableSpace<TData>(
-  state: DashboardLayoutState<TData>,
-  widget: DashboardWidget<TData>,
-): DashboardWidget<TData> {
-  const { w, h } = widget.layout;
+function placeLayoutInFirstAvailableSpace(
+  layouts: DashboardWidgetLayout[],
+  layout: DashboardWidgetLayout,
+  columns: DashboardColumnCount,
+): DashboardWidgetLayout {
+  const { w, h } = layout;
 
   for (let y = 0; ; y += 1) {
-    for (let x = 0; x <= state.columns - w; x += 1) {
-      const candidate = { ...widget.layout, x, y, w, h };
-      const overlaps = state.widgets.some((item) => layoutsOverlap(candidate, item.layout));
+    for (let x = 0; x <= columns - w; x += 1) {
+      const candidate = { ...layout, x, y, w, h };
+      const overlaps = layouts.some((item) => layoutsOverlap(candidate, item));
       if (!overlaps) {
-        return { ...widget, layout: candidate };
+        return candidate;
       }
     }
   }
@@ -415,6 +598,31 @@ function normalizeLayout(layout: DashboardWidgetLayout, columns: number): Dashbo
     w,
     h: Math.max(1, Math.round(layout.h)),
   };
+}
+
+function normalizeColumnLayout(layout: DashboardWidgetLayout, columns: DashboardColumnCount): DashboardWidgetLayout {
+  const { minW: _minW, minH: _minH, maxW: _maxW, maxH: _maxH, ...normalized } = normalizeLayout(layout, columns);
+  const minW = normalizeLayoutLimit(layout.minW, 1, columns);
+  const minH = normalizeLayoutLimit(layout.minH, 1);
+  const maxW = normalizeLayoutLimit(layout.maxW, minW ?? 1, columns);
+  const maxH = normalizeLayoutLimit(layout.maxH, minH ?? 1);
+
+  return {
+    ...normalized,
+    ...(minW === undefined ? {} : { minW }),
+    ...(minH === undefined ? {} : { minH }),
+    ...(maxW === undefined ? {} : { maxW }),
+    ...(maxH === undefined ? {} : { maxH }),
+  };
+}
+
+function normalizeLayoutLimit(value: number | undefined, minimum: number, maximum?: number): number | undefined {
+  if (value === undefined || !Number.isFinite(value)) {
+    return undefined;
+  }
+
+  const rounded = Math.round(value);
+  return maximum === undefined ? Math.max(minimum, rounded) : Math.max(minimum, Math.min(rounded, maximum));
 }
 
 function rememberPreviousLayout<TData>(

@@ -7,7 +7,7 @@
 - Maximize, minimize, restore, auto-arrange, runtime columns, persistence, and widget CRUD use the implemented package commands.
 - `DashboardGridHandle` provides advanced access to the borrowed GridStack instance without replacing controlled React state.
 - GridStack 13 remains an external runtime dependency behind the package adapter; third-party notices and package-boundary gates verify the license and non-bundling contract.
-- Supported engine options and responsive columns are additive public APIs. Breakpoint-specific layout persistence is deferred to 0.2.0; 0.1.5 persists the active layout only.
+- 2026-08-05: supported engine options and responsive columns are additive public APIs. Per-column persistence is resolved: `serializeState()` stores `layoutsByColumn`, while `serializeLayout()` remains active-only and legacy inputs without the cache remain readable.
 - Desktop Chromium, Firefox, and Playwright WebKit pointer drag/resize are supported and covered by Playwright. Mobile touch coverage remains on the Pixel 7 Chromium profile.
 - `0.2.0` implements `externalDropTargets` and the typed, non-destructive `onWidgetExternalDrop` callback for same-document light DOM targets. Consumers retain deletion ownership through `removeWidget`; raw GridStack `removable` remains unsupported.
 

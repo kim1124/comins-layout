@@ -29,6 +29,7 @@ type ReadmeDemoBridge = {
   setCustomDragHandle: (enabled: boolean) => void;
   setDirection: (direction: "ltr" | "rtl") => void;
   setOverviewLocked: (locked: boolean) => void;
+  setOverviewPosition: (x: number, y: number) => void;
   setOverviewMovable: (movable: boolean) => void;
   setResponsive: (enabled: boolean) => void;
   setRtl: (rtl: boolean | "auto" | undefined) => void;
@@ -146,6 +147,12 @@ export function ReadmeDemoPage() {
       setCustomDragHandle,
       setDirection,
       setOverviewLocked: (locked) => dashboard.commands.updateWidget("overview", { locked }),
+      setOverviewPosition: (x, y) => dashboard.commands.updateWidgetLayout("overview", {
+        x,
+        y,
+        w: 2,
+        h: 2,
+      }),
       setOverviewMovable: (movable) => dashboard.commands.updateWidget("overview", { movable }),
       setResponsive: setResponsiveEnabled,
       setRtl,

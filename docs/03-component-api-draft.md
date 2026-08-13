@@ -70,6 +70,33 @@ type DashboardWidget<TData = unknown> = {
 };
 ```
 
+## Per-column persistence types
+
+```ts
+type DashboardColumnLayoutSnapshot = {
+  widgets: DashboardWidgetLayout[];
+  previousLayouts: Record<DashboardWidgetId, DashboardWidgetLayout>;
+};
+
+type DashboardLayoutsByColumn = Partial<
+  Record<DashboardColumnCount, DashboardColumnLayoutSnapshot>
+>;
+
+type DashboardStateSnapshot<TData = unknown> = {
+  columns: DashboardColumnCount;
+  widgets: DashboardWidget<TData>[];
+  previousLayouts: Record<DashboardWidgetId, DashboardWidgetLayout>;
+  layoutsByColumn: DashboardLayoutsByColumn;
+};
+
+type DashboardStateSnapshotInput<TData = unknown> = {
+  columns: number;
+  widgets: DashboardWidget<TData>[];
+  previousLayouts?: Record<DashboardWidgetId, DashboardWidgetLayout>;
+  layoutsByColumn?: DashboardLayoutsByColumn;
+};
+```
+
 ## useDashboardGrid
 
 ```ts
@@ -106,7 +133,7 @@ interface DashboardGridHandle {
 }
 ```
 
-The handle is an optional advanced escape hatch. Comins commands remain the primary React state and CRUD API. The returned GridStack instance is borrowed; DashboardGrid owns initialization, listeners, and destruction.
+The handle is an optional advanced escape hatch. Comins commands remain the primary React state and CRUD API. The returned GridStack instance is borrowed; DashboardGrid owns initialization, listeners, and destruction. A controlled example must not call raw GridStack `addWidget`, `removeWidget`, or `destroy`; use the documented handle methods and Comins commands instead.
 
 ## Option Semantics
 
@@ -131,9 +158,20 @@ The handle is an optional advanced escape hatch. Comins commands remain the prim
 
 ## Snapshot Persistence
 
-- `serializeState()` returns `DashboardStateSnapshot`: `columns`, full `widgets`, and `previousLayouts` restore geometry.
-- `serializeLayout()` returns `DashboardLayoutSnapshot`: `columns` and widget geometry only.
-- `restoreLayout()` accepts `DashboardStateSnapshotInput`. A legacy JSON snapshot without `previousLayouts` is read with an empty restore map, while `serializeState()` always produces the complete `DashboardStateSnapshot` output.
+- `serializeState()` returns `DashboardStateSnapshot`: active `columns`, full `widgets`, active `previousLayouts`, and `layoutsByColumn: DashboardLayoutsByColumn` for every visited supported column.
+- `serializeLayout()` returns the unchanged active-only `DashboardLayoutSnapshot`: active `columns` and widget geometry only; it never serializes `layoutsByColumn`.
+- `restoreLayout()` accepts `DashboardStateSnapshotInput`. A legacy JSON snapshot without `previousLayouts` or `layoutsByColumn` restores with an empty restore map and no inactive cache.
+- If the input's active `layoutsByColumn[columns]` conflicts with top-level state, top-level `widgets` and `previousLayouts` are authoritative. Unsupported serialized column keys are ignored.
+- Switching columns restores the matching cache. CRUD keeps IDs coherent across cached layouts, layout-only operations update the active cache, and maximize/minimize/restore preserve the active cache's restore geometry.
+
+```ts
+dashboard.commands.setColumns(12);
+dashboard.commands.setColumns(6);
+dashboard.commands.setColumns(12); // Restores the 12-column cache.
+
+const saved = dashboard.commands.serializeState();
+dashboard.commands.restoreLayout(saved);
+```
 - `applyLayoutSnapshot()` applies active columns and matching widget geometry in one reducer action while preserving widget data and order.
 
 ## Current Export Surface
