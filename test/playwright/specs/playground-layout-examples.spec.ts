@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 
 import {
   dragWidget,
@@ -25,6 +25,28 @@ function expectValidGeometry(geometry: WidgetGeometry[]) {
     expect(widget.h).toBeGreaterThan(0);
     expect(widget.x + widget.w).toBeLessThanOrEqual(12);
   }
+}
+
+async function readGridInteractionState(widget: Locator) {
+  return widget.evaluate((element) => {
+    const gridElement = element.closest<HTMLElement>(".grid-stack") as (HTMLElement & {
+      gridstack?: { opts?: { disableDrag?: boolean; disableResize?: boolean } };
+    }) | null;
+    const gridItem = element as HTMLElement & {
+      gridstackNode?: { noMove?: boolean; noResize?: boolean };
+    };
+    const grid = gridElement?.gridstack;
+    const node = gridItem.gridstackNode;
+
+    return {
+      disableDrag: grid?.opts?.disableDrag === true,
+      disableResize: grid?.opts?.disableResize === true,
+      engineReady: Boolean(grid),
+      noMove: node?.noMove === true,
+      noResize: node?.noResize === true,
+      widgetNodeReady: Boolean(node),
+    };
+  });
 }
 
 test.beforeEach(async ({ page }) => {
@@ -168,17 +190,56 @@ test("uses one action-labelled lock toggle", async ({ page }) => {
   ).toHaveAttribute("aria-pressed", "true");
 });
 
-test("blocks move resize and delete until unlocked", async ({ page }) => {
+test("blocks move and delete until unlocked", async ({ page }) => {
   await page.goto("/examples/layout/lock");
 
   const movableWidget = page.getByTestId("dashboard-widget-sales");
-  const resizableWidget = page.getByTestId("dashboard-widget-traffic");
   await page.getByRole("button", { name: "레이아웃 잠금", exact: true }).click();
+  await expect.poll(() => readGridInteractionState(movableWidget)).toMatchObject({
+    disableDrag: true,
+    engineReady: true,
+    noMove: true,
+    widgetNodeReady: true,
+  });
   await expect(movableWidget.locator(".grid-stack-item-content")).toHaveCSS("cursor", "default");
 
   const beforeMove = await readWidgetGeometry(movableWidget);
-  await dragWidget(page, movableWidget, 160, 100);
-  expect(await readWidgetGeometry(movableWidget)).toEqual(beforeMove);
+  await dragWidget(page, movableWidget, 180, 120);
+  await expect.poll(() => readWidgetGeometry(movableWidget)).toEqual(beforeMove);
+
+  const deleteButton = movableWidget.getByRole("button", { name: "위젯 1 삭제", exact: true });
+  await expect(deleteButton).toBeDisabled();
+
+  await page.getByRole("button", { name: "레이아웃 잠금 해제", exact: true }).click();
+  await expect.poll(() => readGridInteractionState(movableWidget)).toMatchObject({
+    disableDrag: false,
+    engineReady: true,
+    noMove: false,
+    widgetNodeReady: true,
+  });
+
+  await dragWidget(page, movableWidget, 180, 120);
+  await expect.poll(async () => {
+    const afterMove = await readWidgetGeometry(movableWidget);
+    return afterMove.x !== beforeMove.x || afterMove.y !== beforeMove.y;
+  }).toBe(true);
+
+  await expect(deleteButton).toBeEnabled();
+  await deleteButton.click();
+  await expect(movableWidget).toHaveCount(0);
+});
+
+test("blocks resize until unlocked", async ({ page }) => {
+  await page.goto("/examples/layout/lock");
+
+  const resizableWidget = page.getByTestId("dashboard-widget-traffic");
+  await page.getByRole("button", { name: "레이아웃 잠금", exact: true }).click();
+  await expect.poll(() => readGridInteractionState(resizableWidget)).toMatchObject({
+    disableResize: true,
+    engineReady: true,
+    noResize: true,
+    widgetNodeReady: true,
+  });
 
   const beforeResize = await readWidgetGeometry(resizableWidget);
   await expect(resizableWidget.locator(".ui-resizable-se")).toBeHidden();
@@ -188,23 +249,21 @@ test("blocks move resize and delete until unlocked", async ({ page }) => {
   await page.mouse.down();
   await page.mouse.move(resizeBox!.x + resizeBox!.width + 120, resizeBox!.y + resizeBox!.height + 80, { steps: 12 });
   await page.mouse.up();
-  expect(await readWidgetGeometry(resizableWidget)).toEqual(beforeResize);
-
-  const deleteButton = movableWidget.getByRole("button", { name: "위젯 1 삭제", exact: true });
-  await expect(deleteButton).toBeDisabled();
+  await expect.poll(() => readWidgetGeometry(resizableWidget)).toEqual(beforeResize);
 
   await page.getByRole("button", { name: "레이아웃 잠금 해제", exact: true }).click();
+  await expect.poll(() => readGridInteractionState(resizableWidget)).toMatchObject({
+    disableResize: false,
+    engineReady: true,
+    noResize: false,
+    widgetNodeReady: true,
+  });
   await resizableWidget.hover();
   await expect(resizableWidget.locator(".ui-resizable-se")).toBeVisible();
 
-  await dragWidget(page, movableWidget, 180, 120);
-  await expect.poll(async () => await readWidgetGeometry(movableWidget)).not.toEqual(beforeMove);
-
-  const unlockedResize = await readWidgetGeometry(resizableWidget);
   await resizeWidget(page, resizableWidget, 120, 80);
-  await expect.poll(async () => await readWidgetGeometry(resizableWidget)).not.toEqual(unlockedResize);
-
-  await expect(deleteButton).toBeEnabled();
-  await deleteButton.click();
-  await expect(movableWidget).toHaveCount(0);
+  await expect.poll(async () => {
+    const afterResize = await readWidgetGeometry(resizableWidget);
+    return afterResize.w !== beforeResize.w || afterResize.h !== beforeResize.h;
+  }).toBe(true);
 });
