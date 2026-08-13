@@ -84,6 +84,21 @@ test("places the locale toggle immediately left of search", async ({ page }) => 
   expect(locale!.x + locale!.width).toBeLessThanOrEqual(search!.x);
 });
 
+test("keeps locale and search controls within a narrow viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 300, height: 800 });
+  await page.goto("/docs/getting-started");
+
+  const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+  expect(scrollWidth).toBeLessThanOrEqual(300);
+
+  const controls = await page.locator(".docs-topnav__controls").boundingBox();
+  const search = await page.locator(".global-docs-search").boundingBox();
+  expect(controls).not.toBeNull();
+  expect(search).not.toBeNull();
+  expect(search!.x).toBeGreaterThanOrEqual(controls!.x);
+  expect(search!.x + search!.width).toBeLessThanOrEqual(controls!.x + controls!.width);
+});
+
 test("searches resolved docs copy for each locale", async ({ page }) => {
   await page.goto("/docs/getting-started");
 

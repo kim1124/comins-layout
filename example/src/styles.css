@@ -234,7 +234,7 @@ button {
 }
 
 .global-docs-search {
-  min-width: 220px;
+  min-width: 0;
   position: relative;
   width: 100%;
   z-index: 30;
@@ -381,6 +381,10 @@ button {
   color: #475569;
   font-size: 12px;
   margin: 0 0 5px;
+}
+
+.docs-sidebar__section h3 + .docs-sidebar__links {
+  padding-left: 12px;
 }
 
 .docs-sidebar__link {

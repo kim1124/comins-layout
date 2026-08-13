@@ -57,10 +57,18 @@ test.describe("gridstack docs playground routing", () => {
     await page.goto("/examples/widget");
 
     const nav = page.getByRole("navigation", { name: "문서 메뉴" });
+    const rootLink = nav.getByRole("link", { name: "위젯" });
+    const layoutChildLink = nav.getByRole("link", { name: "저장·복원" });
     await expect(nav.getByText("레이아웃", { exact: true })).toBeVisible();
-    await expect(nav.getByRole("link", { name: "저장·복원" })).toHaveAttribute("href", "/examples/layout");
+    await expect(layoutChildLink).toHaveAttribute("href", "/examples/layout");
     await expect(nav.getByText("고급 예제", { exact: true })).toBeVisible();
     await expect(nav.getByRole("link", { name: "반응형·엔진 옵션" })).toHaveAttribute("href", "/examples/advanced");
+
+    const rootBox = await rootLink.boundingBox();
+    const childBox = await layoutChildLink.boundingBox();
+    expect(rootBox).not.toBeNull();
+    expect(childBox).not.toBeNull();
+    expect(childBox!.x).toBeGreaterThan(rootBox!.x);
   });
 
   test("renders an integrated docs shell with one live playground for every example route", async ({ page }) => {
