@@ -1,15 +1,14 @@
-<!-- comins-reference:managed-start contract=v1.5 -->
+<!-- comins-reference:managed-start contract=v1.6 -->
 # Comins Module AGENTS.md
 
 ## Scope
 
-- Comins Git boundary. Read `AGENTS.md`; use
-  [Governance](https://github.com/kim1124/comins-governance) for rules.
-- Keep KMSF historical; never commit `AGENTS.override.md`.
+- Keep the module Git boundary; use
+  [Governance](https://github.com/kim1124/comins-governance) for common rules.
 
 ## Required Order
 
-- Resolve the Git root and instructions. Follow Contract v1.5: license compliance; security and sensitive data; Comins common rules;
+- Resolve the Git root and instructions. Follow Contract v1.6: license compliance; security and sensitive data; Comins common rules;
   module rules; smallest change and affected checks; Git, pull request, and CI; release checks only when publishing.
 
 ## Work Routing
@@ -22,8 +21,9 @@
   or trigger unrelated checks.
 - Subagents require explicit maintainer delegation or approved independent
   parallel work. Never pass full history; use bounded briefs and paths.
-- Default: one final review and one required broad gate after the final change.
-  Recheck affected failures; reuse unchanged evidence.
+- Run final review or a broad gate only when the selected route requires it.
+- On failure, preserve same-commit evidence and successful checks; classify and
+  rerun only affected jobs or tests. A retry does not restart prior work.
 
 ## Common Boundaries
 
@@ -40,8 +40,6 @@
 
 - Run affected checks only. A failed required gate blocks the workflow;
   unrelated gates are not substitutes.
-- Report changes, checks, omissions, and blockers. Release closure applies only
-  to publication.
 <!-- comins-reference:managed-end -->
 
 ## Module Guidance

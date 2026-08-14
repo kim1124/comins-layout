@@ -7,12 +7,17 @@ const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
 const resourceStabilityTest = /keeps 100 widgets stable through repeated column changes/;
 
 export default defineConfig({
+  forbidOnly: isCI,
+  retries: isCI ? 1 : 0,
+  failOnFlakyTests: process.env.PLAYWRIGHT_FAIL_ON_FLAKY_TESTS === "1",
   outputDir: "reports/artifacts/playwright",
-  reporter: [["html", { open: "never", outputFolder: "reports/artifacts/playwright-html" }], ["list"]],
+  reporter: isCI
+    ? [["github"], ["html", { open: "never", outputFolder: "reports/artifacts/playwright-html" }], ["list"]]
+    : [["html", { open: "never", outputFolder: "reports/artifacts/playwright-html" }], ["list"]],
   testDir: "test/playwright/specs",
   use: {
     baseURL,
-    trace: "retain-on-failure",
+    trace: "retain-on-failure-and-retries",
   },
   projects: [
     {
