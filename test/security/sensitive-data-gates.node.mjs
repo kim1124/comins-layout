@@ -50,14 +50,14 @@ function constantFailure(result) {
   assert.equal(result.stderr, failure);
 }
 
-test('adopts the lean Contract v1.4 module policy', () => {
+test('adopts the lean Contract v1.6 module policy', () => {
   const agents = read('AGENTS.md');
   const security = read('SECURITY.md');
   const packageJson = JSON.parse(read('package.json'));
   const packageLock = JSON.parse(read('package-lock.json'));
   const changelog = read('CHANGELOG.md');
 
-  assert.match(agents, /managed-start contract=v1\.4/);
+  assert.match(agents, /managed-start contract=v1\.6/);
   assert.match(
     agents,
     /license compliance; security and sensitive data; Comins common rules;/,
