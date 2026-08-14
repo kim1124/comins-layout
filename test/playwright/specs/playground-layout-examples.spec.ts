@@ -107,8 +107,8 @@ test("restores the exact saved geometry after drag and resize", async ({ page })
 test("arrange and fill each produce changed valid geometry", async ({ page }) => {
   const beforeArrange = await readDashboardGeometry(page);
   await dragWidget(page, page.getByTestId("dashboard-widget-alerts"), 180, 200);
+  await expect.poll(() => readDashboardGeometry(page)).not.toEqual(beforeArrange);
   const scattered = await readDashboardGeometry(page);
-  expect(scattered).not.toEqual(beforeArrange);
 
   await page.getByRole("button", { name: "자동 정렬", exact: true }).click();
   await expect.poll(() => readDashboardGeometry(page)).not.toEqual(scattered);
