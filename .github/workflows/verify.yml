@@ -10,6 +10,85 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Change scope
+    runs-on: ubuntu-latest
+    outputs:
+      policy: ${{ steps.scope.outputs.policy }}
+      docs: ${{ steps.scope.outputs.docs }}
+      fast: ${{ steps.scope.outputs.fast }}
+      browser: ${{ steps.scope.outputs.browser }}
+      cross_browser: ${{ steps.scope.outputs.cross_browser }}
+      resource: ${{ steps.scope.outputs.resource }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Classify changed surfaces
+        id: scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BASE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == 'pull_request' ]]; then
+            base_sha="$PR_BASE_SHA"
+            head_sha="$PR_HEAD_SHA"
+          else
+            base_sha="$PUSH_BASE_SHA"
+            head_sha="$PUSH_HEAD_SHA"
+          fi
+
+          policy=false
+          docs=false
+          fast=false
+          browser=false
+          cross_browser=false
+          resource=false
+          while IFS= read -r path; do
+            case "$path" in
+              AGENTS.md|*/AGENTS.md|.codex/*|SECURITY.md|.gitleaks.toml|.githooks/*|.github/workflows/*|scripts/check-public-identities.mjs|test/security/*)
+                policy=true
+                ;;
+            esac
+            case "$path" in
+              README.md|docs/*)
+                docs=true
+                ;;
+            esac
+            case "$path" in
+              AGENTS.md|*/AGENTS.md|.codex/*|README.md|CHANGELOG.md|SECURITY.md|docs/*|reports/*)
+                ;;
+              *)
+                fast=true
+                ;;
+            esac
+            case "$path" in
+              src/components/*|src/gridstack/*|example/*|test/playwright/*|playwright.config.ts|vite.example.config.ts|package.json|package-lock.json|.github/workflows/verify.yml)
+                browser=true
+                cross_browser=true
+                ;;
+            esac
+            case "$path" in
+              src/core/*)
+                browser=true
+                ;;
+            esac
+            case "$path" in
+              src/components/DashboardGrid.tsx|src/gridstack/*|test/playwright/resource-stability.ts|test/playwright/specs/dashboard-grid.spec.ts|playwright.config.ts|package.json|package-lock.json|.github/workflows/verify.yml)
+                resource=true
+                ;;
+            esac
+          done < <(git diff --name-only "$base_sha" "$head_sha")
+
+          printf 'policy=%s\ndocs=%s\nfast=%s\nbrowser=%s\ncross_browser=%s\nresource=%s\n' \
+            "$policy" "$docs" "$fast" "$browser" "$cross_browser" "$resource" >> "$GITHUB_OUTPUT"
+
   security:
     name: Sensitive data
     runs-on: ubuntu-latest
@@ -79,8 +158,12 @@ jobs:
             exit 1
           fi
 
-  verify:
+  fast:
+    name: Fast verification
+    needs: changes
+    if: ${{ needs.changes.outputs.policy == 'true' || needs.changes.outputs.docs == 'true' || needs.changes.outputs.fast == 'true' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -90,5 +173,156 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run verify:full
+      - name: Run policy contract checks
+        if: ${{ needs.changes.outputs.fast != 'true' && needs.changes.outputs.policy == 'true' }}
+        run: node --test test/security/sensitive-data-gates.node.mjs
+      - name: Run documentation checks
+        if: ${{ needs.changes.outputs.fast != 'true' && needs.changes.outputs.docs == 'true' }}
+        run: npm run test:run -- test/vitest/readme.test.ts test/vitest/playwright-project-policy.test.ts
+      - name: Run package baseline
+        if: ${{ needs.changes.outputs.fast == 'true' }}
+        run: npm run verify
+
+  browser_chromium:
+    name: Chromium E2E
+    needs: [changes, fast]
+    if: ${{ needs.changes.outputs.browser == 'true' && needs.fast.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --project=chromium --project=mobile-chrome
+      - name: Upload Chromium evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-chromium-${{ github.run_attempt }}
+          path: |
+            reports/artifacts/playwright
+            reports/artifacts/playwright-html
+          if-no-files-found: ignore
+          retention-days: 3
+
+  browser_firefox:
+    name: Firefox E2E
+    needs: [changes, fast]
+    if: ${{ needs.changes.outputs.cross_browser == 'true' && needs.fast.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps firefox
+      - run: npm run test:e2e -- --project=firefox
+      - name: Upload Firefox evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-firefox-${{ github.run_attempt }}
+          path: |
+            reports/artifacts/playwright
+            reports/artifacts/playwright-html
+          if-no-files-found: ignore
+          retention-days: 3
+
+  browser_webkit:
+    name: WebKit E2E
+    needs: [changes, fast]
+    if: ${{ needs.changes.outputs.cross_browser == 'true' && needs.fast.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - run: npm run test:e2e -- --project=webkit
+      - name: Upload WebKit evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-webkit-${{ github.run_attempt }}
+          path: |
+            reports/artifacts/playwright
+            reports/artifacts/playwright-html
+          if-no-files-found: ignore
+          retention-days: 3
+
+  resource:
+    name: 100-widget resource
+    needs: [changes, fast]
+    if: ${{ needs.changes.outputs.resource == 'true' && needs.fast.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --project=chromium-resource --no-deps
+      - name: Upload resource evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-resource-${{ github.run_attempt }}
+          path: |
+            reports/artifacts/playwright
+            reports/artifacts/playwright-html
+          if-no-files-found: ignore
+          retention-days: 3
+
+  verify:
+    if: ${{ always() }}
+    needs: [changes, security, fast, browser_chromium, browser_firefox, browser_webkit, resource]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected verification jobs
+        env:
+          CHANGE_SCOPE_RESULT: ${{ needs.changes.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          CHROMIUM_RESULT: ${{ needs.browser_chromium.result }}
+          FIREFOX_RESULT: ${{ needs.browser_firefox.result }}
+          WEBKIT_RESULT: ${{ needs.browser_webkit.result }}
+          RESOURCE_RESULT: ${{ needs.resource.result }}
+        run: |
+          set -euo pipefail
+          if [[ "$CHANGE_SCOPE_RESULT" != 'success' || "$SECURITY_RESULT" != 'success' ]]; then
+            printf '%s\n' 'required-verification: failed' >&2
+            exit 1
+          fi
+          for result in \
+            "$FAST_RESULT" \
+            "$CHROMIUM_RESULT" \
+            "$FIREFOX_RESULT" \
+            "$WEBKIT_RESULT" \
+            "$RESOURCE_RESULT"; do
+            if [[ "$result" != 'success' && "$result" != 'skipped' ]]; then
+              printf '%s\n' 'required-verification: failed' >&2
+              exit 1
+            fi
+          done
