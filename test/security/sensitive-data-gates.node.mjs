@@ -148,6 +148,16 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
   }
   assert.match(verify, /fetch-depth: 0/);
   assert.match(verify, /--log-opts="\$BASE_SHA\.\.\$HEAD_SHA"/);
+  assert.match(verify, /name: Change scope/);
+  assert.match(verify, /name: Fast verification/);
+  assert.match(verify, /name: Chromium E2E/);
+  assert.match(verify, /name: Firefox E2E/);
+  assert.match(verify, /name: WebKit E2E/);
+  assert.match(verify, /name: 100-widget resource/);
+  assert.match(verify, /npm run verify\n/);
+  assert.doesNotMatch(verify, /npm run verify:full/);
+  assert.match(verify, /needs: \[changes, security, fast, browser_chromium, browser_firefox, browser_webkit, resource\]/);
+  assert.match(verify, /required-verification: failed/);
   assert.match(publish, /verify-package-artifact\.mjs/);
   assert.match(publish, /tar -xzf "\$package_file"/);
   assert.match(publish, /gitleaks dir/);
