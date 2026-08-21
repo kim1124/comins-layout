@@ -546,8 +546,12 @@ test.describe("Dashboard events", () => {
     await expect(page.locator(".grid-stack")).toHaveAttribute("data-columns", "6");
     await expect(entries.filter({ hasText: "onColumnsChange" })).toContainText("columns=6");
 
+    const columnSelect = page.getByRole("combobox", { name: "레이아웃 컬럼" });
     for (let index = 0; index < 12; index += 1) {
-      await page.getByRole("combobox", { name: "레이아웃 컬럼" }).selectOption(index % 2 === 0 ? "5" : "6");
+      const columns = index % 2 === 0 ? "5" : "6";
+      await columnSelect.selectOption(columns);
+      await expect(page.locator(".grid-stack")).toHaveAttribute("data-columns", columns);
+      await expect(entries.last()).toContainText(`onColumnsChange columns=${columns}`);
     }
     await expect(entries).toHaveCount(10);
     await expect(entries.last()).toContainText("onColumnsChange columns=6");
