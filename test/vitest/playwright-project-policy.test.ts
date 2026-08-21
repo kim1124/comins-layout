@@ -22,7 +22,7 @@ describe("Playwright project policy", () => {
     expect(isDesktopBrowserProject("chromium-resource")).toBe(false);
   });
 
-  it("configures all supported browser projects and installs them in CI", () => {
+  it("configures supported browser projects as independently retryable CI jobs", () => {
     const projects = playwrightConfig.projects ?? [];
     const projectNames = projects.map((project) => project.name);
     const firefox = projects.find((project) => project.name === "firefox");
@@ -31,6 +31,7 @@ describe("Playwright project policy", () => {
       (project) => project.name === "chromium-resource",
     );
     const workflow = readFileSync(".github/workflows/verify.yml", "utf8");
+    const configSource = readFileSync("playwright.config.ts", "utf8");
 
     expect(projectNames).toEqual([
       "chromium",
@@ -42,9 +43,22 @@ describe("Playwright project policy", () => {
     expect(firefox?.use).toMatchObject({ defaultBrowserType: "firefox" });
     expect(webkit?.use).toMatchObject({ defaultBrowserType: "webkit" });
     expect(resource?.dependencies).toEqual(["chromium", "mobile-chrome"]);
-    expect(workflow).toContain(
-      "npx playwright install --with-deps chromium firefox webkit",
-    );
+    expect(workflow).toContain("name: Chromium E2E");
+    expect(workflow).toContain("name: Firefox E2E");
+    expect(workflow).toContain("name: WebKit E2E");
+    expect(workflow).toContain("name: 100-widget resource");
+    expect(workflow).toContain("npx playwright install --with-deps chromium");
+    expect(workflow).toContain("npx playwright install --with-deps firefox");
+    expect(workflow).toContain("npx playwright install --with-deps webkit");
+    expect(workflow).toContain("--project=chromium --project=mobile-chrome");
+    expect(workflow).toContain("--project=firefox");
+    expect(workflow).toContain("--project=webkit");
+    expect(workflow).toContain("--project=chromium-resource --no-deps");
+    expect(workflow).not.toContain("npm run verify:full");
+    expect(workflow).toContain("required-verification: failed");
+    expect(configSource).toContain('? [["github"]');
+    expect(configSource).toContain("retries: isCI ? 1 : 0");
+    expect(configSource).toContain('trace: "retain-on-failure-and-retries"');
   });
 
   it("does not limit desktop parity scenarios to Chromium", () => {

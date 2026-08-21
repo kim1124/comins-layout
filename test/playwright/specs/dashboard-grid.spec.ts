@@ -1047,9 +1047,18 @@ test("resolves an external drop target remounted after grid initialization", asy
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "External drop is covered on supported desktop browsers.");
   await page.setViewportSize({ width: 1280, height: 1400 });
   await page.goto("/readme-demo");
-  await page.evaluate(() => window.__cominsReadmeDemo?.setTrashVisible(false));
+  await expect
+    .poll(() => page.evaluate(() => typeof window.__cominsReadmeDemo?.setTrashVisible))
+    .toBe("function");
+  await page.evaluate(() => {
+    if (!window.__cominsReadmeDemo) throw new Error("README demo test API is not ready");
+    window.__cominsReadmeDemo.setTrashVisible(false);
+  });
   await expect(page.getByTestId("external-drop-trash")).toBeHidden();
-  await page.evaluate(() => window.__cominsReadmeDemo?.setTrashVisible(true));
+  await page.evaluate(() => {
+    if (!window.__cominsReadmeDemo) throw new Error("README demo test API is not ready");
+    window.__cominsReadmeDemo.setTrashVisible(true);
+  });
   const target = page.getByTestId("external-drop-trash-child");
   await expect(target).toBeVisible();
   await page.evaluate(() => window.__cominsReadmeDemo?.resetInteractionEvents());
