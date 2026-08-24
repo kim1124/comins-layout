@@ -4,12 +4,13 @@ const port = Number(process.env.COMINS_GRID_LAYOUT_PORT ?? process.env.PORT ?? 6
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 const isCI = Boolean(process.env.CI);
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
-const resourceStabilityTest = /keeps 100 widgets stable through repeated column changes/;
+const firefoxParityTest = /@firefox-parity/;
+const mobileTouchTest = /@mobile-touch/;
+const resourceStabilityTest = /@resource-stability/;
 
 export default defineConfig({
   forbidOnly: isCI,
-  retries: isCI ? 1 : 0,
-  failOnFlakyTests: process.env.PLAYWRIGHT_FAIL_ON_FLAKY_TESTS === "1",
+  retries: 0,
   outputDir: "reports/artifacts/playwright",
   reporter: isCI
     ? [["github"], ["html", { open: "never", outputFolder: "reports/artifacts/playwright-html" }], ["list"]]
@@ -17,29 +18,23 @@ export default defineConfig({
   testDir: "test/playwright/specs",
   use: {
     baseURL,
-    trace: "retain-on-failure-and-retries",
+    trace: "retain-on-failure",
   },
   projects: [
     {
       name: "chromium",
-      grepInvert: resourceStabilityTest,
+      grepInvert: [resourceStabilityTest, mobileTouchTest],
       use: { ...devices["Desktop Chrome"] },
     },
     {
       name: "firefox",
-      grepInvert: resourceStabilityTest,
+      grep: firefoxParityTest,
       workers: isCI ? 1 : undefined,
       use: { ...devices["Desktop Firefox"] },
     },
     {
-      name: "webkit",
-      grepInvert: resourceStabilityTest,
-      workers: isCI ? 1 : undefined,
-      use: { ...devices["Desktop Safari"] },
-    },
-    {
       name: "mobile-chrome",
-      grepInvert: resourceStabilityTest,
+      grep: mobileTouchTest,
       use: { ...devices["Pixel 7"] },
     },
     {

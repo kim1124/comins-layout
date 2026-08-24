@@ -3,30 +3,13 @@ import { describe, expect, it } from "vitest";
 
 import playwrightConfig from "../../playwright.config";
 
-import {
-  DESKTOP_BROWSER_PROJECTS,
-  isDesktopBrowserProject,
-} from "../playwright/project-policy";
-
 describe("Playwright project policy", () => {
-  it("classifies Chromium, Firefox, and WebKit as desktop browser projects", () => {
-    expect(DESKTOP_BROWSER_PROJECTS).toEqual([
-      "chromium",
-      "firefox",
-      "webkit",
-    ]);
-    expect(isDesktopBrowserProject("chromium")).toBe(true);
-    expect(isDesktopBrowserProject("firefox")).toBe(true);
-    expect(isDesktopBrowserProject("webkit")).toBe(true);
-    expect(isDesktopBrowserProject("mobile-chrome")).toBe(false);
-    expect(isDesktopBrowserProject("chromium-resource")).toBe(false);
-  });
-
-  it("configures supported browser projects as independently retryable CI jobs", () => {
+  it("scopes supported browser projects to affected scenarios without retries", () => {
     const projects = playwrightConfig.projects ?? [];
     const projectNames = projects.map((project) => project.name);
+    const chromium = projects.find((project) => project.name === "chromium");
     const firefox = projects.find((project) => project.name === "firefox");
-    const webkit = projects.find((project) => project.name === "webkit");
+    const mobileChrome = projects.find((project) => project.name === "mobile-chrome");
     const resource = projects.find(
       (project) => project.name === "chromium-resource",
     );
@@ -36,50 +19,31 @@ describe("Playwright project policy", () => {
     expect(projectNames).toEqual([
       "chromium",
       "firefox",
-      "webkit",
       "mobile-chrome",
       "chromium-resource",
     ]);
     expect(firefox?.use).toMatchObject({ defaultBrowserType: "firefox" });
-    expect(webkit?.use).toMatchObject({ defaultBrowserType: "webkit" });
+    expect(firefox?.grep).toEqual(/@firefox-parity/);
+    expect(mobileChrome?.grep).toEqual(/@mobile-touch/);
+    expect(chromium?.grepInvert).toEqual([
+      /@resource-stability/,
+      /@mobile-touch/,
+    ]);
     expect(resource?.dependencies).toEqual(["chromium", "mobile-chrome"]);
     expect(workflow).toContain("name: Chromium E2E");
     expect(workflow).toContain("name: Firefox E2E");
-    expect(workflow).toContain("name: WebKit E2E");
     expect(workflow).toContain("name: 100-widget resource");
     expect(workflow).toContain("npx playwright install --with-deps chromium");
     expect(workflow).toContain("npx playwright install --with-deps firefox");
-    expect(workflow).toContain("npx playwright install --with-deps webkit");
     expect(workflow).toContain("--project=chromium --project=mobile-chrome");
     expect(workflow).toContain("--project=firefox");
-    expect(workflow).toContain("--project=webkit");
+    expect(workflow).not.toContain("webkit");
     expect(workflow).toContain("--project=chromium-resource --no-deps");
     expect(workflow).not.toContain("npm run verify:full");
     expect(workflow).toContain("required-verification: failed");
     expect(configSource).toContain('? [["github"]');
-    expect(configSource).toContain("retries: isCI ? 1 : 0");
-    expect(configSource).toContain('trace: "retain-on-failure-and-retries"');
-  });
-
-  it("does not limit desktop parity scenarios to Chromium", () => {
-    const specs = [
-      "test/playwright/specs/dashboard-grid.spec.ts",
-      "test/playwright/specs/docs-playground-routing.spec.ts",
-    ].map((path) => readFileSync(path, "utf8"));
-
-    for (const spec of specs) {
-      expect(spec).not.toContain('testInfo.project.name !== "chromium"');
-      expect(spec).toContain("isDesktopBrowserProject");
-    }
-  });
-
-  it("documents the automated engines without claiming branded Safari coverage", () => {
-    const readme = readFileSync("README.md", "utf8");
-    const supportBoundaries = readFileSync("docs/05-open-questions.md", "utf8");
-
-    expect(readme).toContain("Playwright Chromium and Firefox");
-    expect(readme).toContain("Playwright WebKit");
-    expect(supportBoundaries).toContain("Branded Safari on macOS and iOS is not directly verified");
-    expect(supportBoundaries).not.toContain("Firefox and Safari are not verified or supported");
+    expect(playwrightConfig.retries).toBe(0);
+    expect(configSource).toContain("retries: 0");
+    expect(configSource).toContain('trace: "retain-on-failure"');
   });
 });

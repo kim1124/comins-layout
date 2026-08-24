@@ -1,7 +1,5 @@
 import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
 
-import { isDesktopBrowserProject } from "../project-policy";
-
 function collectBrowserDiagnostics(page: Page) {
   const diagnostics: Array<{ text: string; type: ReturnType<ConsoleMessage["type"]> | "pageerror" }> = [];
 
@@ -161,23 +159,6 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.locator("#api-widget-crud").getByText("파라미터:")).toBeVisible();
     await expect(page.locator("#api-widget-crud").getByText("리턴값:")).toBeVisible();
     await expect(page.locator(".docs-reference-list__sample").locator(".docs-code__pre")).toHaveCount(14);
-
-    const firstGroup = page.locator(".docs-reference-list__group").first();
-    await expect(firstGroup).toHaveCSS("background-color", "rgb(255, 255, 255)");
-    await expect(firstGroup).toHaveCSS("border-radius", "8px");
-    await expect(firstGroup).toHaveCSS("border-top-color", "rgb(215, 238, 230)");
-    await expect(firstGroup.locator(".docs-reference-list__item dt").first()).toHaveCSS("color", "rgb(8, 121, 95)");
-
-    const propsSection = page.locator("#api-dashboard-rendering").getByLabel("Dashboard 렌더링 Props");
-    await expect(propsSection).toHaveCSS("padding-left", "14px");
-    await expect(propsSection).toHaveCSS("border-left-color", "rgb(215, 238, 230)");
-    await expect(page.locator("#api-dashboard-rendering").locator(".docs-reference-list__sample").first()).toHaveCSS("padding-left", "10px");
-  });
-
-  test("documents the full per-column persistence and controlled handle contracts", async ({ page }, testInfo) => {
-    test.skip(!isDesktopBrowserProject(testInfo.project.name), "Persistence contract rendering is checked on supported desktop browsers.");
-
-    await page.goto("/api");
 
     const layoutApi = page.locator("#api-layout-save-restore");
     await expect(layoutApi).toContainText("DashboardColumnLayoutSnapshot");

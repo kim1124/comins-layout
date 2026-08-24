@@ -31,22 +31,23 @@ Use Vitest for:
 
 The browser project matrix is:
 
-- `chromium`, `firefox`, and `webkit`: shared desktop rendering and pointer-interaction scenarios
-- `mobile-chrome`: Pixel 7 touch scenarios; CDP-backed touch injection remains Chromium-only
+- `chromium`: package and Playground browser-visible scenarios except mobile-touch and resource-only cases
+- `firefox`: only representative scenarios tagged `@firefox-parity` for engine-sensitive pointer and interaction parity
+- `mobile-chrome`: only scenarios tagged `@mobile-touch`; CDP-backed touch injection remains Chromium-only
 - `chromium-resource`: isolated single-worker 100-widget resource gate; Chrome DevTools Protocol counters remain Chromium-only
 
-Playwright WebKit validates the engine path in automation. It is not a branded Safari binary or a substitute for a macOS/iOS Safari device check.
+Safari is outside the automated browser contract and requires separate consumer verification.
+CI retries are disabled. A failed scenario remains failed evidence and is not rerun automatically inside the same job.
 
 Use Playwright for:
 
-- example page rendering
 - drag and drop behavior
 - resize handle behavior
 - maximize and restore interaction
 - minimize and restore interaction
 - runtime column changes
 - movement and resize disabled states
-- visible layout overflow checks
+- rendered grid geometry
 - 100-widget JSON restore, two warm-up `1..12` column cycles, bounded adaptive column/interaction sampling, drag/resize recovery
 - Chrome DevTools Protocol `JSHeapUsedSize`, DOM Nodes, Event Listeners, Documents counter capture after forced garbage collection
 
@@ -61,7 +62,7 @@ Use Playwright for:
 
 12% peak budget은 지연된 일회성 runtime 초기화를 제한된 범위에서 허용하기 위한 값이다. 최종 합격은 마지막 3개 sample의 2% steady-state budget으로 판단하므로, 초기화 이후에도 retained heap이 계속 증가하는 경우에는 통과하지 않는다.
 
-Playwright는 일반 Chromium 및 mobile suite 완료 뒤 단일 worker `chromium-resource` project에서 Chromium CDP counter JSON을 test artifact에 기록한다. Firefox와 WebKit은 이 CDP gate를 실행하지 않는다. 수동 Chrome DevTools 확인 시에도 같은 순서로 JS Heap, DOM Nodes, Event Listeners를 기록해 `reports/YYYY-MM-DD.md`와 비교한다.
+Playwright는 일반 Chromium 및 mobile suite 완료 뒤 단일 worker `chromium-resource` project에서 Chromium CDP counter JSON을 test artifact에 기록한다. Firefox는 이 CDP gate를 실행하지 않는다. 수동 Chrome DevTools 확인 시에도 같은 순서로 JS Heap, DOM Nodes, Event Listeners를 기록해 `reports/YYYY-MM-DD.md`와 비교한다.
 
 CDP counter gate는 자동화된 Chrome DevTools Protocol 검증이다. 직접 Chrome DevTools GUI 확인을 요청받은 경우에는 별도로 실행하고, 실행하지 못했으면 GUI 확인을 통과한 것으로 보고하지 않는다.
 

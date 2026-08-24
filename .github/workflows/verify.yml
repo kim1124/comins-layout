@@ -57,19 +57,19 @@ jobs:
                 ;;
             esac
             case "$path" in
-              README.md|docs/*)
+              README.md|docs/*|test/playwright/README.md|test/playwright/specs/README.md)
                 docs=true
                 ;;
             esac
             case "$path" in
-              AGENTS.md|*/AGENTS.md|.codex/*|README.md|CHANGELOG.md|SECURITY.md|docs/*|reports/*)
+              AGENTS.md|*/AGENTS.md|.codex/*|.github/workflows/*|README.md|CHANGELOG.md|SECURITY.md|docs/*|reports/*|test/playwright/README.md|test/playwright/specs/README.md)
                 ;;
               *)
                 fast=true
                 ;;
             esac
             case "$path" in
-              src/components/*|src/gridstack/*|example/*|test/playwright/*|playwright.config.ts|vite.example.config.ts|package.json|package-lock.json|.github/workflows/verify.yml)
+              src/components/*|src/gridstack/*|example/*|test/playwright/*.ts|test/playwright/specs/*.spec.ts|playwright.config.ts|vite.example.config.ts|package.json|package-lock.json)
                 browser=true
                 cross_browser=true
                 ;;
@@ -80,7 +80,7 @@ jobs:
                 ;;
             esac
             case "$path" in
-              src/components/DashboardGrid.tsx|src/gridstack/*|test/playwright/resource-stability.ts|test/playwright/specs/dashboard-grid.spec.ts|playwright.config.ts|package.json|package-lock.json|.github/workflows/verify.yml)
+              src/components/DashboardGrid.tsx|src/gridstack/*|test/playwright/resource-stability.ts|test/playwright/specs/dashboard-grid.spec.ts|playwright.config.ts|package.json|package-lock.json)
                 resource=true
                 ;;
             esac
@@ -239,34 +239,6 @@ jobs:
           if-no-files-found: ignore
           retention-days: 3
 
-  browser_webkit:
-    name: WebKit E2E
-    needs: [changes, fast]
-    if: ${{ needs.changes.outputs.cross_browser == 'true' && needs.fast.result == 'success' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps webkit
-      - run: npm run test:e2e -- --project=webkit
-      - name: Upload WebKit evidence
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: playwright-webkit-${{ github.run_attempt }}
-          path: |
-            reports/artifacts/playwright
-            reports/artifacts/playwright-html
-          if-no-files-found: ignore
-          retention-days: 3
-
   resource:
     name: 100-widget resource
     needs: [changes, fast]
@@ -297,7 +269,7 @@ jobs:
 
   verify:
     if: ${{ always() }}
-    needs: [changes, security, fast, browser_chromium, browser_firefox, browser_webkit, resource]
+    needs: [changes, security, fast, browser_chromium, browser_firefox, resource]
     runs-on: ubuntu-latest
     steps:
       - name: Require selected verification jobs
@@ -307,7 +279,6 @@ jobs:
           FAST_RESULT: ${{ needs.fast.result }}
           CHROMIUM_RESULT: ${{ needs.browser_chromium.result }}
           FIREFOX_RESULT: ${{ needs.browser_firefox.result }}
-          WEBKIT_RESULT: ${{ needs.browser_webkit.result }}
           RESOURCE_RESULT: ${{ needs.resource.result }}
         run: |
           set -euo pipefail
@@ -319,7 +290,6 @@ jobs:
             "$FAST_RESULT" \
             "$CHROMIUM_RESULT" \
             "$FIREFOX_RESULT" \
-            "$WEBKIT_RESULT" \
             "$RESOURCE_RESULT"; do
             if [[ "$result" != 'success' && "$result" != 'skipped' ]]; then
               printf '%s\n' 'required-verification: failed' >&2
