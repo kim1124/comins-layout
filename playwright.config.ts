@@ -4,7 +4,7 @@ const port = Number(process.env.COMINS_GRID_LAYOUT_PORT ?? process.env.PORT ?? 6
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 const isCI = Boolean(process.env.CI);
 const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "1";
-const desktopBrowserTest = /@desktop-browser/;
+const firefoxParityTest = /@firefox-parity/;
 const mobileTouchTest = /@mobile-touch/;
 const resourceStabilityTest = /@resource-stability/;
 
@@ -28,7 +28,7 @@ export default defineConfig({
     },
     {
       name: "firefox",
-      grep: desktopBrowserTest,
+      grep: firefoxParityTest,
       workers: isCI ? 1 : undefined,
       use: { ...devices["Desktop Firefox"] },
     },

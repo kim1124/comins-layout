@@ -23,7 +23,7 @@ describe("Playwright project policy", () => {
       "chromium-resource",
     ]);
     expect(firefox?.use).toMatchObject({ defaultBrowserType: "firefox" });
-    expect(firefox?.grep).toEqual(/@desktop-browser/);
+    expect(firefox?.grep).toEqual(/@firefox-parity/);
     expect(mobileChrome?.grep).toEqual(/@mobile-touch/);
     expect(chromium?.grepInvert).toEqual([
       /@resource-stability/,
@@ -46,5 +46,4 @@ describe("Playwright project policy", () => {
     expect(configSource).toContain("retries: 0");
     expect(configSource).toContain('trace: "retain-on-failure"');
   });
-
 });

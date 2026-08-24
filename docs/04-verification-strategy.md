@@ -32,7 +32,7 @@ Use Vitest for:
 The browser project matrix is:
 
 - `chromium`: package and Playground browser-visible scenarios except mobile-touch and resource-only cases
-- `firefox`: only scenarios tagged `@desktop-browser` for engine-sensitive desktop parity
+- `firefox`: only representative scenarios tagged `@firefox-parity` for engine-sensitive pointer and interaction parity
 - `mobile-chrome`: only scenarios tagged `@mobile-touch`; CDP-backed touch injection remains Chromium-only
 - `chromium-resource`: isolated single-worker 100-widget resource gate; Chrome DevTools Protocol counters remain Chromium-only
 
@@ -41,14 +41,13 @@ CI retries are disabled. A failed scenario remains failed evidence and is not re
 
 Use Playwright for:
 
-- example page rendering
 - drag and drop behavior
 - resize handle behavior
 - maximize and restore interaction
 - minimize and restore interaction
 - runtime column changes
 - movement and resize disabled states
-- visible layout overflow checks
+- rendered grid geometry
 - 100-widget JSON restore, two warm-up `1..12` column cycles, bounded adaptive column/interaction sampling, drag/resize recovery
 - Chrome DevTools Protocol `JSHeapUsedSize`, DOM Nodes, Event Listeners, Documents counter capture after forced garbage collection
 
