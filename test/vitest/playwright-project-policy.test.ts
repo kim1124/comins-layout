@@ -54,6 +54,8 @@ describe("Playwright project policy", () => {
     expect(workflow).toContain("--project=firefox");
     expect(workflow).toContain("--project=webkit");
     expect(workflow).toContain("--project=chromium-resource --no-deps");
+    expect(workflow).toContain("PLAYWRIGHT_FAIL_ON_FLAKY_TESTS: '1'");
+    expect(workflow.match(/retention-days: 7/g)).toHaveLength(4);
     expect(workflow).not.toContain("npm run verify:full");
     expect(workflow).toContain("required-verification: failed");
     expect(configSource).toContain('? [["github"]');

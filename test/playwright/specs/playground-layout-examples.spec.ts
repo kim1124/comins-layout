@@ -78,6 +78,20 @@ test("shows only the requested grouped toolbar", async ({ page }) => {
   expect(await groups.nth(3).getByRole("button").allTextContents()).toEqual(["초기화"]);
 });
 
+test("reads only live widgets while GridStack renders a drag placeholder", async ({ page }) => {
+  await page.locator(".grid-stack").evaluate((grid) => {
+    const placeholder = document.createElement("div");
+    placeholder.className = "grid-stack-item grid-stack-placeholder";
+    placeholder.setAttribute("gs-x", "0");
+    placeholder.setAttribute("gs-y", "0");
+    placeholder.setAttribute("gs-w", "1");
+    placeholder.setAttribute("gs-h", "1");
+    grid.append(placeholder);
+  });
+
+  expect(await readDashboardGeometry(page)).toEqual(initialGeometry);
+});
+
 test("restores the exact saved geometry after drag and resize", async ({ page }) => {
   await page.getByRole("button", { name: "레이아웃 저장", exact: true }).click();
   const before = await readDashboardGeometry(page);
@@ -209,7 +223,7 @@ test("blocks move and delete until unlocked", async ({ page }) => {
   await expect(movableWidget.locator(".grid-stack-item-content")).toHaveCSS("cursor", "default");
 
   const beforeMove = await readWidgetGeometry(movableWidget);
-  await dragWidget(page, movableWidget, 180, 120);
+  await dragWidget(page, movableWidget, 180, 120, { expectActivation: false });
   await expect.poll(() => readWidgetGeometry(movableWidget)).toEqual(beforeMove);
 
   const deleteButton = movableWidget.getByRole("button", { name: "위젯 1 삭제", exact: true });

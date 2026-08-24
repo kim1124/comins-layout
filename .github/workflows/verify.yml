@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PLAYWRIGHT_FAIL_ON_FLAKY_TESTS: '1'
+
 jobs:
   changes:
     name: Change scope
@@ -209,7 +212,7 @@ jobs:
             reports/artifacts/playwright
             reports/artifacts/playwright-html
           if-no-files-found: ignore
-          retention-days: 3
+          retention-days: 7
 
   browser_firefox:
     name: Firefox E2E
@@ -237,7 +240,7 @@ jobs:
             reports/artifacts/playwright
             reports/artifacts/playwright-html
           if-no-files-found: ignore
-          retention-days: 3
+          retention-days: 7
 
   browser_webkit:
     name: WebKit E2E
@@ -265,7 +268,7 @@ jobs:
             reports/artifacts/playwright
             reports/artifacts/playwright-html
           if-no-files-found: ignore
-          retention-days: 3
+          retention-days: 7
 
   resource:
     name: 100-widget resource
@@ -293,7 +296,7 @@ jobs:
             reports/artifacts/playwright
             reports/artifacts/playwright-html
           if-no-files-found: ignore
-          retention-days: 3
+          retention-days: 7
 
   verify:
     if: ${{ always() }}

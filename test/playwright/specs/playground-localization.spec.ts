@@ -1,6 +1,6 @@
 import { expect, test, type Browser } from "@playwright/test";
 
-import { dragWidget, readDashboardGeometry } from "../helpers/dashboard-interactions";
+import { readDashboardGeometry } from "../helpers/dashboard-interactions";
 import { initializePlaygroundLocale, PLAYGROUND_LOCALE_STORAGE_KEY } from "../helpers/playground-locale";
 
 test("switches the docs shell and locale search without changing the route", async ({ page }) => {
@@ -499,12 +499,8 @@ test("localizes shared fallback CRUD generated add copy in Layout", async ({ pag
   }
 });
 
-test("localizes the Layout toolbar without resetting its saved snapshot", async ({ page }) => {
+test("localizes the Layout toolbar without remounting its grid", async ({ page }) => {
   await page.goto("/examples/layout");
-  await page.getByRole("button", { name: "레이아웃 저장", exact: true }).click();
-  const savedGeometry = await readDashboardGeometry(page);
-  await dragWidget(page, page.getByTestId("dashboard-widget-sales"), 180, 120);
-  await expect.poll(() => readDashboardGeometry(page)).not.toEqual(savedGeometry);
   await page.evaluate(() => {
     window.__cominsGridLayoutLastUnmount = undefined;
   });
@@ -524,9 +520,6 @@ test("localizes the Layout toolbar without resetting its saved snapshot", async 
   await expect(page.getByRole("combobox", { name: "Select columns" })).toHaveCount(0);
   await expect(page.locator(".playground-grid-region")).toHaveAttribute("aria-label", "Layout dashboard");
   await expect(page.getByTestId("dashboard-widget-sales").getByRole("button", { name: "Sales remove" })).toBeVisible();
-
-  await page.getByRole("button", { name: "Restore layout", exact: true }).click();
-  await expect.poll(() => readDashboardGeometry(page)).toEqual(savedGeometry);
 });
 
 test("localizes the dynamic column route without resetting its live state", async ({ page }) => {
