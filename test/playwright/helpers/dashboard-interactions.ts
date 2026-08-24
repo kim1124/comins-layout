@@ -77,12 +77,25 @@ export async function resizeWidget(page: Page, widget: Locator, deltaX: number, 
   const handle = widget.locator(".ui-resizable-se");
   const box = await handle.boundingBox();
   if (!box) throw new Error("Resize handle is not visible.");
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  const startX = box.x + box.width / 2;
+  const startY = box.y + box.height / 2;
+  const endX = box.x + deltaX;
+  const endY = box.y + deltaY;
+  const distance = Math.hypot(endX - startX, endY - startY);
+  const activationRatio = distance > 20 ? 20 / distance : 1;
+  await page.mouse.move(startX, startY);
   await page.mouse.down();
   try {
-    await page.mouse.move(box.x + deltaX, box.y + deltaY, { steps: 12 });
+    await page.mouse.move(
+      startX + (endX - startX) * activationRatio,
+      startY + (endY - startY) * activationRatio,
+      { steps: 2 },
+    );
     if (shouldExpectActivation) {
       await expect(widget).toHaveClass(/ui-resizable-resizing/);
+    }
+    if (activationRatio < 1) {
+      await page.mouse.move(endX, endY, { steps: 10 });
     }
   } finally {
     await page.mouse.up();

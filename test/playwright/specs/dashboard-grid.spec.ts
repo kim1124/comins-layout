@@ -1426,7 +1426,7 @@ test("preserves independent controlled caches when columns change during a resiz
 
   const { startX, startY } = await startWidgetResize(page, sales);
 
-  await page.mouse.move(startX + 120, startY + 90, { steps: 8 });
+  await page.mouse.move(startX + 20, startY + 15, { steps: 2 });
   await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(true);
   await columnSelect.evaluate((element) => {
     const select = element as HTMLSelectElement;
