@@ -1,7 +1,5 @@
 import { expect, test, type ConsoleMessage, type Page } from "@playwright/test";
 
-import { isDesktopBrowserProject } from "../project-policy";
-
 function collectBrowserDiagnostics(page: Page) {
   const diagnostics: Array<{ text: string; type: ReturnType<ConsoleMessage["type"]> | "pageerror" }> = [];
 
@@ -174,9 +172,7 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.locator("#api-dashboard-rendering").locator(".docs-reference-list__sample").first()).toHaveCSS("padding-left", "10px");
   });
 
-  test("documents the full per-column persistence and controlled handle contracts", async ({ page }, testInfo) => {
-    test.skip(!isDesktopBrowserProject(testInfo.project.name), "Persistence contract rendering is checked on supported desktop browsers.");
-
+  test("documents the full per-column persistence and controlled handle contracts", { tag: "@desktop-browser" }, async ({ page }) => {
     await page.goto("/api");
 
     const layoutApi = page.locator("#api-layout-save-restore");

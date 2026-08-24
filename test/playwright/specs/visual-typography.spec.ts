@@ -1,9 +1,4 @@
-import { mkdir } from "node:fs/promises";
-import { join } from "node:path";
-
 import { expect, test, type Page } from "@playwright/test";
-
-const artifactDir = join(process.cwd(), "reports/artifacts/visual-typography");
 
 async function expectBaseTypography(page: Page) {
   await expect(page.locator("body")).toHaveCSS("font-size", "12px");
@@ -22,11 +17,7 @@ async function expectNoRootHorizontalOverflow(page: Page) {
   expect(overflowX).toBeLessThanOrEqual(2);
 }
 
-test("captures gridstack example visual typography screenshot", async ({
-  page,
-}, testInfo) => {
-  await mkdir(artifactDir, { recursive: true });
-
+test("keeps gridstack routes within the typography and overflow contract", async ({ page }) => {
   for (const route of [
     { heading: "위젯", name: "widget", path: "/examples/widget" },
     { heading: "레이아웃", name: "layout", path: "/examples/layout" },
@@ -39,11 +30,5 @@ test("captures gridstack example visual typography screenshot", async ({
     await expect(page.getByRole("heading", { name: route.heading }).first()).toBeVisible();
     await expectBaseTypography(page);
     await expectNoRootHorizontalOverflow(page);
-
-    await page.screenshot({
-      animations: "disabled",
-      fullPage: true,
-      path: join(artifactDir, `gridstack-${route.name}-${testInfo.project.name}.png`),
-    });
   }
 });
