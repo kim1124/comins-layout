@@ -1426,13 +1426,28 @@ test("preserves independent controlled caches when columns change during a resiz
 
   const { startX, startY } = await startWidgetResize(page, sales);
 
-  await page.mouse.move(startX + 20, startY + 15, { steps: 2 });
-  await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(true);
   await columnSelect.evaluate((element) => {
     const select = element as HTMLSelectElement;
-    select.value = "12";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
+    const changeColumnsDuringResize = () => {
+      const activeWidget = document.querySelector(
+        '[data-widget-id="sales"].ui-resizable-resizing',
+      );
+      if (!activeWidget) return;
+      document.removeEventListener("mousemove", changeColumnsDuringResize, true);
+      document.documentElement.dataset.resizeColumnChangeWhileActive = "sales";
+      select.value = "12";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    document.addEventListener("mousemove", changeColumnsDuringResize, {
+      capture: true,
+      passive: true,
+    });
   });
+  await page.mouse.move(startX + 20, startY + 15, { steps: 2 });
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-resize-column-change-while-active",
+    "sales",
+  );
 
   await expect.poll(() => readGridEngineColumn(grid)).toBe(6);
 
