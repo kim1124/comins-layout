@@ -3,10 +3,11 @@
 
 ## Common Policy
 
-- Apply the canonical
+- Before changing this repository, read the canonical
   [Comins Contract v1.7](https://github.com/kim1124/comins-governance/blob/main/COMINS_CONTRACT.md)
-  before the repository-owned `Module Guidance` below. Governance is the only
-  common-policy owner; this managed block only routes to it.
+  once per run. For inspection-only work, load it only when a Contract stage
+  is relevant. Stop if it is unavailable or its heading does not match this
+  block's version. Governance is the only common-policy owner.
 - Load the Contract's license, sensitive-data, or release policy only when its
   corresponding stage is triggered.
 - Keep module API, implementation, performance, browser, and checker commands
