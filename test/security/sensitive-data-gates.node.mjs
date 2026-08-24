@@ -50,23 +50,18 @@ function constantFailure(result) {
   assert.equal(result.stderr, failure);
 }
 
-test('adopts the lean Contract v1.6 module policy', () => {
+test('references the canonical Contract v1.7 without copying common policy', () => {
   const agents = read('AGENTS.md');
   const security = read('SECURITY.md');
   const packageJson = JSON.parse(read('package.json'));
   const packageLock = JSON.parse(read('package-lock.json'));
   const changelog = read('CHANGELOG.md');
 
-  assert.match(agents, /managed-start contract=v1\.6/);
-  assert.match(
-    agents,
-    /license compliance; security and sensitive data; Comins common rules;/,
-  );
-  assert.match(agents, /`OSS_LICENSE_POLICY\.md` and `SENSITIVE_DATA_STANDARD\.md`/);
-  assert.match(agents, /module owns its checker commands and CI implementation/);
-  assert.match(agents, /release checks only when publishing/);
-  assert.match(agents, /`codex-<short-feature-name>`/);
-  assert.match(agents, /append `-2`,\s+`-3`, and so on/);
+  assert.match(agents, /managed-start contract=v1\.7/);
+  assert.match(agents, /comins-governance\/blob\/main\/COMINS_CONTRACT\.md/);
+  assert.match(agents, /Governance is the only\s+common-policy owner/i);
+  assert.match(agents, /module owns their CI implementation/i);
+  assert.doesNotMatch(agents, /`codex-<short-feature-name>`|same-commit evidence/i);
   assert.match(security, /credential\/PII incident/i);
   assert.match(security, /stop the affected release/i);
   assert.match(security, /without public disclosure/i);
