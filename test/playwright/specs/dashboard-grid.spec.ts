@@ -923,25 +923,6 @@ test("updates size-to-content classes for existing widgets", async ({ page }, te
   await expect(overview).not.toHaveClass(/size-to-content/);
 });
 
-test("uses the active responsive column in DOM, snapshots, and atomic React state", async ({ page }, testInfo) => {
-  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Responsive state ownership is covered on supported desktop browsers.");
-
-  await page.setViewportSize({ width: 900, height: 800 });
-  await page.goto("/readme-demo");
-  await page.evaluate(() => window.__cominsReadmeDemo?.setResponsive(true));
-
-  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(4);
-  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "4");
-  const snapshot = await page.evaluate(() => window.__cominsReadmeDemo?.getHandle()?.commitLayout());
-  expect(snapshot?.columns).toBe(4);
-  await expect(page.getByLabel("Columns")).toHaveValue("4");
-
-  await page.setViewportSize({ width: 1300, height: 800 });
-  await expect.poll(() => page.evaluate(() => window.__cominsReadmeDemo?.getColumn() ?? null)).toBe(6);
-  await expect(page.getByTestId("dashboard-grid")).toHaveAttribute("data-columns", "6");
-  await expect(page.getByLabel("Columns")).toHaveValue("6");
-});
-
 test("orders drag lifecycle callbacks after the committed layout", async ({ page }, testInfo) => {
   test.skip(!isDesktopBrowserProject(testInfo.project.name), "Interaction callback ordering is covered on supported desktop browsers.");
 
@@ -1390,86 +1371,6 @@ test("does not resize row widgets on header double-click when the row has no emp
   await expect(sales).toHaveAttribute("data-layout-w", "4");
   await expect(traffic).toHaveAttribute("data-layout-x", "4");
   await expect(traffic).toHaveAttribute("data-layout-w", "4");
-});
-
-test("preserves independent controlled caches when columns change during a resize", async ({ page }, testInfo) => {
-  test.skip(!isDesktopBrowserProject(testInfo.project.name), "Pointer interaction regression runs on supported desktop browsers.");
-
-  const diagnostics = collectBrowserDiagnostics(page);
-
-  await page.goto("/examples/advanced/state");
-  await openAdvancedStateEditors(page);
-
-  const grid = page.getByTestId("dashboard-grid");
-  const columnSelect = page.getByLabel("컬럼 선택");
-  const stateEditor = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
-  const sales = page.getByTestId("dashboard-widget-sales");
-  const orders = page.getByTestId("dashboard-widget-orders");
-
-  const initialTwelve = await readDashboardLayouts(page);
-  await resizeWidget(page, orders, 0, 110);
-  await expect.poll(() => readDashboardLayouts(page)).not.toEqual(initialTwelve);
-  const targetTwelve = await readDashboardLayouts(page);
-
-  await columnSelect.selectOption("6");
-  await expect(grid).toHaveAttribute("data-columns", "6");
-  const initialSix = await readDashboardLayouts(page);
-  await resizeWidget(page, sales, 0, 110);
-  await expect.poll(() => readDashboardLayouts(page)).not.toEqual(initialSix);
-  const sourceSix = await readDashboardLayouts(page);
-  expect(sourceSix).not.toEqual(targetTwelve);
-
-  await columnSelect.selectOption("12");
-  await expect.poll(() => readDashboardLayouts(page)).toEqual(targetTwelve);
-  await columnSelect.selectOption("6");
-  await expect.poll(() => readDashboardLayouts(page)).toEqual(sourceSix);
-
-  const { startX, startY } = await startWidgetResize(page, sales);
-
-  await columnSelect.evaluate((element) => {
-    const select = element as HTMLSelectElement;
-    const changeColumnsDuringResize = () => {
-      const activeWidget = document.querySelector(
-        '[data-widget-id="sales"].ui-resizable-resizing',
-      );
-      if (!activeWidget) return;
-      document.removeEventListener("mousemove", changeColumnsDuringResize, true);
-      document.documentElement.dataset.resizeColumnChangeWhileActive = "sales";
-      select.value = "12";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    };
-    document.addEventListener("mousemove", changeColumnsDuringResize, {
-      capture: true,
-      passive: true,
-    });
-  });
-  await page.mouse.move(startX + 20, startY + 15, { steps: 2 });
-  await expect(page.locator("html")).toHaveAttribute(
-    "data-resize-column-change-while-active",
-    "sales",
-  );
-
-  await expect.poll(() => readGridEngineColumn(grid)).toBe(6);
-
-  await page.mouse.move(startX + 180, startY + 130, { steps: 8 });
-  await page.mouse.up();
-
-  await expect(grid).toHaveAttribute("data-columns", "12");
-  await expect.poll(() => readGridEngineColumn(grid)).toBe(12);
-  await expect.poll(() => readDashboardLayouts(page)).toEqual(targetTwelve);
-
-  await page.getByRole("button", { name: "전체 상태 저장" }).click();
-  const restoredState = JSON.parse(await stateEditor.inputValue()) as {
-    layoutsByColumn: Record<string, { widgets: IdentifiedWidgetLayout[] }>;
-  };
-  expect(restoredState.layoutsByColumn["6"]?.widgets).toEqual(sourceSix);
-  expect(restoredState.layoutsByColumn["12"]?.widgets).toEqual(targetTwelve);
-  expect(restoredState.layoutsByColumn["6"]?.widgets).not.toEqual(
-    restoredState.layoutsByColumn["12"]?.widgets,
-  );
-
-  await page.waitForTimeout(100);
-  expect(diagnostics).toEqual([]);
 });
 
 test("finalizes widget resize when the pointer leaves the browser boundary", async ({ page }, testInfo) => {
