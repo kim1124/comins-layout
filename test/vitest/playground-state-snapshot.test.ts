@@ -9,6 +9,9 @@ const validWidget = {
   resizable: true,
   minimized: false,
   maximized: false,
+  lazyLoad: true,
+  sizeToContent: 4,
+  resizeToContentParent: ".widget-content",
   layout: { id: "sales", x: 4, y: 1, w: 8, h: 2 },
   data: { privateValue: "preserved" },
 };
@@ -104,6 +107,10 @@ describe("sanitizeDashboardStateSnapshot", () => {
     ["resizable", "PRIVATE_RESIZABLE"],
     ["minimized", "PRIVATE_MINIMIZED"],
     ["maximized", "PRIVATE_MAXIMIZED"],
+    ["lazyLoad", "PRIVATE_LAZY_LOAD"],
+    ["sizeToContent", Number.NaN],
+    ["sizeToContent", 0],
+    ["resizeToContentParent", [".PRIVATE_SELECTOR"]],
   ])("rejects an invalid %s metadata value", (key, value) => {
     const snapshot = createValidSnapshot();
     snapshot.widgets[0] = { ...snapshot.widgets[0], [key]: value } as typeof snapshot.widgets[0];

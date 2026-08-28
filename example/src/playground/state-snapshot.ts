@@ -10,7 +10,14 @@ import type {
 
 const layoutLimitKeys = ["minW", "minH", "maxW", "maxH"] as const;
 const supportedColumnKeys = new Set(DASHBOARD_COLUMN_COUNTS.map(String));
-const booleanWidgetMetadataKeys = ["locked", "movable", "resizable", "minimized", "maximized"] as const;
+const booleanWidgetMetadataKeys = [
+  "locked",
+  "movable",
+  "resizable",
+  "minimized",
+  "maximized",
+  "lazyLoad",
+] as const;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -67,7 +74,17 @@ function isWidget<TData>(value: unknown): value is DashboardWidget<TData> {
     (value.title === undefined || typeof value.title === "string") &&
     booleanWidgetMetadataKeys.every(
       (key) => value[key] === undefined || typeof value[key] === "boolean",
-    )
+    ) &&
+    (
+      value.sizeToContent === undefined
+      || typeof value.sizeToContent === "boolean"
+      || (
+        typeof value.sizeToContent === "number"
+        && Number.isFinite(value.sizeToContent)
+        && value.sizeToContent > 0
+      )
+    ) &&
+    (value.resizeToContentParent === undefined || typeof value.resizeToContentParent === "string")
   );
 }
 

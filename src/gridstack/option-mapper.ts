@@ -19,6 +19,10 @@ export type DashboardGridOptionInput = DashboardInteractionOptions & {
   margin?: GridStackOptions["margin"];
 };
 
+export type DashboardGridAdapterOptionOverrides = {
+  acceptWidgets?: GridStackOptions["acceptWidgets"];
+};
+
 function mapResponsiveOptions(responsive: DashboardResponsiveOptions | undefined): GridStackOptions["columnOpts"] {
   if (!responsive) {
     return undefined;
@@ -27,6 +31,9 @@ function mapResponsiveOptions(responsive: DashboardResponsiveOptions | undefined
   return {
     columnWidth: responsive.columnWidth,
     columnMax: responsive.columnMax,
+    // GridStack currently reads `breakpoints.length` whenever `columnWidth`
+    // enables responsive columns, so keep the collection present even when
+    // the consumer relies on width-only column calculation.
     breakpoints: responsive.breakpoints
       ? [...responsive.breakpoints]
           .sort((left, right) => right.maxWidth - left.maxWidth)
@@ -35,19 +42,23 @@ function mapResponsiveOptions(responsive: DashboardResponsiveOptions | undefined
             c: breakpoint.columns,
             layout: breakpoint.layout,
           }))
-      : undefined,
+      : [],
     breakpointForWindow: responsive.breakpointForWindow,
     layout: responsive.layout,
   };
 }
 
-export function mapDashboardGridOptions(options: DashboardGridOptionInput = {}): GridStackOptions {
+export function mapDashboardGridOptions(
+  options: DashboardGridOptionInput = {},
+  adapterOverrides: DashboardGridAdapterOptionOverrides = {},
+): GridStackOptions {
   const editable = options.editable ?? true;
   const movable = editable && (options.movable ?? true);
   const resizable = editable && (options.resizable ?? true);
   const engine = options.engineOptions ?? {};
 
   return {
+    acceptWidgets: adapterOverrides.acceptWidgets,
     alwaysShowResizeHandle: engine.alwaysShowResizeHandle,
     animate: engine.animate,
     cellHeight: engine.cellHeight ?? options.cellHeight ?? 96,
@@ -58,6 +69,7 @@ export function mapDashboardGridOptions(options: DashboardGridOptionInput = {}):
     draggable: engine.dragHandle ? { handle: engine.dragHandle } : undefined,
     float: engine.float ?? false,
     margin: engine.margin ?? options.margin ?? 8,
+    lazyLoad: engine.lazyLoad,
     maxRow: engine.maxRow,
     minRow: engine.minRow,
     nonce: engine.nonce,
@@ -71,7 +83,10 @@ export function mapDashboardGridOptions(options: DashboardGridOptionInput = {}):
 export function mapDashboardWidgetOptions<TData>(
   widget: DashboardWidget<TData>,
   options: DashboardGridOptionInput,
-): Pick<GridStackWidget, "locked" | "noMove" | "noResize"> {
+): Pick<
+  GridStackWidget,
+  "locked" | "noMove" | "noResize" | "lazyLoad" | "sizeToContent" | "resizeToContentParent"
+> {
   const editable = options.editable ?? true;
   const gridMovable = editable && (options.movable ?? true);
   const gridResizable = editable && (options.resizable ?? true);
@@ -82,5 +97,8 @@ export function mapDashboardWidgetOptions<TData>(
     locked: widget.locked,
     noMove: !(gridMovable && widgetMovable),
     noResize: !(gridResizable && widgetResizable),
+    lazyLoad: widget.lazyLoad,
+    sizeToContent: widget.sizeToContent,
+    resizeToContentParent: widget.resizeToContentParent,
   };
 }

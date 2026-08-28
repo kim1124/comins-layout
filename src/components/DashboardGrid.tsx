@@ -12,8 +12,11 @@ import type {
   DashboardResponsiveOptions,
   DashboardWidget as DashboardWidgetModel,
   DashboardWidgetExternalDropEvent,
+  DashboardWidgetDropCandidate,
+  DashboardWidgetDropRequest,
   DashboardWidgetInteractionEvent,
   DashboardWidgetResizeFrameEvent,
+  DashboardWidgetTransferMode,
 } from "../core/types";
 import type { DashboardGridAdapter, DashboardGridHandle } from "../gridstack/adapter";
 import { validateDashboardExternalDropTargetSelectors } from "../gridstack/external-drop-target";
@@ -28,20 +31,35 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   engineOptions?: DashboardGridEngineOptions;
   responsive?: DashboardResponsiveOptions;
   externalDropTargets?: ReadonlyArray<DashboardExternalDropTarget>;
+  gridId?: string;
+  acceptExternalWidgets?: boolean | ((candidate: DashboardWidgetDropCandidate<TData>) => boolean);
+  gridTransferMode?: DashboardWidgetTransferMode;
   className?: string;
   refreshKey?: number;
   showControls?: boolean;
+  lazyRenderWidget?: boolean;
   actionLabels?: Partial<DashboardWidgetActionLabels>;
   renderWidget: (widget: DashboardWidgetModel<TData>) => ReactNode;
+  renderWidgetActions?: (widget: DashboardWidgetModel<TData>) => ReactNode;
   onColumnsChange?: (columns: DashboardColumnCount) => void;
   onLayoutCommit?: (snapshot: DashboardLayoutSnapshot) => void;
   onWidgetLayoutChange?: (id: string, layout: DashboardWidgetModel<TData>["layout"]) => void;
   onWidgetResizeFrame?: (event: DashboardWidgetResizeFrameEvent) => void;
   onWidgetExternalDrop?: (event: DashboardWidgetExternalDropEvent) => void;
+  onWidgetDropRequest?: (request: DashboardWidgetDropRequest<TData>) => void;
   onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
   onWidgetResizeStop?: (event: DashboardWidgetInteractionEvent) => void;
+  onBeforeMove?: (event: DashboardWidgetInteractionEvent) => void;
+  onMove?: (event: DashboardWidgetInteractionEvent) => void;
+  onAfterMove?: (event: DashboardWidgetInteractionEvent) => void;
+  onBeforeResize?: (event: DashboardWidgetInteractionEvent) => void;
+  onResize?: (event: DashboardWidgetInteractionEvent) => void;
+  onAfterResize?: (event: DashboardWidgetInteractionEvent) => void;
+  onBeforeTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
+  onTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
+  onAfterTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
   onMaximizeWidget?: (id: string) => void;
   onMinimizeWidget?: (id: string) => void;
   onRestoreWidget?: (id: string) => void;
@@ -59,30 +77,52 @@ function DashboardGridInner<TData = unknown>(
     engineOptions,
     responsive,
     externalDropTargets,
+    gridId,
+    acceptExternalWidgets = false,
+    gridTransferMode,
     editable = true,
     movable = true,
     resizable = true,
     className,
     refreshKey,
     showControls = true,
+    lazyRenderWidget = false,
     actionLabels,
     renderWidget,
+    renderWidgetActions,
     onColumnsChange,
     onLayoutCommit,
     onWidgetLayoutChange,
     onWidgetResizeFrame,
     onWidgetExternalDrop,
+    onWidgetDropRequest,
     onWidgetDragStart,
     onWidgetDragStop,
     onWidgetResizeStart,
     onWidgetResizeStop,
+    onBeforeMove,
+    onMove,
+    onAfterMove,
+    onBeforeResize,
+    onResize,
+    onAfterResize,
+    onBeforeTitleDoubleClick,
+    onTitleDoubleClick,
+    onAfterTitleDoubleClick,
     onMaximizeWidget,
     onMinimizeWidget,
     onRestoreWidget,
     onRemoveWidget,
     onWidgetHeaderDoubleClick,
   } = props;
-  validateDashboardGridConfiguration({ engineOptions, responsive, externalDropTargets });
+  validateDashboardGridConfiguration({
+    engineOptions,
+    responsive,
+    externalDropTargets,
+    gridId,
+    acceptExternalWidgets,
+    gridTransferMode,
+  });
   if (typeof document !== "undefined") {
     validateDashboardExternalDropTargetSelectors(document, externalDropTargets);
   }
@@ -104,6 +144,11 @@ function DashboardGridInner<TData = unknown>(
     ref,
     () => ({
       getGridStack: () => adapterRef.current?.grid ?? null,
+      getColumnCount: () => adapterRef.current?.grid.getColumn() ?? null,
+      getRowCount: () => adapterRef.current?.grid.getRow() ?? null,
+      getFloat: () => adapterRef.current?.grid.getFloat() ?? null,
+      isAreaEmpty: (layout) => adapterRef.current?.grid.isAreaEmpty(layout.x, layout.y, layout.w, layout.h) ?? null,
+      willItFit: (layout) => adapterRef.current?.grid.willItFit(layout) ?? null,
       refresh: () => adapterRef.current?.refresh(),
       compact: (layout, doSort) => adapterRef.current?.compact(layout, doSort) ?? null,
       commitLayout: () => adapterRef.current?.commit() ?? null,
@@ -139,14 +184,24 @@ function DashboardGridInner<TData = unknown>(
       resizable,
       widgets,
       externalDropTargets,
+      gridId,
+      acceptExternalWidgets,
+      gridTransferMode,
       onColumnsChange: handleColumnsChange,
       onLayoutCommit: handleLayoutCommit,
       onWidgetLayoutChange,
       onWidgetExternalDrop,
+      onWidgetDropRequest,
       onWidgetDragStart,
       onWidgetDragStop,
       onWidgetResizeStart,
       onWidgetResizeStop,
+      onBeforeMove,
+      onMove,
+      onAfterMove,
+      onBeforeResize,
+      onResize,
+      onAfterResize,
       onWidgetResize: (id: string, size: { width: number; height: number }) => {
         resizeScheduler.schedule({ id, width: size.width, height: size.height });
       },
@@ -156,15 +211,25 @@ function DashboardGridInner<TData = unknown>(
       editable,
       engineOptions,
       externalDropTargets,
+      gridId,
+      acceptExternalWidgets,
+      gridTransferMode,
       handleColumnsChange,
       handleLayoutCommit,
       movable,
       onWidgetExternalDrop,
+      onWidgetDropRequest,
       onWidgetDragStart,
       onWidgetDragStop,
       onWidgetLayoutChange,
       onWidgetResizeStart,
       onWidgetResizeStop,
+      onBeforeMove,
+      onMove,
+      onAfterMove,
+      onBeforeResize,
+      onResize,
+      onAfterResize,
       responsive,
       resizable,
       resizeScheduler,
@@ -231,6 +296,7 @@ function DashboardGridInner<TData = unknown>(
       ref={gridElementRef}
       className={["grid-stack", "comins-grid-layout", className].filter(Boolean).join(" ")}
       data-columns={activeColumns}
+      data-grid-id={gridId?.trim() || undefined}
       data-testid="dashboard-grid"
     >
       {widgets.map((widget) => (
@@ -266,8 +332,16 @@ function DashboardGridInner<TData = unknown>(
               onRestore={onRestoreWidget}
               onRemove={onRemoveWidget}
               onHeaderDoubleClick={onWidgetHeaderDoubleClick}
+              onBeforeTitleDoubleClick={onBeforeTitleDoubleClick}
+              onTitleDoubleClick={onTitleDoubleClick}
+              onAfterTitleDoubleClick={onAfterTitleDoubleClick}
+              renderActions={renderWidgetActions}
             >
-              {renderWidget(widget)}
+              <DashboardWidgetContent
+                enabled={lazyRenderWidget && (widget.lazyLoad ?? true)}
+                renderWidget={renderWidget}
+                widget={widget}
+              />
             </DashboardWidgetShell>
           </div>
         </article>
@@ -282,3 +356,68 @@ ForwardedDashboardGrid.displayName = "DashboardGrid";
 export const DashboardGrid = ForwardedDashboardGrid as <TData = unknown>(
   props: DashboardGridProps<TData> & RefAttributes<DashboardGridHandle>,
 ) => ReactElement | null;
+
+function DashboardWidgetContent<TData>({
+  enabled,
+  renderWidget,
+  widget,
+}: {
+  enabled: boolean;
+  renderWidget: (widget: DashboardWidgetModel<TData>) => ReactNode;
+  widget: DashboardWidgetModel<TData>;
+}) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(!enabled);
+
+  useEffect(() => {
+    if (!enabled) {
+      setVisible(true);
+      return;
+    }
+    const element = contentRef.current;
+    if (!element || typeof IntersectionObserver === "undefined") {
+      setVisible(true);
+      return;
+    }
+    const grid = element.closest<HTMLElement>(".grid-stack");
+    const item = element.closest<HTMLElement>(".grid-stack-item") as (HTMLElement & { gridstackNode?: unknown }) | null;
+    let frame: number | undefined;
+    let observer: IntersectionObserver | undefined;
+    let cancelled = false;
+    const observePositionedItem = () => {
+      if (cancelled) {
+        return;
+      }
+      const initializedGrid = grid as (HTMLElement & { gridstack?: unknown }) | null;
+      if (!initializedGrid?.gridstack || !item?.gridstackNode) {
+        frame = window.requestAnimationFrame(observePositionedItem);
+        return;
+      }
+      observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setVisible(true);
+          observer?.disconnect();
+        }
+      }, { root: element.closest("[data-dashboard-lazy-scroll]") });
+      observer.observe(element);
+    };
+    observePositionedItem();
+    return () => {
+      cancelled = true;
+      if (frame !== undefined) {
+        window.cancelAnimationFrame(frame);
+      }
+      observer?.disconnect();
+    };
+  }, [enabled]);
+
+  return (
+    <div
+      ref={contentRef}
+      className="comins-grid-layout-widget__render-boundary"
+      data-lazy-rendered={String(visible)}
+    >
+      {visible ? renderWidget(widget) : null}
+    </div>
+  );
+}

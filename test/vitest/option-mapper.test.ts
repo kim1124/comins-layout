@@ -15,6 +15,12 @@ describe("mapDashboardGridOptions", () => {
     });
   });
 
+  it("installs only the adapter-owned external acceptance bridge", () => {
+    const acceptWidgets = () => true;
+    expect(mapDashboardGridOptions({}, { acceptWidgets }).acceptWidgets).toBe(acceptWidgets);
+    expect(mapDashboardGridOptions({}).acceptWidgets).toBeUndefined();
+  });
+
   it("maps namespaced engine options without overriding Comins ownership", () => {
     expect(
       mapDashboardGridOptions({
@@ -28,6 +34,7 @@ describe("mapDashboardGridOptions", () => {
           rtl: true,
           minRow: 2,
           maxRow: 10,
+          lazyLoad: true,
           sizeToContent: true,
           dragHandle: ".widget-handle",
           resizeHandles: "e,se,s",
@@ -45,6 +52,7 @@ describe("mapDashboardGridOptions", () => {
       rtl: true,
       minRow: 2,
       maxRow: 10,
+      lazyLoad: true,
       sizeToContent: true,
       draggable: { handle: ".widget-handle" },
       resizable: { handles: "e,se,s" },
@@ -82,6 +90,18 @@ describe("mapDashboardGridOptions", () => {
     expect(breakpoints[0]?.maxWidth).toBe(720);
   });
 
+  it("keeps an empty breakpoint list for GridStack width-only responsive mode", () => {
+    expect(mapDashboardGridOptions({
+      responsive: { columnWidth: 180, columnMax: 12, layout: "moveScale" },
+    }).columnOpts).toEqual({
+      columnWidth: 180,
+      columnMax: 12,
+      breakpoints: [],
+      breakpointForWindow: undefined,
+      layout: "moveScale",
+    });
+  });
+
   it("maps widget-level movement and resize locks without overriding global locks", () => {
     const baseWidget = { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 } };
 
@@ -112,11 +132,21 @@ describe("mapDashboardGridOptions", () => {
         {
           ...baseWidget,
           locked: true,
+          lazyLoad: true,
           movable: true,
           resizable: true,
+          resizeToContentParent: ".widget-content",
+          sizeToContent: 4,
         },
         { editable: true, movable: true, resizable: true },
       ),
-    ).toMatchObject({ locked: true, noMove: true, noResize: true });
+    ).toMatchObject({
+      locked: true,
+      noMove: true,
+      noResize: true,
+      lazyLoad: true,
+      resizeToContentParent: ".widget-content",
+      sizeToContent: 4,
+    });
   });
 });

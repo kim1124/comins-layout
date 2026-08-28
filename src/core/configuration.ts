@@ -4,6 +4,8 @@ import type {
   DashboardExternalDropTarget,
   DashboardGridEngineOptions,
   DashboardResponsiveOptions,
+  DashboardWidgetDropCandidate,
+  DashboardWidgetTransferMode,
 } from "./types";
 
 const CONFIGURATION_ERROR_MESSAGE = "Invalid comins-grid-layout configuration.";
@@ -18,10 +20,13 @@ export class DashboardGridConfigurationError extends Error {
   }
 }
 
-export type DashboardGridConfiguration = {
+export type DashboardGridConfiguration<TData = unknown> = {
   engineOptions?: DashboardGridEngineOptions;
   responsive?: DashboardResponsiveOptions;
   externalDropTargets?: ReadonlyArray<DashboardExternalDropTarget>;
+  gridId?: string;
+  acceptExternalWidgets?: boolean | ((candidate: DashboardWidgetDropCandidate<TData>) => boolean);
+  gridTransferMode?: DashboardWidgetTransferMode;
 };
 
 function fail(): never {
@@ -58,7 +63,21 @@ function isLayout(value: unknown): value is DashboardColumnLayout {
   return value === undefined || COLUMN_LAYOUTS.has(value as DashboardColumnLayout);
 }
 
-export function validateDashboardGridConfiguration(configuration: DashboardGridConfiguration): void {
+export function validateDashboardGridConfiguration<TData>(configuration: DashboardGridConfiguration<TData>): void {
+  const gridId = configuration.gridId?.trim();
+  if (
+    (configuration.gridId !== undefined && !gridId)
+    || (Boolean(configuration.acceptExternalWidgets) && !gridId)
+    || (configuration.gridTransferMode !== undefined && !gridId)
+    || (
+      configuration.gridTransferMode !== undefined
+      && configuration.gridTransferMode !== "copy"
+      && configuration.gridTransferMode !== "move"
+    )
+  ) {
+    fail();
+  }
+
   const targetIds = new Set<string>();
   for (const target of configuration.externalDropTargets ?? []) {
     const id = target.id.trim();

@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { Maximize2, Minimize2, RotateCcw, Trash2 } from "lucide-react";
-import type { DashboardWidget as DashboardWidgetModel } from "../core/types";
+import type {
+  DashboardWidget as DashboardWidgetModel,
+  DashboardWidgetInteractionEvent,
+} from "../core/types";
 
 export type DashboardWidgetShellProps<TData = unknown> = {
   widget: DashboardWidgetModel<TData>;
@@ -12,6 +15,10 @@ export type DashboardWidgetShellProps<TData = unknown> = {
   onRestore?: (id: string) => void;
   onRemove?: (id: string) => void;
   onHeaderDoubleClick?: (id: string) => void;
+  onBeforeTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
+  onTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
+  onAfterTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
+  renderActions?: (widget: DashboardWidgetModel<TData>) => ReactNode;
 };
 
 export type DashboardWidgetActionLabels = {
@@ -38,32 +45,50 @@ export function DashboardWidgetShell<TData = unknown>({
   onRestore,
   onRemove,
   onHeaderDoubleClick,
+  onBeforeTitleDoubleClick,
+  onTitleDoubleClick,
+  onAfterTitleDoubleClick,
+  renderActions,
 }: DashboardWidgetShellProps<TData>) {
   const title = widget.title ?? widget.id;
+  const handleTitleDoubleClick = () => {
+    const interactionEvent: DashboardWidgetInteractionEvent = {
+      id: widget.id,
+      layout: { ...widget.layout },
+    };
+    onBeforeTitleDoubleClick?.(interactionEvent);
+    onTitleDoubleClick?.(interactionEvent);
+    onHeaderDoubleClick?.(widget.id);
+    onAfterTitleDoubleClick?.(interactionEvent);
+  };
 
   return (
     <div className="comins-grid-layout-widget">
-      <header className="comins-grid-layout-widget__header" onDoubleClick={() => onHeaderDoubleClick?.(widget.id)}>
-        <strong className="comins-grid-layout-widget__title">{title}</strong>
+      <header className="comins-grid-layout-widget__header">
+        <strong className="comins-grid-layout-widget__title" onDoubleClick={handleTitleDoubleClick}>{title}</strong>
         {showControls ? (
           <div className="comins-grid-layout-widget__actions" onDoubleClick={(event) => event.stopPropagation()}>
-            <button type="button" aria-label={`${title} ${labels.maximize}`} onClick={() => onMaximize?.(widget.id)}>
-              <Maximize2 aria-hidden="true" size={16} strokeWidth={2} />
-            </button>
-            <button type="button" aria-label={`${title} ${labels.minimize}`} onClick={() => onMinimize?.(widget.id)}>
-              <Minimize2 aria-hidden="true" size={16} strokeWidth={2} />
-            </button>
-            <button type="button" aria-label={`${title} ${labels.restore}`} onClick={() => onRestore?.(widget.id)}>
-              <RotateCcw aria-hidden="true" size={16} strokeWidth={2} />
-            </button>
-            <button
-              type="button"
-              aria-label={`${title} ${labels.remove}`}
-              className="comins-grid-layout-widget__action--danger"
-              onClick={() => onRemove?.(widget.id)}
-            >
-              <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
-            </button>
+            {renderActions ? renderActions(widget) : (
+              <>
+                <button type="button" aria-label={`${title} ${labels.maximize}`} onClick={() => onMaximize?.(widget.id)}>
+                  <Maximize2 aria-hidden="true" size={16} strokeWidth={2} />
+                </button>
+                <button type="button" aria-label={`${title} ${labels.minimize}`} onClick={() => onMinimize?.(widget.id)}>
+                  <Minimize2 aria-hidden="true" size={16} strokeWidth={2} />
+                </button>
+                <button type="button" aria-label={`${title} ${labels.restore}`} onClick={() => onRestore?.(widget.id)}>
+                  <RotateCcw aria-hidden="true" size={16} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  aria-label={`${title} ${labels.remove}`}
+                  className="comins-grid-layout-widget__action--danger"
+                  onClick={() => onRemove?.(widget.id)}
+                >
+                  <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
+                </button>
+              </>
+            )}
           </div>
         ) : null}
       </header>

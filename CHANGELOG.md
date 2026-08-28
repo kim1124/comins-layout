@@ -1,7 +1,15 @@
 # comins-grid-layout
 
+## Unreleased
+
 ## 0.2.0
 
+- Reorganized the Playground into Widget, Layout, and Advanced submenus with deterministic numbered examples.
+- Added controlled move, resize, title double-click, and semantic layout mutation event surfaces.
+- Added custom widget header actions, lazy content rendering, per-widget content sizing options, and safe read-only handle queries.
+- Added a visible mint active state for every Playground toggle, including widget interaction and layout controls.
+- Extended the Playground locale toggle to Widget, Layout, Advanced, and multi-grid example controls and content.
+- Added focused persistence, arrange/fill, responsive, nested, multi-grid, mobile, and public API examples without raw GridStack CRUD.
 - Added controlled external widget drop targets with a typed, non-destructive callback; consumers retain deletion ownership through `removeWidget`.
 - Added per-column layout persistence across runtime column changes and consolidated the documentation playgrounds around the shared state contract.
 - Expanded automated browser coverage to desktop Firefox and Playwright WebKit while retaining Chromium and mobile coverage.

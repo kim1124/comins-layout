@@ -96,6 +96,15 @@ const maximizeMethodSample = `dashboard.commands.maximizeWidget("sales");
 dashboard.commands.minimizeWidget("sales");
 dashboard.commands.restoreWidget("sales");`;
 
+const safeHandleMethodSample = `const columns = gridRef.current?.getColumnCount();
+const rows = gridRef.current?.getRowCount();
+const float = gridRef.current?.getFloat();
+const empty = gridRef.current?.isAreaEmpty({ x: 0, y: 0, w: 2, h: 2 });
+const fits = gridRef.current?.willItFit({ x: 0, y: 4, w: 3, h: 2 });
+
+const compacted = gridRef.current?.compact("compact", true);
+if (compacted) dashboard.commands.applyLayoutSnapshot(compacted);`;
+
 export const apiFeatures: ApiFeatureSection[] = [
   {
     id: "api-dashboard-rendering",
@@ -131,6 +140,12 @@ export const apiFeatures: ApiFeatureSection[] = [
         type: "(widget) => ReactNode",
         description: "consumer-owned widget content renderer입니다.",
         detail: "패키지는 shell과 layout만 담당하고 실제 내용은 consumer가 ReactNode로 렌더링합니다.",
+      },
+      {
+        name: "renderWidgetActions / lazyRenderWidget",
+        type: "renderer / boolean",
+        description: "header action을 교체하고 viewport 진입 시 content를 한 번만 렌더링합니다.",
+        detail: "action slot은 기본 control을 완전히 대체하며 lazy boundary는 React가 소유한 widget DOM을 유지합니다.",
       },
     ],
     methods: [
@@ -217,6 +232,12 @@ export const apiFeatures: ApiFeatureSection[] = [
         detail: "useDashboardGrid의 updateWidgetLayout command와 연결하는 기본 callback입니다.",
       },
       {
+        name: "onLayoutMutation",
+        type: "(event: DashboardLayoutMutationEvent<TData>) => void",
+        description: "성공한 controlled layout mutation의 의미와 결과 snapshot을 전달합니다.",
+        detail: "widget add/update/remove, clear, commit, reset/restore, arrange/fill, columns change를 구분하며 title double-click 같은 widget 내부 이벤트는 제외합니다.",
+      },
+      {
         name: "DashboardLayoutSnapshot / DashboardStateSnapshot / DashboardColumnLayoutSnapshot / DashboardLayoutsByColumn",
         type: "type",
         description: "layout-only 저장과 full-state 저장을 구분하는 snapshot 타입입니다.",
@@ -245,6 +266,12 @@ export const apiFeatures: ApiFeatureSection[] = [
         payload: "id: string, layout: DashboardWidgetLayout",
         when: "adapter가 개별 widget layout 변경을 동기화할 때 호출됩니다.",
         description: "useDashboardGrid의 updateWidgetLayout command와 연결하는 기본 layout 변경 이벤트입니다.",
+      },
+      {
+        name: "onLayoutMutation",
+        payload: "DashboardLayoutMutationEvent<TData>",
+        when: "useDashboardGrid command가 실제 controlled state를 변경한 뒤 호출됩니다.",
+        description: "semantic kind, widgetIds, columns, resulting full-state snapshot을 제공합니다.",
       },
     ],
     samples: [{ code: layoutSample, language: "ts", title: "Layout 저장 / 복원 예제" }],
@@ -336,6 +363,12 @@ export const apiFeatures: ApiFeatureSection[] = [
         description: "위젯 header double-click callback입니다.",
         detail: "fitWidgetToColumns와 조합하면 row 빈 공간 확장 interaction을 만들 수 있습니다.",
       },
+      {
+        name: "Move / Resize / Title lifecycle callbacks",
+        type: "onBefore* / on* / onAfter*",
+        description: "move, layout resize, title double-click을 before/action/after 단계로 관찰합니다.",
+        detail: "active move/resize callback은 animation frame 단위로 병합되며 after payload는 commit된 최종 geometry를 사용합니다.",
+      },
     ],
     methods: [
       {
@@ -358,6 +391,12 @@ export const apiFeatures: ApiFeatureSection[] = [
         payload: "id: string",
         when: "widget header가 double-click되고 action button 영역이 아닐 때 호출됩니다.",
         description: "fitWidgetToColumns 같은 header-level shortcut interaction을 연결할 수 있습니다.",
+      },
+      {
+        name: "onBeforeMove / onMove / onAfterMove 외 lifecycle",
+        payload: "DashboardWidgetInteractionEvent",
+        when: "move, layout resize, title double-click의 각 lifecycle 단계에서 호출됩니다.",
+        description: "onWidgetResizeFrame은 content 크기 알림이며 onResize layout event와 별도입니다.",
       },
     ],
     samples: [{ code: maximizeMethodSample, language: "ts", title: "Maximize / Minimize / Restore 예제" }],
@@ -382,8 +421,8 @@ export const apiFeatures: ApiFeatureSection[] = [
       {
         name: "DashboardGridHandle",
         type: "type",
-        description: "getGridStack, refresh, compact, commitLayout을 제공하는 advanced public handle입니다.",
-        detail: "getGridStack()은 escape hatch입니다. controlled example에서는 raw GridStack add/remove/destroy를 호출하지 않습니다.",
+        description: "안전한 query, refresh, compact, commitLayout을 제공하는 advanced public handle입니다.",
+        detail: "getColumnCount, getRowCount, getFloat, isAreaEmpty, willItFit은 read-only query입니다. getGridStack()은 escape hatch입니다. controlled example에서는 raw GridStack add/remove/destroy를 호출하지 않습니다.",
       },
       {
         name: "DashboardWidgetResizeFrameEvent / DashboardResizeScheduler",
@@ -399,6 +438,13 @@ export const apiFeatures: ApiFeatureSection[] = [
         returns: "DashboardResizeScheduler 또는 GridStack option object",
         description: "resize event batch 처리와 Comins option to GridStack option mapping을 수행합니다.",
         sample: { code: utilityApiSample, language: "ts", title: "Resize frame / Adapter utility methods" },
+      },
+      {
+        name: "DashboardGridHandle safe queries / compact / commitLayout / refresh",
+        params: "query geometry 또는 compact layout",
+        returns: "number, boolean, DashboardLayoutSnapshot 또는 null",
+        description: "raw engine mutation 없이 상태를 조회하거나 controlled state에 반영할 snapshot을 반환합니다.",
+        sample: { code: safeHandleMethodSample, language: "ts", title: "Safe public handle methods" },
       },
     ],
     events: [
@@ -448,13 +494,13 @@ export const docsPages: DocsPage[] = [
     examples: [
       {
         codeSamples: [{ code: crudSample, language: "ts", title: "Widget add/remove commands" }],
-        description: "기본 3개 위젯에서 Dialog를 통해 위젯을 추가하고, 선택 위젯을 삭제합니다.",
-        title: "위젯 CRUD",
+        description: "10개 기본 위젯과 단조 증가 번호를 사용하는 추가, 전체 삭제, 초기화 흐름을 확인합니다.",
+        title: "위젯 추가 / 전체 삭제 / 초기화",
       },
     ],
     label: "위젯",
-    path: "/examples/widget",
-    summary: "widget create, delete 흐름입니다.",
+    path: "/examples/widget/basic",
+    summary: "Basic, 추가/전체 삭제/초기화, 실제 widget lifecycle event 흐름입니다.",
     title: "위젯",
   },
   {
@@ -477,7 +523,7 @@ export const docsPages: DocsPage[] = [
       },
     ],
     label: "레이아웃",
-    path: "/examples/layout",
+    path: "/examples/layout/basic",
     summary: "저장/복원, column 변경, 전체 잠금 흐름입니다.",
     title: "레이아웃",
   },
@@ -491,8 +537,8 @@ export const docsPages: DocsPage[] = [
       },
     ],
     label: "고급 예제",
-    path: "/examples/advanced",
-    summary: "responsive, handle, external drop, 전체 상태 cache 흐름입니다.",
+    path: "/examples/advanced/cell-height",
+    summary: "GridStack 고급 기능과 안전한 공개 handler/method 흐름입니다.",
     title: "고급 예제",
   },
   {

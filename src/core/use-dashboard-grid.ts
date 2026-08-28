@@ -1,4 +1,4 @@
-import { useMemo, useReducer } from "react";
+import { useEffect, useMemo, useReducer, useRef } from "react";
 import {
   addDashboardWidget,
   applyDashboardLayoutSnapshot,
@@ -7,6 +7,7 @@ import {
   createDashboardLayoutState,
   fitDashboardWidgetToColumns,
   fitDashboardWidgetsToColumns,
+  insertDashboardWidgetAtLayout,
   maximizeDashboardWidget,
   minimizeDashboardWidget,
   removeDashboardWidget,
@@ -19,6 +20,8 @@ import {
 } from "./layout-state";
 import type {
   DashboardLayoutSnapshot,
+  DashboardLayoutMutationEvent,
+  DashboardLayoutMutationKind,
   DashboardLayoutState,
   DashboardStateSnapshot,
   DashboardStateSnapshotInput,
@@ -29,6 +32,12 @@ import type {
 
 type DashboardGridAction<TData> =
   | { type: "add"; widget: DashboardWidget<TData> }
+  | {
+      type: "insert-at";
+      widget: DashboardWidget<TData>;
+      targetLayout: DashboardWidgetLayout;
+      targetSnapshot: DashboardLayoutSnapshot;
+    }
   | { type: "update"; id: DashboardWidgetId; patch: Partial<DashboardWidget<TData>> }
   | { type: "update-layout"; id: DashboardWidgetId; patch: Partial<Omit<DashboardWidgetLayout, "id">> }
   | { type: "remove"; id: DashboardWidgetId }
@@ -44,13 +53,38 @@ type DashboardGridAction<TData> =
   | { type: "apply-layout-snapshot"; snapshot: DashboardLayoutSnapshot }
   | { type: "reset"; snapshot: DashboardLayoutSnapshot | DashboardStateSnapshotInput<TData> };
 
+type DashboardMutationIntent = {
+  kind: DashboardLayoutMutationKind;
+  widgetIds?: DashboardWidgetId[];
+};
+
+type DashboardGridInternalState<TData> = {
+  dashboard: DashboardLayoutState<TData>;
+  mutations: Array<{ sequence: number; event: DashboardLayoutMutationEvent<TData> }>;
+  nextMutationSequence: number;
+};
+
+type DashboardGridInternalAction<TData> =
+  | {
+      type: "transition";
+      action: DashboardGridAction<TData>;
+      mutation?: DashboardMutationIntent;
+    }
+  | { type: "ack-mutations"; through: number };
+
 export type UseDashboardGridOptions<TData = unknown> = {
   initialColumns?: number;
   initialWidgets?: DashboardWidget<TData>[];
+  onLayoutMutation?: (event: DashboardLayoutMutationEvent<TData>) => void;
 };
 
 export type DashboardGridCommands<TData = unknown> = {
   addWidget: (widget: DashboardWidget<TData>) => void;
+  insertWidgetAt: (
+    widget: DashboardWidget<TData>,
+    targetLayout: DashboardWidgetLayout,
+    targetSnapshot: DashboardLayoutSnapshot,
+  ) => void;
   updateWidget: (id: DashboardWidgetId, patch: Partial<DashboardWidget<TData>>) => void;
   updateWidgetLayout: (id: DashboardWidgetId, patch: Partial<Omit<DashboardWidgetLayout, "id">>) => void;
   removeWidget: (id: DashboardWidgetId) => void;
@@ -88,30 +122,117 @@ export function useDashboardGrid<TData = unknown>(
     }),
     [],
   );
-  const [state, dispatch] = useReducer(dashboardGridReducer<TData>, initialSnapshot, createDashboardLayoutState);
+  const [internalState, dispatch] = useReducer(
+    dashboardGridInternalReducer<TData>,
+    initialSnapshot,
+    (snapshot): DashboardGridInternalState<TData> => ({
+      dashboard: createDashboardLayoutState(snapshot),
+      mutations: [],
+      nextMutationSequence: 1,
+    }),
+  );
+  const state = internalState.dashboard;
+  const mutationHandlerRef = useRef(options.onLayoutMutation);
+  const deliveredMutationSequenceRef = useRef(0);
+  const observeMutations = typeof options.onLayoutMutation === "function";
+
+  useEffect(() => {
+    mutationHandlerRef.current = options.onLayoutMutation;
+  }, [options.onLayoutMutation]);
+
+  useEffect(() => {
+    const pending = internalState.mutations.filter(
+      ({ sequence }) => sequence > deliveredMutationSequenceRef.current,
+    );
+    if (pending.length === 0) {
+      return;
+    }
+    deliveredMutationSequenceRef.current = pending[pending.length - 1]!.sequence;
+    pending.forEach(({ event }) => mutationHandlerRef.current?.(event));
+    dispatch({ type: "ack-mutations", through: deliveredMutationSequenceRef.current });
+  }, [internalState.mutations]);
+
+  const transition = (
+    action: DashboardGridAction<TData>,
+    mutation?: DashboardMutationIntent,
+  ) => dispatch({
+    type: "transition",
+    action,
+    mutation: observeMutations ? mutation : undefined,
+  });
 
   const commands = useMemo<DashboardGridCommands<TData>>(
     () => ({
-      addWidget: (widget) => dispatch({ type: "add", widget }),
-      updateWidget: (id, patch) => dispatch({ type: "update", id, patch }),
-      updateWidgetLayout: (id, patch) => dispatch({ type: "update-layout", id, patch }),
-      removeWidget: (id) => dispatch({ type: "remove", id }),
-      clearWidgets: () => dispatch({ type: "clear" }),
-      maximizeWidget: (id) => dispatch({ type: "maximize", id }),
-      minimizeWidget: (id) => dispatch({ type: "minimize", id }),
-      restoreWidget: (id) => dispatch({ type: "restore", id }),
-      autoArrangeWidgets: () => dispatch({ type: "arrange" }),
-      fitWidgetsToColumns: () => dispatch({ type: "fit-columns" }),
-      fitWidgetToColumns: (id) => dispatch({ type: "fit-widget-columns", id }),
-      setColumns: (columns) => dispatch({ type: "columns", columns }),
-      applyLayoutSnapshot: (snapshot) => dispatch({ type: "apply-layout-snapshot", snapshot }),
-      resetLayout: (snapshot) => dispatch({ type: "reset", snapshot: snapshot ?? initialSnapshot }),
-      restoreLayout: (snapshot) => dispatch({ type: "reset", snapshot }),
-      refreshLayout: () => dispatch({ type: "refresh" }),
+      addWidget: (widget) => transition(
+        { type: "add", widget },
+        { kind: "widget:add", widgetIds: [widget.id] },
+      ),
+      insertWidgetAt: (widget, targetLayout, targetSnapshot) =>
+        transition(
+          { type: "insert-at", widget, targetLayout, targetSnapshot },
+          { kind: "widget:add", widgetIds: [widget.id] },
+        ),
+      updateWidget: (id, patch) => transition(
+        { type: "update", id, patch },
+        { kind: "widget:update", widgetIds: [id] },
+      ),
+      updateWidgetLayout: (id, patch) => transition(
+        { type: "update-layout", id, patch },
+        { kind: "widget:update", widgetIds: [id] },
+      ),
+      removeWidget: (id) => transition(
+        { type: "remove", id },
+        { kind: "widget:remove", widgetIds: [id] },
+      ),
+      clearWidgets: () => transition(
+        { type: "clear" },
+        { kind: "widgets:clear", widgetIds: state.widgets.map((widget) => widget.id) },
+      ),
+      maximizeWidget: (id) => transition(
+        { type: "maximize", id },
+        { kind: "widget:update", widgetIds: [id] },
+      ),
+      minimizeWidget: (id) => transition(
+        { type: "minimize", id },
+        { kind: "widget:update", widgetIds: [id] },
+      ),
+      restoreWidget: (id) => transition(
+        { type: "restore", id },
+        { kind: "widget:update", widgetIds: [id] },
+      ),
+      autoArrangeWidgets: () => transition(
+        { type: "arrange" },
+        { kind: "layout:arrange" },
+      ),
+      fitWidgetsToColumns: () => transition(
+        { type: "fit-columns" },
+        { kind: "layout:fill" },
+      ),
+      fitWidgetToColumns: (id) => transition(
+        { type: "fit-widget-columns", id },
+        { kind: "layout:fill", widgetIds: [id] },
+      ),
+      setColumns: (columns) => transition(
+        { type: "columns", columns },
+        { kind: "columns:change" },
+      ),
+      applyLayoutSnapshot: (snapshot) => transition(
+        { type: "apply-layout-snapshot", snapshot },
+        { kind: "layout:commit", widgetIds: snapshot.widgets.map((widget) => widget.id) },
+      ),
+      resetLayout: (snapshot) => transition(
+        { type: "reset", snapshot: snapshot ?? initialSnapshot },
+        { kind: "layout:reset" },
+      ),
+      restoreLayout: (snapshot) => transition(
+        { type: "reset", snapshot },
+        { kind: "layout:restore" },
+      ),
+      refreshLayout: () => transition({ type: "refresh" }),
       serializeLayout: () => serializeDashboardLayout(state),
       serializeState: () => serializeDashboardState(state),
     }),
-    [initialSnapshot, state],
+    [initialSnapshot, observeMutations, state],
   );
 
   return {
@@ -123,6 +244,43 @@ export function useDashboardGrid<TData = unknown>(
   };
 }
 
+function dashboardGridInternalReducer<TData>(
+  state: DashboardGridInternalState<TData>,
+  action: DashboardGridInternalAction<TData>,
+): DashboardGridInternalState<TData> {
+  if (action.type === "ack-mutations") {
+    const mutations = state.mutations.filter(({ sequence }) => sequence > action.through);
+    return mutations.length === state.mutations.length ? state : { ...state, mutations };
+  }
+
+  const dashboard = dashboardGridReducer(state.dashboard, action.action);
+  if (dashboard === state.dashboard) {
+    return state;
+  }
+  if (!action.mutation) {
+    return { ...state, dashboard };
+  }
+
+  const sequence = state.nextMutationSequence;
+  const widgetIds = action.mutation.widgetIds ?? dashboard.widgets.map((widget) => widget.id);
+  return {
+    dashboard,
+    mutations: [
+      ...state.mutations,
+      {
+        sequence,
+        event: {
+          kind: action.mutation.kind,
+          widgetIds: [...widgetIds],
+          columns: dashboard.columns,
+          snapshot: serializeDashboardState(dashboard),
+        },
+      },
+    ],
+    nextMutationSequence: sequence + 1,
+  };
+}
+
 function dashboardGridReducer<TData>(
   state: DashboardLayoutState<TData>,
   action: DashboardGridAction<TData>,
@@ -130,6 +288,13 @@ function dashboardGridReducer<TData>(
   switch (action.type) {
     case "add":
       return addDashboardWidget(state, action.widget);
+    case "insert-at":
+      return insertDashboardWidgetAtLayout(
+        state,
+        action.widget,
+        action.targetLayout,
+        action.targetSnapshot,
+      ).state;
     case "update":
       return updateDashboardWidget(state, action.id, action.patch);
     case "update-layout":
