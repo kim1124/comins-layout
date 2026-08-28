@@ -31,10 +31,19 @@ export type DashboardGridEngineOptions = {
   minRow?: number;
   maxRow?: number;
   sizeToContent?: boolean;
+  lazyLoad?: boolean;
   dragHandle?: string;
   resizeHandles?: string;
   alwaysShowResizeHandle?: boolean | "mobile";
   nonce?: string;
+};
+
+export type DashboardDragOptions = {
+  handle?: string;
+  appendTo?: string;
+  pause?: boolean | number;
+  scroll?: boolean;
+  cancel?: string;
 };
 
 export type DashboardWidgetId = string;
@@ -51,6 +60,11 @@ export type DashboardWidgetLayout = {
   maxH?: number;
 };
 
+export type DashboardDragInPreviewLayout = Pick<
+  DashboardWidgetLayout,
+  "w" | "h" | "minW" | "minH" | "maxW" | "maxH"
+>;
+
 export type DashboardWidget<TData = unknown> = {
   id: DashboardWidgetId;
   title?: string;
@@ -61,7 +75,18 @@ export type DashboardWidget<TData = unknown> = {
   locked?: boolean;
   movable?: boolean;
   resizable?: boolean;
+  lazyLoad?: boolean;
+  sizeToContent?: boolean | number;
+  resizeToContentParent?: string;
 };
+
+export type DashboardWidgetTransferMode = "copy" | "move";
+
+export type DashboardWidgetTransferRejection =
+  | "duplicate-id"
+  | "missing-widget"
+  | "not-transferable"
+  | "invalid-layout";
 
 export type DashboardLayoutSnapshot = {
   columns: DashboardColumnCount;
@@ -105,6 +130,54 @@ export type DashboardLayoutState<TData = unknown> = {
   refreshVersion: number;
 };
 
+export type DashboardWidgetInsertionResult<TData = unknown> =
+  | {
+      accepted: true;
+      state: DashboardLayoutState<TData>;
+    }
+  | {
+      accepted: false;
+      reason: Extract<DashboardWidgetTransferRejection, "duplicate-id" | "invalid-layout">;
+      state: DashboardLayoutState<TData>;
+    };
+
+export type DashboardWidgetTransferInput<TData = unknown> = {
+  source: DashboardLayoutState<TData>;
+  target: DashboardLayoutState<TData>;
+  widgetId: DashboardWidgetId;
+  targetLayout: DashboardWidgetLayout;
+  targetSnapshot: DashboardLayoutSnapshot;
+  mode: DashboardWidgetTransferMode;
+};
+
+export type DashboardWidgetTransferResult<TData = unknown> =
+  | {
+      accepted: true;
+      source: DashboardLayoutState<TData>;
+      target: DashboardLayoutState<TData>;
+    }
+  | {
+      accepted: false;
+      reason: DashboardWidgetTransferRejection;
+      source: DashboardLayoutState<TData>;
+      target: DashboardLayoutState<TData>;
+    };
+
+export type DashboardWidgetDropCandidate<TData = unknown> = {
+  source:
+    | { kind: "palette"; sourceId: string }
+    | { kind: "grid"; gridId: string; widgetId: DashboardWidgetId };
+  targetGridId: string;
+  widget: DashboardWidget<TData>;
+  mode: DashboardWidgetTransferMode;
+};
+
+export type DashboardWidgetDropRequest<TData = unknown> = DashboardWidgetDropCandidate<TData> & {
+  operationId: string;
+  targetLayout: DashboardWidgetLayout;
+  targetSnapshot: DashboardLayoutSnapshot;
+};
+
 export type DashboardWidgetResizeFrameEvent = {
   id: DashboardWidgetId;
   width: number;
@@ -114,6 +187,25 @@ export type DashboardWidgetResizeFrameEvent = {
 export type DashboardWidgetInteractionEvent = {
   id: DashboardWidgetId;
   layout: DashboardWidgetLayout;
+};
+
+export type DashboardLayoutMutationKind =
+  | "widget:add"
+  | "widget:update"
+  | "widget:remove"
+  | "widgets:clear"
+  | "layout:commit"
+  | "layout:reset"
+  | "layout:restore"
+  | "layout:arrange"
+  | "layout:fill"
+  | "columns:change";
+
+export type DashboardLayoutMutationEvent<TData = unknown> = {
+  kind: DashboardLayoutMutationKind;
+  widgetIds: DashboardWidgetId[];
+  columns: DashboardColumnCount;
+  snapshot: DashboardStateSnapshot<TData>;
 };
 
 export type DashboardWidgetExternalDropEvent = {

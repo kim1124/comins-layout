@@ -115,6 +115,9 @@ type DashboardWidget<TData = unknown> = {
   locked?: boolean;
   movable?: boolean;
   resizable?: boolean;
+  lazyLoad?: boolean;
+  sizeToContent?: boolean | number;
+  resizeToContentParent?: string;
 };
 ```
 
@@ -126,6 +129,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | --- | --- | --- | --- |
 | `widgets` | `DashboardWidget<TData>[]` | required | Controlled widget models and layout geometry |
 | `renderWidget` | `(widget) => ReactNode` | required | Consumer-owned widget content renderer |
+| `renderWidgetActions` | `(widget) => ReactNode` | — | Replaces the built-in header controls with consumer-owned actions |
 | `columns` | `DashboardColumnCount` | `12` | Runtime column count from 1 through 12 |
 | `responsive` | `DashboardResponsiveOptions` | — | Lets GridStack select the active 1–12 column count from width or explicit breakpoints |
 | `engineOptions` | `DashboardGridEngineOptions` | — | Configures the supported GridStack rendering, rows, handles, direction, and CSP options |
@@ -136,6 +140,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `className` | `string` | — | Additional class on the grid section |
 | `refreshKey` | `number` | — | Requests an adapter refresh when the value changes |
 | `showControls` | `boolean` | `true` | Shows widget header actions |
+| `lazyRenderWidget` | `boolean` | `false` | Renders widget content once it first intersects the grid scroll boundary |
 | `actionLabels` | `Partial<DashboardWidgetActionLabels>` | built-in labels | Overrides accessible action labels |
 | `onColumnsChange` | `(columns) => void` | — | Receives an actual responsive engine column change once per animation frame |
 | `onLayoutCommit` | `(snapshot) => void` | — | Receives a committed layout snapshot |
@@ -144,6 +149,9 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `onWidgetExternalDrop` | `(event: DashboardWidgetExternalDropEvent) => void` | — | Reports a final pointer or touch release inside a configured target |
 | `onWidgetDragStart` / `onWidgetDragStop` | `(event) => void` | — | Receives drag lifecycle events with the widget ID and geometry |
 | `onWidgetResizeStart` / `onWidgetResizeStop` | `(event) => void` | — | Receives resize lifecycle events with the widget ID and geometry |
+| `onBeforeMove` / `onMove` / `onAfterMove` | `(event) => void` | — | Receives before, animation-frame-coalesced active, and committed move events |
+| `onBeforeResize` / `onResize` / `onAfterResize` | `(event) => void` | — | Receives before, animation-frame-coalesced active, and committed layout-resize events |
+| `onBeforeTitleDoubleClick` / `onTitleDoubleClick` / `onAfterTitleDoubleClick` | `(event) => void` | — | Receives the title-only double-click lifecycle in call order |
 | `onMaximizeWidget` | `(id) => void` | — | Handles maximize action |
 | `onMinimizeWidget` | `(id) => void` | — | Handles minimize action |
 | `onRestoreWidget` | `(id) => void` | — | Handles restore action |
@@ -176,7 +184,7 @@ Selectors resolve at release time, so a target may mount after grid initializati
 
 ## Engine and responsive options
 
-`engineOptions` supports `cellHeight`, `margin`, `float`, `animate`, `staticGrid`, `rtl`, `minRow`, `maxRow`, `sizeToContent`, `dragHandle`, `resizeHandles`, `alwaysShowResizeHandle`, and `nonce`. Unsupported GridStack construction, nested-grid, removable, callback, and lifecycle options stay outside the controlled Comins surface; use `getGridStack()` for one-off public engine commands.
+`engineOptions` supports `cellHeight`, `margin`, `float`, `animate`, `staticGrid`, `rtl`, `minRow`, `maxRow`, `sizeToContent`, `lazyLoad`, `dragHandle`, `resizeHandles`, `alwaysShowResizeHandle`, and `nonce`. Widgets can additionally opt into `lazyLoad`, `sizeToContent`, and `resizeToContentParent`. Unsupported GridStack construction, nested-grid, removable, callback, and lifecycle options stay outside the controlled Comins surface; use `getGridStack()` only as a last-resort escape hatch.
 
 ```tsx
 <DashboardGrid
@@ -199,6 +207,8 @@ Selectors resolve at release time, so a target may mount after grid initializati
 Without `responsive`, `columns` is authoritative. With `responsive`, `columns` is the initial/fallback count and GridStack owns the active count. Runtime-capable engine options are synchronized in place; `rtl` and `sizeToContent` changes safely reinitialize the package-owned adapter while preserving controlled React state. `nonce` is initialization-only: remount the grid to change it, and never persist it in layout state. Invalid public configuration throws `DashboardGridConfigurationError` without including the rejected value.
 
 ## useDashboardGrid commands
+
+Pass `onLayoutMutation` to `useDashboardGrid` to observe successful controlled mutations. Events include a semantic `kind`, affected `widgetIds`, active `columns`, and the resulting full serializable `snapshot`. Widget-internal events such as title double-click and content resize frames are intentionally excluded.
 
 | Command | Signature | Purpose |
 | --- | --- | --- |
@@ -223,7 +233,7 @@ Without `responsive`, `columns` is authoritative. With `responsive`, `columns` i
 
 ## Advanced GridStack access
 
-Use a ref only when the package commands do not cover an engine-level operation:
+Prefer the safe query and controlled commit methods below. Use the raw engine only when the package commands do not cover an engine-level operation:
 
 ```tsx
 import { useRef } from "react";
@@ -233,15 +243,18 @@ const gridRef = useRef<DashboardGridHandle>(null);
 
 <DashboardGrid ref={gridRef} widgets={widgets} renderWidget={renderWidget} />;
 
-const grid = gridRef.current?.getGridStack();
-grid?.batchUpdate();
-grid?.float(true);
-grid?.batchUpdate(false);
+const columns = gridRef.current?.getColumnCount();
+const rows = gridRef.current?.getRowCount();
+const isFloat = gridRef.current?.getFloat();
+const areaEmpty = gridRef.current?.isAreaEmpty({ x: 0, y: 0, w: 2, h: 2 });
+const fits = gridRef.current?.willItFit({ x: 0, y: 4, w: 3, h: 2 });
 
 const snapshot = gridRef.current?.commitLayout();
 const compacted = gridRef.current?.compact("compact", true);
 gridRef.current?.refresh();
 ```
+
+`getGridStack()` remains available for backward compatibility, but raw `addWidget`, `removeWidget`, `load`, or `destroy` calls bypass the React-controlled source of truth and are not safe controlled operations.
 
 | Handle method | Return type | Purpose |
 | --- | --- | --- |

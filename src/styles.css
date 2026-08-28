@@ -116,3 +116,10 @@
   min-width: 0;
   overflow: auto;
 }
+
+.comins-grid-layout-widget__render-boundary {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}

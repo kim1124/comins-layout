@@ -9,6 +9,8 @@
 - `03-component-api-draft.md`: 컴포넌트와 훅 API 기준
 - `04-verification-strategy.md`: Vitest, Playwright, 빌드 검증 기준
 - `05-open-questions.md`: resolved product decisions, explicit unsupported behavior, and provider-side boundaries
+- `06-transfer-lazy-loading-plan.md`: 다음 마이너 버전의 palette/Grid transfer, lazy rendering, skeleton UI 구현 계획
+- `superpowers/plans/2026-08-28-playground-example-restructure.md`: 3개 메뉴와 기능별 서브 메뉴 Playground 구현 계약
 
 프로젝트 운영 및 기여 절차는 루트 `GUIDE.md`를 따른다.
 

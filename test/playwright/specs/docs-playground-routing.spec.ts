@@ -18,50 +18,60 @@ function collectBrowserDiagnostics(page: Page) {
 
 async function expectPlaygroundShell(
   page: Page,
-  path: "/examples/widget" | "/examples/layout" | "/examples/advanced",
-  heading: "위젯" | "레이아웃" | "고급 예제",
+  path: string,
+  heading: "위젯" | "레이아웃" | "고급 예제" | null,
+  expectedGridCount = 1,
 ) {
   const diagnostics = collectBrowserDiagnostics(page);
   await page.goto(path);
 
   const navigation = page.getByRole("navigation", { name: "예제 메뉴" });
-  const links = navigation.getByRole("link");
+  const links = navigation.locator(".playground-sidebar__menu > a");
   await expect(navigation).toBeVisible();
   await expect(links).toHaveCount(3);
   await expect(links).toHaveText(["위젯", "레이아웃", "고급 예제"]);
-  await expect(navigation.getByRole("link", { name: heading })).toHaveAttribute("aria-current", "page");
+  if (heading) {
+    await expect(navigation.getByRole("link", { name: heading, exact: true })).toHaveAttribute("aria-current", "page");
+  } else {
+    await expect(navigation.locator('[aria-current="page"]')).toHaveCount(0);
+  }
 
-  await expect(page.locator(".docs-sidebar")).toHaveCount(0);
-  await expect(page.getByRole("navigation", { name: "문서 메뉴" })).toHaveCount(0);
-  await expect(page.locator(".playground-controls")).toBeVisible();
-  await expect(page.locator(".grid-stack")).toHaveCount(1);
+  await expect(page.getByRole("banner").getByText("comins-grid-layout")).toBeVisible();
+  await expect(page.getByTestId("playground-locale-toggle")).toBeVisible();
+  await expect(page.getByRole("searchbox", { name: "문서 및 예제 검색" })).toBeVisible();
+  await expect(page.locator(".docs-sidebar")).toBeVisible();
+  await expect(page.locator(".playground-sidebar__submenu")).toHaveCount(3);
+  await expect(page.locator(".playground-sidebar__submenu-link")).toHaveCount(27);
+  await expect(page.locator(".playground-nav")).toHaveCount(0);
+  await expect(page.locator(".grid-stack")).toHaveCount(expectedGridCount);
 
-  const [mainBox, headerBox, controlsBox, gridBox] = await Promise.all([
+  const [mainBox, sidebarBox, headerBox, gridBox] = await Promise.all([
     page.locator(".playground-main").boundingBox(),
+    page.locator(".docs-sidebar").boundingBox(),
     page.locator(".playground-header").boundingBox(),
-    page.locator(".playground-controls").boundingBox(),
-    page.locator(".playground-grid-region .grid-stack").boundingBox(),
+    page.locator(".playground-grid-region .grid-stack").first().boundingBox(),
   ]);
 
   expect(mainBox, "playground main geometry").not.toBeNull();
+  expect(sidebarBox, "playground sidebar geometry").not.toBeNull();
   expect(headerBox, "playground header geometry").not.toBeNull();
-  expect(controlsBox, "playground controls geometry").not.toBeNull();
   expect(gridBox, "playground grid geometry").not.toBeNull();
 
   expect(gridBox!.y).toBeGreaterThan(headerBox!.y + headerBox!.height);
-  expect(gridBox!.y).toBeGreaterThan(controlsBox!.y + controlsBox!.height);
-  expect(Math.abs(gridBox!.width - mainBox!.width)).toBeLessThanOrEqual(2);
+  expect(mainBox!.x).toBeGreaterThanOrEqual(sidebarBox!.x + sidebarBox!.width - 1);
+  expect(gridBox!.x).toBeGreaterThanOrEqual(mainBox!.x);
+  expect(gridBox!.x + gridBox!.width).toBeLessThanOrEqual(mainBox!.x + mainBox!.width);
   expect(diagnostics).toEqual([]);
 }
 
 test.describe("gridstack docs playground routing", () => {
   test("normalizes legacy and unknown routes to their canonical shells", async ({ page }) => {
     const routes = [
-      { from: "/", heading: "위젯", to: "/examples/widget" },
-      { from: "/examples/crud", heading: "위젯", to: "/examples/widget" },
-      { from: "/examples/complete", heading: "고급 예제", to: "/examples/advanced" },
+      { from: "/", heading: "Basic", to: "/examples/widget/basic" },
+      { from: "/examples/crud", heading: "추가 / 전체 삭제 / 초기화", to: "/examples/widget/manage" },
+      { from: "/examples/complete", heading: "안전한 공개 핸들러 / 메서드", to: "/examples/advanced/public-api" },
       { from: "/examples/basic", heading: "시작하기", to: "/docs/getting-started" },
-      { from: "/unknown-route", heading: "위젯", to: "/examples/widget" },
+      { from: "/unknown-route", heading: "Basic", to: "/examples/widget/basic" },
     ] as const;
 
     for (const route of routes) {
@@ -76,22 +86,56 @@ test.describe("gridstack docs playground routing", () => {
     await page.goto("/docs/getting-started");
 
     const navigation = page.getByRole("navigation", { name: "문서 메뉴" });
-    await expect(navigation.getByRole("link", { name: "위젯" })).toHaveAttribute("href", "/examples/widget");
-    await expect(navigation.getByRole("link", { name: "레이아웃" })).toHaveAttribute("href", "/examples/layout");
-    await expect(navigation.getByRole("link", { name: "고급 예제" })).toHaveAttribute("href", "/examples/advanced");
+    await expect(navigation.getByRole("link", { name: "위젯" })).toHaveAttribute("href", "/examples/widget/basic");
+    await expect(navigation.getByRole("link", { name: "레이아웃" })).toHaveAttribute("href", "/examples/layout/basic");
+    await expect(navigation.getByRole("link", { name: "고급 예제" })).toHaveAttribute("href", "/examples/advanced/cell-height");
     await expect(navigation.getByRole("link", { name: "추가 / 삭제" })).toHaveCount(0);
     await expect(navigation.getByRole("link", { name: "종합 예제" })).toHaveCount(0);
 
     await navigation.getByRole("link", { name: "고급 예제" }).click();
 
-    await expect(page).toHaveURL(/\/examples\/advanced$/);
+    await expect(page).toHaveURL(/\/examples\/advanced\/cell-height$/);
     await expect(page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "고급 예제" })).toHaveAttribute("aria-current", "page");
   });
 
-  test("renders a dedicated full-width shell for every example route", async ({ page }) => {
-    await expectPlaygroundShell(page, "/examples/widget", "위젯");
-    await expectPlaygroundShell(page, "/examples/layout", "레이아웃");
-    await expectPlaygroundShell(page, "/examples/advanced", "고급 예제");
+  test("renders the Data Table-compatible shell for every example route", async ({ page }) => {
+    await expectPlaygroundShell(page, "/examples/widget/basic", "위젯");
+    await expectPlaygroundShell(page, "/examples/layout/basic", "레이아웃");
+    await expectPlaygroundShell(page, "/examples/transfer", null, 2);
+    await expectPlaygroundShell(page, "/examples/advanced/cell-height", "고급 예제");
+  });
+
+  test("searches primary and submenu routes", async ({ page }) => {
+    await page.goto("/examples/widget/basic");
+
+    const search = page.getByRole("searchbox", { name: "문서 및 예제 검색" });
+    await search.fill("레이아웃 저장");
+
+    const results = page.getByRole("listbox", { name: "Playground 검색 결과" });
+    await expect(results.getByRole("option", { name: /레이아웃 저장/ })).toBeVisible();
+    await results.getByRole("option", { name: /레이아웃 저장/ }).click();
+
+    await expect(page).toHaveURL(/\/examples\/layout\/persistence$/);
+    await expect(page.getByRole("navigation", { name: "예제 메뉴" }).locator(".playground-sidebar__menu > a")).toHaveText([
+      "위젯",
+      "레이아웃",
+      "고급 예제",
+    ]);
+  });
+
+  test("keeps the Data Table-compatible shell inside a narrow viewport", async ({ page }) => {
+    await page.setViewportSize({ height: 844, width: 390 });
+    await page.goto("/examples/widget/basic");
+
+    await expect(page.getByRole("banner")).toBeVisible();
+    await expect(page.locator(".docs-sidebar")).toBeVisible();
+    await expect(page.getByRole("main").getByRole("heading", { name: "Basic" })).toBeVisible();
+    expect(
+      await page.evaluate(() => ({
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: window.innerWidth,
+      })),
+    ).toEqual({ documentWidth: 390, viewportWidth: 390 });
   });
 
   test("keeps the getting started and API pages in the docs shell", async ({ page }) => {
@@ -158,7 +202,7 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.locator("#api-resize-adapter").getByLabel("Resize frame / Adapter utility Events").locator("dt").filter({ hasText: "onWidgetResizeFrame" })).toBeVisible();
     await expect(page.locator("#api-widget-crud").getByText("파라미터:")).toBeVisible();
     await expect(page.locator("#api-widget-crud").getByText("리턴값:")).toBeVisible();
-    await expect(page.locator(".docs-reference-list__sample").locator(".docs-code__pre")).toHaveCount(14);
+    await expect(page.locator(".docs-reference-list__sample").locator(".docs-code__pre")).toHaveCount(15);
 
     const layoutApi = page.locator("#api-layout-save-restore");
     await expect(layoutApi).toContainText("DashboardColumnLayoutSnapshot");
@@ -174,14 +218,14 @@ test.describe("gridstack docs playground routing", () => {
   });
 
   test("unmounts the previous example route before mounting the next owner", async ({ page }) => {
-    await page.goto("/examples/widget");
+    await page.goto("/examples/widget/basic");
 
     await page.evaluate(() => {
       window.__cominsGridLayoutLastUnmount = undefined;
     });
-    await page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "레이아웃" }).click();
+    await page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "레이아웃", exact: true }).click();
 
-    await expect(page).toHaveURL(/\/examples\/layout$/);
+    await expect(page).toHaveURL(/\/examples\/layout\/basic$/);
     await expect
       .poll(async () =>
         page.evaluate(() => {
@@ -189,6 +233,6 @@ test.describe("gridstack docs playground routing", () => {
           return typeof lastUnmount === "string" ? lastUnmount : lastUnmount?.routePath;
         }),
       )
-      .toBe("/examples/widget");
+      .toBe("/examples/widget/basic");
   });
 });

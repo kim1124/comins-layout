@@ -33,6 +33,18 @@ describe("dashboard grid configuration", () => {
     })).not.toThrow();
   });
 
+  it("accepts a named external-widget target and an explicit grid source mode", () => {
+    expect(() => validateDashboardGridConfiguration({
+      gridId: "analytics-grid",
+      acceptExternalWidgets: true,
+      gridTransferMode: "copy",
+    })).not.toThrow();
+    expect(() => validateDashboardGridConfiguration({
+      gridId: "operations-grid",
+      acceptExternalWidgets: (candidate) => candidate.source.kind === "palette",
+    })).not.toThrow();
+  });
+
   it.each([
     { engineOptions: { cellHeight: -1 } },
     { engineOptions: { cellHeight: "-1px" } },
@@ -54,6 +66,11 @@ describe("dashboard grid configuration", () => {
         { id: "trash", selector: "#trash-b" },
       ],
     },
+    { gridId: " " },
+    { acceptExternalWidgets: true },
+    { acceptExternalWidgets: () => true },
+    { gridTransferMode: "copy" },
+    { gridId: "analytics-grid", gridTransferMode: "invalid" },
   ])("rejects an invalid public configuration without echoing values", (configuration) => {
     const invalidConfiguration = configuration as unknown as DashboardGridConfiguration;
     expect(() => validateDashboardGridConfiguration(invalidConfiguration)).toThrow(DashboardGridConfigurationError);

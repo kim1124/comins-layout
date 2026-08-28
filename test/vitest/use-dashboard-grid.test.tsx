@@ -61,6 +61,7 @@ describe("useDashboardGrid SSR serialization boundary", () => {
     expect(dashboard.state.previousLayouts).toEqual(serialized.previousLayouts);
     expect(dashboard.state.layoutsByColumn).toEqual(serialized.layoutsByColumn);
     expect(dashboard.widgets).toEqual(serialized.widgets);
+    expect(dashboard.commands.insertWidgetAt).toEqual(expect.any(Function));
     expect(serialized.layoutsByColumn[serialized.columns]?.widgets).toEqual(
       serialized.widgets.map((widget) => widget.layout),
     );

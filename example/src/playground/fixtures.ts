@@ -22,6 +22,28 @@ export function createWidget(
   };
 }
 
+export function createNumberedWidget(number: number): DashboardWidget<ExampleWidgetData> {
+  const id = `widget-${number}`;
+  const index = Math.max(0, number - 1);
+  return createWidget(
+    id,
+    `Title ${number}`,
+    (index % 4) * 3,
+    Math.floor(index / 4) * 2,
+    3,
+    2,
+    {
+      description: `Content ${number}`,
+      value: `Content ${number}`,
+      number,
+    },
+  );
+}
+
+export function createNumberedPlaygroundFixture(count = 10): DashboardWidget<ExampleWidgetData>[] {
+  return Array.from({ length: count }, (_, index) => createNumberedWidget(index + 1));
+}
+
 export function createWidgetPlaygroundFixture(): DashboardWidget<ExampleWidgetData>[] {
   return [
     createWidget("sales", "매출", 0, 0, 2, 2, { description: "월간 반복 매출", value: "1.28억" }),

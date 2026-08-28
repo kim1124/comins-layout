@@ -65,6 +65,7 @@ export async function performTouchGestureToTarget(
   steps = 12,
 ) {
   await source.scrollIntoViewIfNeeded();
+  await target.scrollIntoViewIfNeeded();
   const [sourceBox, targetBox] = await Promise.all([
     source.boundingBox(),
     target.boundingBox(),

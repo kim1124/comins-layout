@@ -9,6 +9,7 @@ import type {
   DashboardStateSnapshotInput,
   DashboardWidget,
   DashboardWidgetId,
+  DashboardWidgetInsertionResult,
   DashboardWidgetLayout,
 } from "./types";
 
@@ -89,6 +90,58 @@ export function addDashboardWidget<TData>(
     widgets,
     layoutsByColumn,
   };
+}
+
+export function insertDashboardWidgetAtLayout<TData>(
+  state: DashboardLayoutState<TData>,
+  widget: DashboardWidget<TData>,
+  targetLayout: DashboardWidgetLayout,
+  targetSnapshot: DashboardLayoutSnapshot,
+): DashboardWidgetInsertionResult<TData> {
+  if (state.widgets.some((item) => item.id === widget.id)) {
+    return { accepted: false, reason: "duplicate-id", state };
+  }
+  if (!isValidInsertionSnapshot(state, widget.id, targetLayout, targetSnapshot)) {
+    return { accepted: false, reason: "invalid-layout", state };
+  }
+
+  const stateWithActiveSnapshot = withActiveColumnSnapshot(state);
+  const nextWidget: DashboardWidget<TData> = {
+    ...widget,
+    id: widget.id,
+    layout: { ...targetLayout, id: widget.id },
+  };
+  const layoutsByColumn = DASHBOARD_COLUMN_COUNTS.reduce<DashboardLayoutsByColumn>((next, columns) => {
+    const snapshot = stateWithActiveSnapshot.layoutsByColumn[columns];
+    if (!snapshot) {
+      return next;
+    }
+    if (columns === state.columns) {
+      next[columns] = snapshot;
+      return next;
+    }
+
+    const layout = placeLayoutInFirstAvailableSpace(
+      snapshot.widgets,
+      normalizeColumnLayout(targetLayout, columns),
+      columns,
+    );
+    next[columns] = {
+      widgets: [...snapshot.widgets, layout],
+      previousLayouts: snapshot.previousLayouts,
+    };
+    return next;
+  }, {});
+  const inserted = applyDashboardLayoutSnapshot(
+    {
+      ...stateWithActiveSnapshot,
+      widgets: [...state.widgets, nextWidget],
+      layoutsByColumn,
+    },
+    targetSnapshot,
+  );
+
+  return { accepted: true, state: inserted };
 }
 
 export function updateDashboardWidget<TData>(
@@ -555,6 +608,88 @@ function restorePreviousLayouts<TData>(
     Object.entries(snapshot.previousLayouts)
       .filter(([id, layout]) => widgetIds.has(id) && layout?.id === id)
       .map(([id, layout]) => [id, normalizeLayout({ ...layout, id }, columns)]),
+  );
+}
+
+function isValidInsertionSnapshot<TData>(
+  state: DashboardLayoutState<TData>,
+  widgetId: DashboardWidgetId,
+  targetLayout: DashboardWidgetLayout,
+  targetSnapshot: DashboardLayoutSnapshot,
+): boolean {
+  if (
+    targetLayout.id !== widgetId
+    || targetSnapshot.columns !== state.columns
+    || !isExactLayoutForColumns(targetLayout, state.columns)
+  ) {
+    return false;
+  }
+
+  const expectedIds = new Set([...state.widgets.map((widget) => widget.id), widgetId]);
+  if (targetSnapshot.widgets.length !== expectedIds.size) {
+    return false;
+  }
+
+  const snapshotById = new Map<DashboardWidgetId, DashboardWidgetLayout>();
+  for (const layout of targetSnapshot.widgets) {
+    if (
+      !expectedIds.has(layout.id)
+      || snapshotById.has(layout.id)
+      || !isExactLayoutForColumns(layout, state.columns)
+    ) {
+      return false;
+    }
+    snapshotById.set(layout.id, layout);
+  }
+
+  const snapshotLayouts = [...snapshotById.values()];
+  const overlaps = snapshotLayouts.some((layout, index) =>
+    snapshotLayouts.slice(index + 1).some((candidate) => layoutsOverlap(layout, candidate)),
+  );
+  const insertedLayout = snapshotById.get(widgetId);
+  return !overlaps
+    && expectedIds.size === snapshotById.size
+    && Boolean(insertedLayout && sameExactLayout(insertedLayout, targetLayout));
+}
+
+function isExactLayoutForColumns(layout: DashboardWidgetLayout, columns: DashboardColumnCount): boolean {
+  const dimensions = [layout.x, layout.y, layout.w, layout.h];
+  if (
+    dimensions.some((value) => !Number.isFinite(value) || !Number.isInteger(value))
+    || layout.x < 0
+    || layout.y < 0
+    || layout.w < 1
+    || layout.h < 1
+    || layout.x + layout.w > columns
+  ) {
+    return false;
+  }
+
+  const limits = [layout.minW, layout.minH, layout.maxW, layout.maxH];
+  if (limits.some((value) => value !== undefined && (!Number.isFinite(value) || !Number.isInteger(value) || value < 1))) {
+    return false;
+  }
+  if (
+    (layout.minW !== undefined && layout.maxW !== undefined && layout.minW > layout.maxW)
+    || (layout.minH !== undefined && layout.maxH !== undefined && layout.minH > layout.maxH)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function sameExactLayout(left: DashboardWidgetLayout, right: DashboardWidgetLayout): boolean {
+  return (
+    left.id === right.id
+    && left.x === right.x
+    && left.y === right.y
+    && left.w === right.w
+    && left.h === right.h
+    && left.minW === right.minW
+    && left.minH === right.minH
+    && left.maxW === right.maxW
+    && left.maxH === right.maxH
   );
 }
 
