@@ -292,7 +292,7 @@ export function AdvancedPlayground() {
           onRemoveWidget={dashboard.commands.removeWidget}
           onRestoreWidget={dashboard.commands.restoreWidget}
           onWidgetExternalDrop={handleWidgetExternalDrop}
-          onWidgetHeaderDoubleClick={dashboard.commands.fitWidgetToColumns}
+          onTitleDoubleClick={(event) => dashboard.commands.fitWidgetToColumns(event.id)}
           renderWidget={(widget) => (
             <div className="dashboard-widget-body">
               <span>{widget.data?.description}</span>

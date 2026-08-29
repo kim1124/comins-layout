@@ -1,7 +1,15 @@
 import { readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+import {
+  dashboardGridCommandNames,
+  dashboardGridHandleNames,
+  dashboardGridPropNames,
+  publicDocTypeContract,
+} from "./public-doc-contract";
+
 const readme = readFileSync("README.md", "utf8");
+const apiContent = readFileSync("example/src/docs/content.tsx", "utf8");
 const gifPath = "docs/assets/comins-grid-layout-demo.gif";
 
 describe("consumer README", () => {
@@ -21,6 +29,8 @@ describe("consumer README", () => {
       "## Quick start",
       "## Widget model",
       "## DashboardGrid props",
+      "## External drop targets",
+      "## Palette and grid transfer",
       "## Engine and responsive options",
       "## useDashboardGrid commands",
       "## Advanced GridStack access",
@@ -34,19 +44,47 @@ describe("consumer README", () => {
   });
 
   it("documents every public prop, command, and advanced handle method", () => {
+    expect(publicDocTypeContract).toEqual([true, true, true]);
     for (const name of [
-      "widgets", "columns", "editable", "movable", "resizable", "className", "refreshKey",
-      "showControls", "actionLabels", "renderWidget", "onLayoutCommit", "onWidgetLayoutChange",
-      "engineOptions", "responsive", "onColumnsChange", "onWidgetResizeFrame", "onWidgetDragStart",
-      "onWidgetDragStop", "onWidgetResizeStart", "onWidgetResizeStop",
-      "onMaximizeWidget", "onMinimizeWidget", "onRestoreWidget",
-      "onRemoveWidget", "onWidgetHeaderDoubleClick",
-      "addWidget", "updateWidget", "updateWidgetLayout", "removeWidget", "clearWidgets",
-      "maximizeWidget", "minimizeWidget", "restoreWidget", "autoArrangeWidgets",
-      "fitWidgetsToColumns", "fitWidgetToColumns", "setColumns", "applyLayoutSnapshot", "resetLayout", "restoreLayout",
-      "refreshLayout", "serializeLayout", "serializeState",
-      "getGridStack", "refresh", "compact", "commitLayout",
+      ...dashboardGridPropNames,
+      ...dashboardGridCommandNames,
+      ...dashboardGridHandleNames,
     ]) expect(readme).toContain(`\`${name}\``);
+  });
+
+  it("keeps the in-app API reference complete against the same public inventory", () => {
+    for (const name of [
+      ...dashboardGridPropNames,
+      ...dashboardGridCommandNames,
+      ...dashboardGridHandleNames,
+    ]) expect(apiContent).toContain(name);
+  });
+
+  it("keeps deprecated aliases out of canonical TSX examples", () => {
+    const tsxExamples = [...readme.matchAll(/```tsx\n([\s\S]*?)```/g)]
+      .map((match) => match[1] ?? "")
+      .join("\n");
+    for (const name of [
+      "onWidgetDragStart",
+      "onWidgetDragStop",
+      "onWidgetResizeStart",
+      "onWidgetResizeStop",
+      "onWidgetHeaderDoubleClick",
+    ]) expect(tsxExamples).not.toContain(name);
+    expect(tsxExamples).not.toMatch(/engineOptions=\{\{[^}]*lazyLoad/s);
+  });
+
+  it("documents transfer, lazy rendering, deprecation, and browser boundaries", () => {
+    for (const text of [
+      "fail-closed",
+      "insertDashboardWidgetAtLayout",
+      "transferDashboardWidget",
+      "IntersectionObserver",
+      "does not delay React-owned widget content",
+      "planned for removal in `0.3.0`",
+      "branded Edge is not directly certified",
+      "no skeleton/loading-state API is currently provided",
+    ]) expect(readme).toContain(text);
   });
 
   it("documents the per-column persistence and controlled GridStack contracts", () => {

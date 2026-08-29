@@ -17,6 +17,8 @@
 - Keep application data in serializable React state while GridStack owns browser interaction.
 - Schedule resize-frame notifications for charts, tables, canvases, and other responsive widget content.
 - Report typed drops on consumer-owned HTML targets without mutating controlled widget state.
+- Copy palette widgets into a grid and move or copy widgets between controlled grids with typed, fail-closed drop requests.
+- Defer React widget content until it first intersects the configured lazy-scroll boundary while keeping GridStack item geometry mounted.
 - Configure the supported GridStack 13 engine surface and access the complete public instance through an optional advanced ref handle.
 - Render 100 or more widgets with repeated runtime column changes covered by the resource gate.
 
@@ -26,10 +28,13 @@
 | --- | --- |
 | React / React DOM | `>=18.0.0 <20.0.0` peer dependencies |
 | TypeScript | Declarations and declaration maps included; verified with TypeScript 6 |
-| Desktop browsers | Current Chromium-based Chrome and Edge plus Firefox; automated with Playwright Chromium and Firefox |
-| Mobile browsers | Current mobile Chrome touch behavior; automated with the Pixel 7 Chromium profile |
+| Desktop browsers | Desktop Chrome is automated with Playwright Chromium. Chromium compatibility includes Edge-class engines, but branded Edge is not directly certified |
+| Firefox | Representative engine-sensitive scenarios tagged `@firefox-parity`; not the complete Playwright suite |
+| Mobile browsers | Representative touch scenarios tagged `@mobile-touch` with the Pixel 7 Chromium profile |
 | Safari | Not part of the automated browser contract; consumers requiring Safari support must verify it separately |
 | SSR frameworks | Import and render inside a client boundary; the package does not use Next.js-only APIs |
+| Keyboard | Header action buttons are keyboard-operable; keyboard-based widget move and resize are not provided |
+| Nested grids | Explicit controlled `DashboardGrid` composition is supported; native dynamic GridStack sub-grid ownership is not |
 | Runtime network behavior | No package-owned requests, remote assets, telemetry, or error reporting |
 
 Before `1.0.0`, only the latest published version receives security fixes.
@@ -123,6 +128,8 @@ type DashboardWidget<TData = unknown> = {
 
 Widget IDs are preserved across CRUD, movement, resize, serialization, restore, maximize, and minimize flows.
 
+`DashboardWidget.lazyLoad` is a per-widget override for `DashboardGrid.lazyRenderWidget`; it does not enable content lazy rendering by itself. With global lazy rendering enabled, `lazyLoad: false` renders that widget eagerly.
+
 ## DashboardGrid props
 
 | Prop | Type | Default | Purpose |
@@ -134,6 +141,9 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `responsive` | `DashboardResponsiveOptions` | — | Lets GridStack select the active 1–12 column count from width or explicit breakpoints |
 | `engineOptions` | `DashboardGridEngineOptions` | — | Configures the supported GridStack rendering, rows, handles, direction, and CSP options |
 | `externalDropTargets` | `ReadonlyArray<DashboardExternalDropTarget>` | — | Maps target IDs to same-document CSS selectors |
+| `gridId` | `string` | — | Identifies a grid that accepts palette or Grid transfer sources |
+| `acceptExternalWidgets` | `boolean \| (candidate) => boolean` | `false` | Enables incoming transfer and optionally filters typed candidates |
+| `gridTransferMode` | `"move" \| "copy"` | `"move"` | Selects the mode advertised when this grid is the transfer source |
 | `editable` | `boolean` | `true` | Enables both movement and resize when their flags also allow it |
 | `movable` | `boolean` | `true` | Enables grid-wide movement |
 | `resizable` | `boolean` | `true` | Enables grid-wide resize |
@@ -147,8 +157,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `onWidgetLayoutChange` | `(id, layout) => void` | — | Receives each committed widget geometry update |
 | `onWidgetResizeFrame` | `(event) => void` | — | Receives animation-frame-scheduled content dimensions during resize |
 | `onWidgetExternalDrop` | `(event: DashboardWidgetExternalDropEvent) => void` | — | Reports a final pointer or touch release inside a configured target |
-| `onWidgetDragStart` / `onWidgetDragStop` | `(event) => void` | — | Receives drag lifecycle events with the widget ID and geometry |
-| `onWidgetResizeStart` / `onWidgetResizeStop` | `(event) => void` | — | Receives resize lifecycle events with the widget ID and geometry |
+| `onWidgetDropRequest` | `(request: DashboardWidgetDropRequest<TData>) => void` | — | Receives an accepted incoming transfer after GridStack DOM rollback; the consumer applies controlled state |
 | `onBeforeMove` / `onMove` / `onAfterMove` | `(event) => void` | — | Receives before, animation-frame-coalesced active, and committed move events |
 | `onBeforeResize` / `onResize` / `onAfterResize` | `(event) => void` | — | Receives before, animation-frame-coalesced active, and committed layout-resize events |
 | `onBeforeTitleDoubleClick` / `onTitleDoubleClick` / `onAfterTitleDoubleClick` | `(event) => void` | — | Receives the title-only double-click lifecycle in call order |
@@ -156,7 +165,20 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `onMinimizeWidget` | `(id) => void` | — | Handles minimize action |
 | `onRestoreWidget` | `(id) => void` | — | Handles restore action |
 | `onRemoveWidget` | `(id) => void` | — | Handles remove action |
-| `onWidgetHeaderDoubleClick` | `(id) => void` | — | Handles a widget header double-click |
+
+`renderWidgetActions` replaces the built-in action group only while `showControls=true`. When `showControls=false`, neither the default actions nor custom actions are rendered.
+
+### Deprecated compatibility props
+
+These aliases remain callable in `0.2.1` with their existing order and are planned for removal in `0.3.0`. New code should use the canonical lifecycle props above.
+
+| Deprecated prop | Replacement | Preserved `0.2.1` behavior |
+| --- | --- | --- |
+| `onWidgetDragStart` | `onBeforeMove` | Called after `onBeforeMove` |
+| `onWidgetDragStop` | `onAfterMove` | Called after layout commit and before `onAfterMove` |
+| `onWidgetResizeStart` | `onBeforeResize` | Called after `onBeforeResize` |
+| `onWidgetResizeStop` | `onAfterResize` | Called after layout commit and before `onAfterResize` |
+| `onWidgetHeaderDoubleClick` | `onTitleDoubleClick` | Title-only legacy alias called before `onAfterTitleDoubleClick` |
 
 ## External drop targets
 
@@ -182,9 +204,122 @@ Targets are ordinary consumer-owned HTML, not GridStack widgets or Comins wrappe
 
 Selectors resolve at release time, so a target may mount after grid initialization. When targets overlap, the first configured target wins. Only same-document light DOM targets are supported; cross-frame targets and targets inside a shadow root are outside this contract. `onWidgetExternalDrop` is the package event surface and no DOM `CustomEvent` is dispatched. GridStack `removable` remains outside the controlled Comins engine options.
 
+## Palette and grid transfer
+
+Outgoing HTML drops and incoming widget transfer solve different state problems:
+
+| Direction | Public surface | State responsibility |
+| --- | --- | --- |
+| Grid widget → ordinary HTML | `externalDropTargets`, `onWidgetExternalDrop` | The callback reports the release; the consumer decides whether to mutate state |
+| Palette/Grid source → controlled grid | `useDashboardDragIn`, `gridId`, `acceptExternalWidgets`, `gridTransferMode`, `onWidgetDropRequest` | The adapter rolls temporary GridStack DOM back first; the consumer applies the returned request to controlled state |
+
+Palette candidates always use `copy`. A grid source uses `move` by default or `copy` when its `gridTransferMode` is set. Duplicate IDs, a rejecting predicate, and locked, non-movable, minimized, or maximized grid sources fail without changing either controlled state.
+
+```tsx
+import {
+  DashboardGrid,
+  insertDashboardWidgetAtLayout,
+  serializeDashboardState,
+  transferDashboardWidget,
+  useDashboardDragIn,
+  useDashboardGrid,
+  type DashboardWidget,
+  type DashboardWidgetDropRequest,
+} from "comins-grid-layout";
+
+type Data = { kind: "metric" | "restricted" };
+
+const sourceWidget: DashboardWidget<Data> = {
+  id: "source-metric",
+  title: "Metric",
+  layout: { id: "source-metric", x: 0, y: 0, w: 2, h: 2 },
+  data: { kind: "metric" },
+};
+
+export function TransferDashboard() {
+  const source = useDashboardGrid<Data>({ initialColumns: 6, initialWidgets: [sourceWidget] });
+  const target = useDashboardGrid<Data>({ initialColumns: 12 });
+  const paletteRef = useDashboardDragIn<Data>({
+    sourceId: "metric-palette",
+    previewLayout: { w: 2, h: 2 },
+    createWidget: () => {
+      const id = crypto.randomUUID();
+      return {
+        id,
+        title: "New metric",
+        layout: { id, x: 0, y: 0, w: 2, h: 2 },
+        data: { kind: "metric" },
+      };
+    },
+  });
+
+  const applyDrop = (request: DashboardWidgetDropRequest<Data>) => {
+    if (request.source.kind === "palette") {
+      const inserted = insertDashboardWidgetAtLayout(
+        target.state,
+        request.widget,
+        request.targetLayout,
+        request.targetSnapshot,
+      );
+      if (inserted.accepted) {
+        target.commands.restoreLayout(serializeDashboardState(inserted.state));
+      }
+      return;
+    }
+
+    const transferred = transferDashboardWidget({
+      source: source.state,
+      target: target.state,
+      widgetId: request.source.widgetId,
+      targetLayout: request.targetLayout,
+      targetSnapshot: request.targetSnapshot,
+      mode: request.mode,
+    });
+    if (transferred.accepted) {
+      source.commands.restoreLayout(serializeDashboardState(transferred.source));
+      target.commands.restoreLayout(serializeDashboardState(transferred.target));
+    }
+  };
+
+  return (
+    <>
+      <button ref={paletteRef} type="button">Drag metric</button>
+      <DashboardGrid
+        gridId="source-grid"
+        gridTransferMode="move"
+        columns={source.columns}
+        widgets={source.widgets}
+        onLayoutCommit={source.commands.applyLayoutSnapshot}
+        renderWidget={(widget) => widget.title}
+      />
+      <DashboardGrid
+        gridId="target-grid"
+        acceptExternalWidgets={(candidate) => candidate.widget.data?.kind !== "restricted"}
+        columns={target.columns}
+        widgets={target.widgets}
+        onLayoutCommit={target.commands.applyLayoutSnapshot}
+        onWidgetDropRequest={applyDrop}
+        renderWidget={(widget) => widget.title}
+      />
+    </>
+  );
+}
+```
+
+Setting `acceptExternalWidgets` without handling `onWidgetDropRequest` is intentionally fail-closed: the adapter removes the temporary target node and no controlled state changes. For keyboard and other non-drag alternatives, call `insertDashboardWidgetAtLayout` or `transferDashboardWidget` from a button using the same state transition shown above. The complete move/copy, rejection, and button alternative is available at `/examples/advanced/multi-grid/horizontal`; `/examples/transfer` remains a `0.2.1` compatibility redirect.
+
 ## Engine and responsive options
 
-`engineOptions` supports `cellHeight`, `margin`, `float`, `animate`, `staticGrid`, `rtl`, `minRow`, `maxRow`, `sizeToContent`, `lazyLoad`, `dragHandle`, `resizeHandles`, `alwaysShowResizeHandle`, and `nonce`. Widgets can additionally opt into `lazyLoad`, `sizeToContent`, and `resizeToContentParent`. Unsupported GridStack construction, nested-grid, removable, callback, and lifecycle options stay outside the controlled Comins surface; use `getGridStack()` only as a last-resort escape hatch.
+`engineOptions` supports the following controlled subset. Unsupported GridStack construction, native nested-grid ownership, removable behavior, callbacks, and lifecycle options stay outside the Comins surface.
+
+| Update behavior | Options | Contract |
+| --- | --- | --- |
+| Runtime synchronization | `cellHeight`, `margin`, `float`, `animate`, `staticGrid`, `minRow`, `maxRow`, `dragHandle`, `resizeHandles`, `alwaysShowResizeHandle` | Synchronized through the package adapter |
+| Safe reinitialization | `rtl`, `sizeToContent` | Recreates the package-owned adapter while preserving controlled state |
+| Initialization-only | `nonce` | Remount the grid to change it; never persist it with layout state |
+| Deprecated in `0.2.1` | `lazyLoad` | Native GridStack content lazy loading does not defer React-owned content; use `lazyRenderWidget` |
+
+Widgets can additionally map `sizeToContent` and `resizeToContentParent` to GridStack. For React content deferral, their `lazyLoad` member acts as a per-widget Comins override when `lazyRenderWidget=true`; forwarding it to GridStack does not defer React-owned content.
 
 ```tsx
 <DashboardGrid
@@ -206,6 +341,16 @@ Selectors resolve at release time, so a target may mount after grid initializati
 
 Without `responsive`, `columns` is authoritative. With `responsive`, `columns` is the initial/fallback count and GridStack owns the active count. Runtime-capable engine options are synchronized in place; `rtl` and `sizeToContent` changes safely reinitialize the package-owned adapter while preserving controlled React state. `nonce` is initialization-only: remount the grid to change it, and never persist it in layout state. Invalid public configuration throws `DashboardGridConfigurationError` without including the rejected value.
 
+### React content lazy rendering
+
+| Surface | Effect |
+| --- | --- |
+| `lazyRenderWidget` | Enables the Comins React content boundary for the grid |
+| `DashboardWidget.lazyLoad` | Per-widget override; `false` opts out, while `true` does not enable global lazy rendering by itself |
+| `DashboardGridEngineOptions.lazyLoad` | Deprecated native GridStack option retained only for `0.2.1` compatibility; it does not delay React-owned widget content |
+
+The observer uses the nearest `[data-dashboard-lazy-scroll]` ancestor as its root, or the viewport when none exists. Widget shells and GridStack items remain mounted, content mounts once on first intersection and is retained afterward, and browsers without `IntersectionObserver` render content eagerly. This is content mount deferral, not full widget virtualization; no skeleton/loading-state API is currently provided.
+
 ## useDashboardGrid commands
 
 Pass `onLayoutMutation` to `useDashboardGrid` to observe successful controlled mutations. Events include a semantic `kind`, affected `widgetIds`, active `columns`, and the resulting full serializable `snapshot`. Widget-internal events such as title double-click and content resize frames are intentionally excluded.
@@ -213,6 +358,7 @@ Pass `onLayoutMutation` to `useDashboardGrid` to observe successful controlled m
 | Command | Signature | Purpose |
 | --- | --- | --- |
 | `addWidget` | `(widget) => void` | Add a widget while preserving its ID |
+| `insertWidgetAt` | `(widget, targetLayout, targetSnapshot) => void` | Apply an already validated single-grid insertion to reducer state; use the pure helper when rejection details are required |
 | `updateWidget` | `(id, patch) => void` | Update widget data, title, state, or interaction flags |
 | `updateWidgetLayout` | `(id, patch) => void` | Update serializable geometry |
 | `removeWidget` | `(id) => void` | Remove one widget |
@@ -237,35 +383,63 @@ Prefer the safe query and controlled commit methods below. Use the raw engine on
 
 ```tsx
 import { useRef } from "react";
-import { DashboardGrid, type DashboardGridHandle } from "comins-grid-layout";
+import {
+  DashboardGrid,
+  useDashboardGrid,
+  type DashboardGridHandle,
+} from "comins-grid-layout";
 
-const gridRef = useRef<DashboardGridHandle>(null);
+export function AdvancedGrid() {
+  const gridRef = useRef<DashboardGridHandle>(null);
+  const dashboard = useDashboardGrid({
+    initialWidgets: [
+      { id: "metric", title: "Metric", layout: { id: "metric", x: 0, y: 0, w: 3, h: 2 } },
+    ],
+  });
 
-<DashboardGrid ref={gridRef} widgets={widgets} renderWidget={renderWidget} />;
+  const inspect = () => ({
+    columns: gridRef.current?.getColumnCount(),
+    rows: gridRef.current?.getRowCount(),
+    float: gridRef.current?.getFloat(),
+    areaEmpty: gridRef.current?.isAreaEmpty({ x: 3, y: 0, w: 2, h: 2 }),
+    fits: gridRef.current?.willItFit({ x: 0, y: 4, w: 3, h: 2 }),
+  });
 
-const columns = gridRef.current?.getColumnCount();
-const rows = gridRef.current?.getRowCount();
-const isFloat = gridRef.current?.getFloat();
-const areaEmpty = gridRef.current?.isAreaEmpty({ x: 0, y: 0, w: 2, h: 2 });
-const fits = gridRef.current?.willItFit({ x: 0, y: 4, w: 3, h: 2 });
-
-const snapshot = gridRef.current?.commitLayout();
-const compacted = gridRef.current?.compact("compact", true);
-gridRef.current?.refresh();
+  return (
+    <>
+      <button type="button" onClick={() => console.log(inspect())}>Inspect</button>
+      <button type="button" onClick={() => gridRef.current?.compact("compact", true)}>Compact</button>
+      <button type="button" onClick={() => gridRef.current?.refresh()}>Refresh</button>
+      <DashboardGrid
+        ref={gridRef}
+        widgets={dashboard.widgets}
+        onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+        renderWidget={(widget) => widget.title}
+      />
+    </>
+  );
+}
 ```
+
+`compact()` invokes the same controlled `onLayoutCommit` contract and returns that snapshot for inspection; the example applies it through `dashboard.commands.applyLayoutSnapshot`. Call `commitLayout()` only after a borrowed raw engine operation that did not already emit a GridStack `change` event.
 
 `getGridStack()` remains available for backward compatibility, but raw `addWidget`, `removeWidget`, `load`, or `destroy` calls bypass the React-controlled source of truth and are not safe controlled operations.
 
 | Handle method | Return type | Purpose |
 | --- | --- | --- |
 | `getGridStack` | `GridStack \| null` | Borrow the live engine instance while the grid is mounted |
+| `getColumnCount` | `number \| null` | Read the engine's active column count |
+| `getRowCount` | `number \| null` | Read the current engine row count |
+| `getFloat` | `boolean \| null` | Read the active float mode |
+| `isAreaEmpty` | `boolean \| null` | Query whether a layout rectangle is empty without mutating the grid |
+| `willItFit` | `boolean \| null` | Query whether a layout rectangle fits the current constraints |
 | `refresh` | `void` | Recalculate sizing and dynamic handles without reordering widgets |
 | `compact` | `DashboardLayoutSnapshot \| null` | Run GridStack `compact()` explicitly, commit once, and return the snapshot |
 | `commitLayout` | `DashboardLayoutSnapshot \| null` | Commit direct engine geometry changes to the controlled callback contract |
 
 - `getGridStack()` is an escape hatch: it returns `null` before initialization and after unmount.
 - GridStack methods that emit `change` are committed automatically; `commitLayout()` is for commands that do not emit it and suppresses identical duplicate commits. For `batchUpdate()`, call `commitLayout()` after `batchUpdate(false)`.
-- A committed interaction calls `onWidgetLayoutChange`, then `onLayoutCommit`, then the corresponding drag/resize stop callback. High-frequency drag events remain available only on the borrowed GridStack instance.
+- A committed interaction calls `onWidgetLayoutChange`, then `onLayoutCommit`, then the deprecated stop alias, and finally `onAfterMove` or `onAfterResize`. Canonical active lifecycle events are animation-frame coalesced.
 - The controlled example does not call raw GridStack add/remove/destroy. Use Comins `addWidget` and `removeWidget` for React content; raw GridStack CRUD only changes engine/DOM state and may be replaced by the next controlled React render.
 - Do not call `destroy()` or remove package listeners on the borrowed instance; `DashboardGrid` owns the engine lifecycle.
 

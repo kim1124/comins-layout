@@ -99,7 +99,6 @@ export function AdvancedFeaturePlayground({ feature }: { feature: AdvancedFeatur
     cellHeight: feature === "cell-height" ? cellHeight : feature === "lazy-load" ? 180 : 96,
     dragHandle: feature === "title-drag" ? ".comins-grid-layout-widget__title" : undefined,
     float: feature === "float" ? enabled : false,
-    lazyLoad: feature === "lazy-load",
     rtl: feature === "rtl" ? enabled : false,
     sizeToContent: feature === "size-to-content" ? enabled : false,
     staticGrid: feature === "static" ? !enabled : false,
@@ -299,7 +298,6 @@ export function PublicApiPlayground() {
   const compact = () => {
     const snapshot = gridRef.current?.compact("compact", true);
     if (snapshot) {
-      dashboard.commands.applyLayoutSnapshot(snapshot);
       setResult(JSON.stringify(snapshot, null, 2));
     }
   };

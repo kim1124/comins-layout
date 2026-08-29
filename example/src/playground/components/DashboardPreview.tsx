@@ -46,7 +46,7 @@ export function DashboardPreview({
         onRestoreWidget={dashboard.commands.restoreWidget}
         onLayoutCommit={onLayoutCommit}
         onWidgetExternalDrop={onWidgetExternalDrop}
-        onWidgetHeaderDoubleClick={dashboard.commands.fitWidgetToColumns}
+        onTitleDoubleClick={(event) => dashboard.commands.fitWidgetToColumns(event.id)}
         onWidgetLayoutChange={onLayoutCommit ? undefined : dashboard.commands.updateWidgetLayout}
         renderWidget={(widget) => {
           const content = (

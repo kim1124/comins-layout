@@ -1,4 +1,4 @@
-# Architecture Draft
+# Architecture
 
 ## Layers
 
@@ -20,7 +20,8 @@ The React API layer owns:
 - render structure
 - widget render slots
 - user callbacks
-- controlled or uncontrolled state bridge
+- controlled state bridge
+- React content lazy-render boundary
 - cleanup on unmount
 
 This layer must not expose GridStack as the main contract.
@@ -34,6 +35,7 @@ The core state layer owns:
 - column count clamping
 - maximize and minimize state transitions
 - reset and refresh commands
+- palette insertion과 cross-grid transfer의 pure state transition
 - pure helper tests
 
 This layer should remain framework-light and easy to cover with Vitest.
@@ -47,6 +49,7 @@ The adapter layer owns:
 - drag and resize event subscriptions
 - layout load and compact commands
 - movement and resize toggles
+- palette/Grid source registry와 incoming drop rollback
 - instance cleanup
 
 This layer is the only place that should import from `gridstack`.
@@ -62,10 +65,13 @@ src/
     types.ts
   gridstack/
     adapter.ts
+    drag-in.ts
     option-mapper.ts
+    transfer-registry.ts
   components/
     DashboardGrid.tsx
     DashboardWidget.tsx
+    use-dashboard-drag-in.ts
   index.ts
 ```
 
@@ -100,6 +106,22 @@ type DashboardLayoutSnapshot = {
 - Schedule content resize callbacks with one animation frame per widget per frame.
 - Keep previous layout snapshots for maximize and minimize in a map keyed by widget ID.
 - Avoid storing non-serializable engine objects in public state.
+- Keep all GridStack items mounted while `lazyRenderWidget` defers only consumer content.
+- Retain content after its first intersection to avoid scroll-driven mount churn.
+
+## Transfer Boundary
+
+- `externalDropTargets` reports a Grid widget release over ordinary consumer HTML and never mutates state.
+- `useDashboardDragIn` registers palette sources through the adapter-owned GridStack bridge.
+- Incoming `onWidgetDropRequest` is emitted only after GridStack's temporary DOM transfer is rolled back.
+- `insertDashboardWidgetAtLayout` and `transferDashboardWidget` are pure controlled-state helpers. Rejection preserves both source and target state.
+
+## Lazy Rendering Boundary
+
+- `lazyRenderWidget` owns React content deferral. Within that boundary, `DashboardWidget.lazyLoad` overrides the global setting per widget; its GridStack mapping does not defer React-owned content.
+- Native `DashboardGridEngineOptions.lazyLoad` is ineffective for React-owned content and deprecated in `0.2.1`.
+- The observer root is the nearest `[data-dashboard-lazy-scroll]` ancestor or the viewport.
+- Outer GridStack items and widget shells always remain mounted. Skeleton UI and full virtualization are not implemented.
 
 ## Memory Strategy
 

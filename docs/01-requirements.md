@@ -18,14 +18,26 @@
 - 위젯 내부 콘텐츠는 위젯 크기 변화에 반응할 수 있어야 한다.
 - 콘텐츠 resize 알림은 `requestAnimationFrame` 또는 `ResizeObserver` 기반으로 스케줄링한다.
 - 레이아웃 초기화, 갱신, 리셋, 직렬화를 지원한다.
+- palette widget 복사와 독립 Grid 간 move/copy를 controlled state helper로 지원한다.
+- incoming transfer는 typed candidate predicate와 drop request를 사용하고 거부 시 source/target state를 변경하지 않는다.
+- `lazyRenderWidget`은 outer Grid item을 유지하면서 React content mount만 최초 교차 시점까지 지연한다.
 
 ## Non-Functional Requirements
 
 - 대시보드 기본 레이아웃으로 재사용될 가능성이 높으므로 메모리와 성능을 우선 검토한다.
 - React 렌더 경로에서 대량 객체 복사를 피한다.
 - 드래그와 리사이즈 중에는 고빈도 React 상태 갱신을 피한다.
+- 한 번 lazy-rendered 된 content는 다시 unmount하지 않으며 `IntersectionObserver`가 없으면 eager rendering으로 fallback한다.
 - 엔진 교체 가능성을 위해 GridStack 직접 사용은 어댑터 내부로 제한한다.
 - 패키지는 Next.js에 의존하지 않는다.
+
+## Explicit Non-Requirements
+
+- GridStack native dynamic sub-grid ownership
+- raw GridStack CRUD를 통한 React widget content 관리
+- keyboard 기반 widget move/resize
+- skeleton/loading state 또는 full virtualization
+- branded Edge와 Safari 직접 인증
 
 ## Initial Technology Stack
 

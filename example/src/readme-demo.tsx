@@ -246,11 +246,11 @@ export function ReadmeDemoPage() {
         onMinimizeWidget={dashboard.commands.minimizeWidget}
         onRemoveWidget={dashboard.commands.removeWidget}
         onRestoreWidget={dashboard.commands.restoreWidget}
-        onWidgetDragStart={(event) => interactionEventsRef.current.push(`drag-start:${event.id}`)}
-        onWidgetDragStop={(event) => interactionEventsRef.current.push(`drag-stop:${event.id}`)}
+        onBeforeMove={(event) => interactionEventsRef.current.push(`drag-start:${event.id}`)}
+        onAfterMove={(event) => interactionEventsRef.current.push(`drag-stop:${event.id}`)}
         onWidgetLayoutChange={(id) => interactionEventsRef.current.push(`widget-layout:${id}`)}
-        onWidgetResizeStart={(event) => interactionEventsRef.current.push(`resize-start:${event.id}`)}
-        onWidgetResizeStop={(event) => interactionEventsRef.current.push(`resize-stop:${event.id}`)}
+        onBeforeResize={(event) => interactionEventsRef.current.push(`resize-start:${event.id}`)}
+        onAfterResize={(event) => interactionEventsRef.current.push(`resize-stop:${event.id}`)}
         renderWidget={(widget) => (
           <div className="readme-demo__metric">
             <span>{widget.data?.label}</span>

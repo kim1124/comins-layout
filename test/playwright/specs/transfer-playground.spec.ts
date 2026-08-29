@@ -30,12 +30,12 @@ async function waitForGridEngine(grid: Locator) {
 }
 
 async function openTransferPlayground(page: Page) {
-  await page.goto("/examples/transfer");
+  await page.goto("/examples/advanced/multi-grid/horizontal");
   await waitForTransferPlayground(page);
 }
 
 async function waitForTransferPlayground(page: Page) {
-  await expect(page.getByRole("heading", { name: "팔레트와 Grid 전송" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "다중 Grid - 가로" })).toBeVisible();
   await waitForGridEngine(gridPanel(page, "grid-a").locator(".grid-stack"));
   await waitForGridEngine(gridPanel(page, "grid-b").locator(".grid-stack"));
 }

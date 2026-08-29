@@ -2,6 +2,8 @@
 
 **상태:** 승인된 구현 계획 (`2026-08-25`)
 
+> **현재 상태 (`0.2.1` 정합화 기준):** Slice A의 palette/Grid transfer와 공개 helper는 구현되어 있다. Slice B에서는 outer Grid item을 유지하고 React content mount만 지연하는 `lazyRenderWidget` 최소 경계만 구현되어 있다. 이 문서의 skeleton, loading state, custom observer options, drag/resize option 확장, full virtualization 체크리스트는 미구현 계획이며 현재 공개 API가 아니다. 아래 체크박스와 당시 검증 결과는 계획 이력으로 보존한다.
+
 ## 1. 목표
 
 다음 마이너 버전 `0.3.0`의 개발 범위를 두 개의 독립적인 세로 단위로 구현한다.

@@ -20,7 +20,7 @@ export function DashboardPage() {
       columns={dashboard.columns}
       refreshKey={dashboard.refreshVersion}
       widgets={dashboard.widgets}
-      onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
+      onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
       renderWidget={(widget) => <strong>{widget.title}</strong>}
     />
   );
@@ -42,25 +42,32 @@ const lockSample = `<DashboardGrid
   movable={!layoutLocked}
   resizable={!layoutLocked}
   widgets={dashboard.widgets}
+  onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+  renderWidget={(widget) => <strong>{widget.title}</strong>}
 />\n`;
 
 const widgetLockSample = `dashboard.commands.updateWidget("sales", { movable: false });
 dashboard.commands.updateWidget("sales", { resizable: false });
 dashboard.commands.updateWidget("sales", { locked: true });`;
 
-const componentApiSample = `import { DashboardGrid } from "comins-grid-layout";
+const componentApiSample = `import { DashboardGrid, useDashboardGrid } from "comins-grid-layout";
 
-<DashboardGrid
-  columns={dashboard.columns}
-  editable
-  movable
-  resizable
-  refreshKey={dashboard.refreshVersion}
-  widgets={dashboard.widgets}
-  onLayoutCommit={(snapshot) => console.log(snapshot)}
-  onWidgetLayoutChange={dashboard.commands.updateWidgetLayout}
-  renderWidget={(widget) => <strong>{widget.title}</strong>}
-/>;`;
+export function DashboardPage() {
+  const dashboard = useDashboardGrid({ initialColumns: 12, initialWidgets: [] });
+
+  return (
+    <DashboardGrid
+      columns={dashboard.columns}
+      editable
+      movable
+      resizable
+      refreshKey={dashboard.refreshVersion}
+      widgets={dashboard.widgets}
+      onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+      renderWidget={(widget) => <strong>{widget.title}</strong>}
+    />
+  );
+}`;
 
 const hookApiSample = `const dashboard = useDashboardGrid({
   initialColumns: 6,
@@ -78,7 +85,13 @@ const interactionApiSample = `const lockedWidget = {
   resizable: false,
 };
 
-<DashboardGrid editable={true} movable={false} resizable={true} widgets={[lockedWidget]} />;`;
+<DashboardGrid
+  editable={true}
+  movable={false}
+  resizable={true}
+  widgets={[lockedWidget]}
+  renderWidget={(widget) => <strong>{widget.title}</strong>}
+/>;`;
 
 const utilityApiSample = `const columns = clampDashboardColumnCount(18);
 const gridOptions = mapDashboardGridOptions({ columns, movable: true });
@@ -103,7 +116,72 @@ const empty = gridRef.current?.isAreaEmpty({ x: 0, y: 0, w: 2, h: 2 });
 const fits = gridRef.current?.willItFit({ x: 0, y: 4, w: 3, h: 2 });
 
 const compacted = gridRef.current?.compact("compact", true);
-if (compacted) dashboard.commands.applyLayoutSnapshot(compacted);`;
+// compact() commits through DashboardGrid.onLayoutCommit and also returns the snapshot.`;
+
+const transferApiSample = `import {
+  DashboardGrid,
+  insertDashboardWidgetAtLayout,
+  serializeDashboardState,
+  useDashboardDragIn,
+  useDashboardGrid,
+} from "comins-grid-layout";
+
+let paletteSequence = 0;
+
+export function TransferTarget() {
+  const target = useDashboardGrid({ initialColumns: 12 });
+  const paletteRef = useDashboardDragIn({
+    sourceId: "metric-palette",
+    previewLayout: { w: 2, h: 2 },
+    createWidget: () => {
+      const id = \`metric-\${++paletteSequence}\`;
+      return { id, title: "Metric", layout: { id, x: 0, y: 0, w: 2, h: 2 } };
+    },
+  });
+
+  return (
+    <>
+      <button ref={paletteRef} type="button">Drag metric</button>
+      <DashboardGrid
+        gridId="target-grid"
+        acceptExternalWidgets
+        widgets={target.widgets}
+        onLayoutCommit={target.commands.applyLayoutSnapshot}
+        onWidgetDropRequest={(request) => {
+          const result = insertDashboardWidgetAtLayout(
+            target.state,
+            request.widget,
+            request.targetLayout,
+            request.targetSnapshot,
+          );
+          if (result.accepted) target.commands.restoreLayout(serializeDashboardState(result.state));
+        }}
+        renderWidget={(widget) => widget.title}
+      />
+    </>
+  );
+}`;
+
+const lazyRenderSample = `import { DashboardGrid, useDashboardGrid } from "comins-grid-layout";
+
+export function LazyDashboard() {
+  const dashboard = useDashboardGrid({
+    initialWidgets: [
+      { id: "lazy", title: "Lazy content", layout: { id: "lazy", x: 0, y: 8, w: 3, h: 2 } },
+    ],
+  });
+
+  return (
+    <div data-dashboard-lazy-scroll style={{ maxHeight: 480, overflow: "auto" }}>
+      <DashboardGrid
+        lazyRenderWidget
+        widgets={dashboard.widgets}
+        onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+        renderWidget={(widget) => <strong>{widget.title}</strong>}
+      />
+    </div>
+  );
+}`;
 
 export const apiFeatures: ApiFeatureSection[] = [
   {
@@ -130,6 +208,12 @@ export const apiFeatures: ApiFeatureSection[] = [
         detail: "1부터 12까지 지원하며 생략하면 12 column으로 동작합니다.",
       },
       {
+        name: "engineOptions / responsive / className",
+        type: "DashboardGridEngineOptions / DashboardResponsiveOptions / string",
+        description: "지원 engine subset, responsive column 정책, grid section class를 설정합니다.",
+        detail: "routine option은 sync되고 rtl/sizeToContent는 safe reinitialize, nonce는 initialization-only입니다. unsupported raw GridStack options는 노출하지 않습니다.",
+      },
+      {
         name: "refreshKey",
         type: "number | undefined",
         description: "외부 상태 변경 후 GridStack layout refresh를 요청하는 key입니다.",
@@ -145,7 +229,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         name: "renderWidgetActions / lazyRenderWidget",
         type: "renderer / boolean",
         description: "header action을 교체하고 viewport 진입 시 content를 한 번만 렌더링합니다.",
-        detail: "action slot은 기본 control을 완전히 대체하며 lazy boundary는 React가 소유한 widget DOM을 유지합니다.",
+        detail: "action slot은 showControls=true일 때만 기본 control group을 대체합니다. lazy boundary는 outer widget DOM을 유지하고 content만 최초 교차 시점까지 지연합니다.",
       },
     ],
     methods: [
@@ -229,7 +313,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         name: "onWidgetLayoutChange",
         type: "(id, layout) => void",
         description: "개별 widget layout 변경을 consumer state로 전달합니다.",
-        detail: "useDashboardGrid의 updateWidgetLayout command와 연결하는 기본 callback입니다.",
+        detail: "개별 geometry persistence가 의도된 경우 사용합니다. 기본 controlled 연결은 onLayoutCommit과 applyLayoutSnapshot입니다.",
       },
       {
         name: "onLayoutMutation",
@@ -292,6 +376,12 @@ export const apiFeatures: ApiFeatureSection[] = [
         type: "type / const",
         description: "지원 column 범위 1..12를 표현합니다.",
         detail: "Select option이나 validation UI를 만들 때 DASHBOARD_COLUMN_COUNTS 상수를 재사용할 수 있습니다.",
+      },
+      {
+        name: "onColumnsChange",
+        type: "(columns: DashboardColumnCount) => void",
+        description: "responsive engine의 실제 active column이 바뀔 때 전달됩니다.",
+        detail: "동일 column 중복은 병합되며 controlled state에는 setColumns 또는 atomic snapshot으로 반영합니다.",
       },
     ],
     methods: [
@@ -358,16 +448,28 @@ export const apiFeatures: ApiFeatureSection[] = [
         detail: "DashboardGrid action을 useDashboardGrid command와 연결할 때 사용합니다.",
       },
       {
-        name: "onWidgetHeaderDoubleClick",
-        type: "(id: string) => void",
-        description: "위젯 header double-click callback입니다.",
-        detail: "fitWidgetToColumns와 조합하면 row 빈 공간 확장 interaction을 만들 수 있습니다.",
+        name: "onTitleDoubleClick",
+        type: "(event: DashboardWidgetInteractionEvent) => void",
+        description: "위젯 title-only double-click action callback입니다.",
+        detail: "fitWidgetToColumns와 조합하면 row 빈 공간 확장 interaction을 만들 수 있습니다. onWidgetHeaderDoubleClick은 0.2.1 deprecated alias입니다.",
       },
       {
         name: "Move / Resize / Title lifecycle callbacks",
         type: "onBefore* / on* / onAfter*",
         description: "move, layout resize, title double-click을 before/action/after 단계로 관찰합니다.",
         detail: "active move/resize callback은 animation frame 단위로 병합되며 after payload는 commit된 최종 geometry를 사용합니다.",
+      },
+      {
+        name: "onBeforeMove / onMove / onAfterMove / onBeforeResize / onResize / onAfterResize / onBeforeTitleDoubleClick / onTitleDoubleClick / onAfterTitleDoubleClick",
+        type: "(event: DashboardWidgetInteractionEvent) => void",
+        description: "move, layout resize, title-only double-click의 canonical lifecycle입니다.",
+        detail: "before 다음 active action, committed after 순서입니다. onWidgetResizeFrame은 content pixel notification으로 별도입니다.",
+      },
+      {
+        name: "onWidgetDragStart / onWidgetDragStop / onWidgetResizeStart / onWidgetResizeStop / onWidgetHeaderDoubleClick",
+        type: "deprecated compatibility callbacks",
+        description: "0.2.1에서 호출 순서를 유지하는 legacy alias입니다.",
+        detail: "신규 예제에서는 canonical lifecycle만 사용하며 alias 제거는 0.3.0 별도 breaking-change gate에서 검토합니다.",
       },
     ],
     methods: [
@@ -387,10 +489,10 @@ export const apiFeatures: ApiFeatureSection[] = [
         description: "header action을 consumer-owned widget state command와 연결합니다.",
       },
       {
-        name: "onWidgetHeaderDoubleClick",
-        payload: "id: string",
-        when: "widget header가 double-click되고 action button 영역이 아닐 때 호출됩니다.",
-        description: "fitWidgetToColumns 같은 header-level shortcut interaction을 연결할 수 있습니다.",
+        name: "onTitleDoubleClick",
+        payload: "DashboardWidgetInteractionEvent",
+        when: "widget title이 double-click될 때 호출됩니다.",
+        description: "fitWidgetToColumns 같은 title-only shortcut interaction을 연결할 수 있습니다.",
       },
       {
         name: "onBeforeMove / onMove / onAfterMove 외 lifecycle",
@@ -456,6 +558,58 @@ export const apiFeatures: ApiFeatureSection[] = [
       },
     ],
     samples: [{ code: utilityApiSample, language: "ts", title: "Resize frame / Adapter utility 예제" }],
+  },
+  {
+    id: "api-transfer-lazy",
+    title: "Palette / Grid Transfer / Lazy Content",
+    summary: "incoming palette·Grid transfer와 React content lazy-render boundary의 controlled 계약입니다.",
+    props: [
+      {
+        name: "gridId / acceptExternalWidgets / gridTransferMode",
+        type: "string / boolean | predicate / move | copy",
+        description: "transfer source와 target identity, acceptance, Grid source mode를 설정합니다.",
+        detail: "transfer target은 gridId가 필수입니다. Palette는 항상 copy이고 Grid source는 기본 move 또는 명시적 copy입니다.",
+      },
+      {
+        name: "externalDropTargets / onWidgetExternalDrop",
+        type: "ReadonlyArray<DashboardExternalDropTarget> / callback",
+        description: "Grid widget을 ordinary consumer HTML target에 놓은 결과를 non-destructive event로 보고합니다.",
+        detail: "incoming palette/Grid transfer와 반대 방향입니다. Consumer가 removeWidget 같은 controlled mutation을 명시적으로 선택합니다.",
+      },
+      {
+        name: "lazyRenderWidget / DashboardWidget.lazyLoad",
+        type: "boolean / boolean",
+        description: "React widget content mount를 최초 교차 시점까지 지연합니다.",
+        detail: "widget shell과 outer Grid item은 유지됩니다. widget.lazyLoad=false는 global lazy를 opt-out하며 true만으로 global lazy를 켜지 않습니다. IntersectionObserver가 없으면 eager fallback합니다.",
+      },
+      {
+        name: "DashboardGridEngineOptions.lazyLoad",
+        type: "boolean (deprecated)",
+        description: "React-owned content를 지연하지 않는 GridStack native option입니다.",
+        detail: "0.2.1 compatibility mapping만 유지하며 신규 코드는 lazyRenderWidget을 사용합니다. 0.3.0 제거 대상입니다.",
+      },
+    ],
+    methods: [
+      {
+        name: "useDashboardDragIn / insertWidgetAt / insertDashboardWidgetAtLayout / transferDashboardWidget",
+        params: "palette source options 또는 source/target snapshot",
+        returns: "callback ref, void, insertion result, transfer result",
+        description: "palette source를 연결하고 single-grid insertion 또는 atomic cross-grid move/copy를 controlled state로 계산합니다.",
+        sample: { code: transferApiSample, language: "tsx", title: "Palette transfer target" },
+      },
+    ],
+    events: [
+      {
+        name: "onWidgetDropRequest",
+        payload: "DashboardWidgetDropRequest<TData>",
+        when: "incoming candidate가 승인되고 temporary GridStack DOM이 rollback된 뒤 호출됩니다.",
+        description: "callback을 처리하지 않으면 controlled state가 바뀌지 않는 fail-closed contract입니다.",
+      },
+    ],
+    samples: [
+      { code: transferApiSample, language: "tsx", title: "Palette transfer 예제" },
+      { code: lazyRenderSample, language: "tsx", title: "Lazy content 예제" },
+    ],
   },
 ];
 
