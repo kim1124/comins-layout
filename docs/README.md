@@ -1,8 +1,14 @@
 # comins-grid-layout Docs
 
-이 디렉터리는 `comins-grid-layout` 패키지 설계, public API, 검증 기준을 관리한다.
+이 디렉터리는 `comins-grid-layout` 사용자 가이드, 패키지 설계, public API, 검증 기준을 관리한다.
 
-## 문서 목록
+## 사용자 가이드
+
+- `docs/user`: 영문 primary 가이드. 현재 공개 API, 실행 예제, 상태 소유권, 실패·미지원 경계를 설명한다.
+- `docs/ko`: 영문과 동일한 파일 구조의 국문 가이드다.
+- 신규 사용자는 `docs/user/01-quick-start.md` 또는 `docs/ko/01-quick-start.md`부터 확인한다.
+
+## Maintainer 문서
 
 - `01-requirements.md`: 사용자 요구사항을 패키지 관점으로 정리한 문서
 - `02-architecture.md`: React 어댑터, GridStack 엔진, transfer, lazy content 경계와 상태 모델 구조

@@ -1,4 +1,4 @@
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -7,10 +7,29 @@ import {
   dashboardGridPropNames,
   publicDocTypeContract,
 } from "./public-doc-contract";
+import { inspectReadmeGif } from "../../scripts/inspect-readme-gif.mjs";
 
 const readme = readFileSync("README.md", "utf8");
 const apiContent = readFileSync("example/src/docs/content.tsx", "utf8");
-const gifPath = "docs/assets/comins-grid-layout-demo.gif";
+const legacyGifPath = "docs/assets/comins-grid-layout-demo.gif";
+const featureGifs = [
+  {
+    path: "docs/assets/comins-grid-layout-transfer.gif",
+    marker: "Palette and grid transfer between controlled dashboards",
+  },
+  {
+    path: "docs/assets/comins-grid-layout-external-drop.gif",
+    marker: "External HTML drop target with consumer-owned state removal",
+  },
+  {
+    path: "docs/assets/comins-grid-layout-responsive-persistence.gif",
+    marker: "Responsive columns with per-column layout persistence",
+  },
+  {
+    path: "docs/assets/comins-grid-layout-lazy-rendering.gif",
+    marker: "React widget content rendering after lazy-scroll intersection",
+  },
+] as const;
 
 describe("consumer README", () => {
   it("contains the required badges, demo, and consumer sections in order", () => {
@@ -19,10 +38,11 @@ describe("consumer README", () => {
       "TypeScript-types%20included",
       "actions/workflows/verify.yml/badge.svg?branch=main",
       "License-MIT",
-      "comins-grid-layout-demo.gif",
+      ...featureGifs.map(({ path }) => path.split("/").at(-1)!),
     ]) expect(readme).toContain(marker);
 
     const headings = [
+      "## Feature highlights",
       "## Features",
       "## Support",
       "## Installation",
@@ -36,11 +56,28 @@ describe("consumer README", () => {
       "## Advanced GridStack access",
       "## Persistence",
       "## Styling",
+      "## Playground",
+      "## Documentation",
+      "## Current boundaries",
+      "## Development",
       "## Verification and security",
     ];
     const positions = headings.map((heading) => readme.indexOf(heading));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((left, right) => left - right));
+  });
+
+  it("places the local demo command directly under module installation", () => {
+    const installationStart = readme.indexOf("## Installation");
+    const quickStart = readme.indexOf("## Quick start");
+    const installation = readme.slice(installationStart, quickStart);
+
+    expect(installation).toContain("npm install comins-grid-layout react react-dom");
+    expect(installation).toContain("### Run the demo");
+    expect(installation).toContain("npm run dev");
+    expect(installation).toContain("http://127.0.0.1:6001/docs/getting-started");
+    expect(installation.indexOf("npm install comins-grid-layout react react-dom"))
+      .toBeLessThan(installation.indexOf("### Run the demo"));
   });
 
   it("documents every public prop, command, and advanced handle method", () => {
@@ -101,9 +138,23 @@ describe("consumer README", () => {
     ]) expect(readme).toContain(text);
   });
 
-  it("keeps the checked-in animation within the GIF contract", () => {
-    const header = readFileSync(gifPath).subarray(0, 6).toString("ascii");
-    expect(["GIF87a", "GIF89a"]).toContain(header);
-    expect(statSync(gifPath).size).toBeLessThanOrEqual(5 * 1024 * 1024);
+  it("keeps four current-feature animations within the GIF contract", async () => {
+    expect(existsSync(legacyGifPath)).toBe(false);
+    expect(readme).not.toContain(legacyGifPath.split("/").at(-1));
+
+    for (const { marker, path } of featureGifs) {
+      expect(readme).toContain(marker);
+      expect(existsSync(path), `${path} must exist`).toBe(true);
+      if (!existsSync(path)) continue;
+      const header = readFileSync(path).subarray(0, 6).toString("ascii");
+      expect(["GIF87a", "GIF89a"]).toContain(header);
+      expect(statSync(path).size).toBeLessThanOrEqual(5 * 1024 * 1024);
+      const metadata = await inspectReadmeGif(path);
+      expect(metadata.width).toBeLessThanOrEqual(960);
+      expect(metadata.height).toBeLessThanOrEqual(720);
+      expect(metadata.duration).toBeLessThanOrEqual(12);
+      expect(metadata.frameCount).toBeGreaterThan(1);
+      expect(metadata.loopCount).toBe(0);
+    }
   });
 });

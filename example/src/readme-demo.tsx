@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import {
   DashboardGrid,
+  insertDashboardWidgetAtLayout,
+  serializeDashboardState,
+  transferDashboardWidget,
+  useDashboardDragIn,
   useDashboardGrid,
   type DashboardGridHandle,
   type DashboardLayoutSnapshot,
   type DashboardResponsiveOptions,
   type DashboardWidget,
+  type DashboardWidgetDropRequest,
   type DashboardWidgetExternalDropEvent,
 } from "../../src";
 
@@ -90,6 +95,23 @@ function cloneExternalDropEvent(
 }
 
 export function ReadmeDemoPage() {
+  const feature = new URLSearchParams(window.location.search).get("feature");
+
+  switch (feature) {
+    case "transfer":
+      return <TransferFeatureDemo />;
+    case "external-drop":
+      return <ExternalDropFeatureDemo />;
+    case "responsive-persistence":
+      return <ResponsivePersistenceFeatureDemo />;
+    case "lazy-rendering":
+      return <LazyRenderingFeatureDemo />;
+    default:
+      return <LegacyReadmeDemoPage />;
+  }
+}
+
+function LegacyReadmeDemoPage() {
   const dashboard = useDashboardGrid<DemoData>({ initialColumns: 6, initialWidgets });
   const gridRef = useRef<DashboardGridHandle>(null);
   const commitCountRef = useRef(0);
@@ -268,5 +290,410 @@ export function ReadmeDemoPage() {
         </div>
       ) : null}
     </main>
+  );
+}
+
+type FeatureDemoShellProps = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  status: string;
+  statusLabel: string;
+  children: React.ReactNode;
+};
+
+function FeatureDemoShell({
+  eyebrow,
+  title,
+  description,
+  status,
+  statusLabel,
+  children,
+}: FeatureDemoShellProps) {
+  return (
+    <main className="readme-feature-demo">
+      <header className="readme-feature-demo__header">
+        <div>
+          <p>{eyebrow}</p>
+          <h1>{title}</h1>
+          <span>{description}</span>
+        </div>
+        <p className="readme-feature-demo__status" role="status" aria-label={statusLabel}>
+          {status}
+        </p>
+      </header>
+      {children}
+    </main>
+  );
+}
+
+const transferSourceWidgets: DashboardWidget<DemoData>[] = [
+  {
+    id: "source-sales",
+    title: "Sales",
+    layout: { id: "source-sales", x: 0, y: 0, w: 3, h: 2 },
+    data: { label: "Weekly sales", value: "$42.8K" },
+  },
+];
+
+const transferTargetWidgets: DashboardWidget<DemoData>[] = [
+  {
+    id: "target-orders",
+    title: "Orders",
+    layout: { id: "target-orders", x: 0, y: 0, w: 3, h: 2 },
+    data: { label: "Completed orders", value: "1,284" },
+  },
+];
+
+function TransferFeatureDemo() {
+  const source = useDashboardGrid<DemoData>({
+    initialColumns: 6,
+    initialWidgets: transferSourceWidgets,
+  });
+  const target = useDashboardGrid<DemoData>({
+    initialColumns: 6,
+    initialWidgets: transferTargetWidgets,
+  });
+  const paletteSequence = useRef(0);
+  const [status, setStatus] = useState("Drag a palette item or move Sales to the target dashboard");
+  const paletteRef = useDashboardDragIn<DemoData>({
+    sourceId: "readme-metric-palette",
+    previewLayout: { w: 3, h: 2 },
+    createWidget: () => {
+      paletteSequence.current += 1;
+      const id = `palette-metric-${paletteSequence.current}`;
+      return {
+        id,
+        title: "New metric",
+        layout: { id, x: 0, y: 0, w: 3, h: 2 },
+        data: { label: "Conversion", value: "8.4%" },
+      };
+    },
+  });
+
+  const applyDrop = (request: DashboardWidgetDropRequest<DemoData>) => {
+    if (request.targetGridId !== "readme-transfer-target-grid") {
+      return;
+    }
+
+    if (request.source.kind === "palette") {
+      const inserted = insertDashboardWidgetAtLayout(
+        target.state,
+        request.widget,
+        request.targetLayout,
+        request.targetSnapshot,
+      );
+      if (inserted.accepted) {
+        target.commands.restoreLayout(serializeDashboardState(inserted.state));
+        setStatus(`copy accepted: ${request.widget.id}`);
+      }
+      return;
+    }
+
+    const transferred = transferDashboardWidget({
+      source: source.state,
+      target: target.state,
+      widgetId: request.source.widgetId,
+      targetLayout: request.targetLayout,
+      targetSnapshot: request.targetSnapshot,
+      mode: request.mode,
+    });
+    if (transferred.accepted) {
+      source.commands.restoreLayout(serializeDashboardState(transferred.source));
+      target.commands.restoreLayout(serializeDashboardState(transferred.target));
+      setStatus(`move accepted: ${request.source.widgetId}`);
+    }
+  };
+
+  return (
+    <FeatureDemoShell
+      eyebrow="Feature highlight 01"
+      title="Palette and Grid Transfer"
+      description="Consumer-owned state stays authoritative across palette insertion and grid-to-grid movement."
+      status={status}
+      statusLabel="Transfer status"
+    >
+      <section className="readme-feature-demo__palette">
+        <span>Widget palette</span>
+        <button ref={paletteRef} type="button" data-testid="readme-palette-metric">
+          + Conversion metric
+        </button>
+      </section>
+      <div className="readme-feature-demo__grid-pair">
+        <section className="readme-feature-demo__panel" data-testid="readme-transfer-source">
+          <h2>Source dashboard</h2>
+          <DashboardGrid
+            gridId="readme-transfer-source-grid"
+            gridTransferMode="move"
+            columns={source.columns}
+            engineOptions={{ animate: false, cellHeight: 72 }}
+            widgets={source.widgets}
+            showControls={false}
+            onLayoutCommit={source.commands.applyLayoutSnapshot}
+            renderWidget={(widget) => (
+              <div className="readme-demo__metric">
+                <span>{widget.data?.label}</span>
+                <strong>{widget.data?.value}</strong>
+              </div>
+            )}
+          />
+        </section>
+        <section className="readme-feature-demo__panel" data-testid="readme-transfer-target">
+          <h2>Target dashboard</h2>
+          <DashboardGrid
+            gridId="readme-transfer-target-grid"
+            acceptExternalWidgets
+            columns={target.columns}
+            engineOptions={{ animate: false, cellHeight: 72 }}
+            widgets={target.widgets}
+            showControls={false}
+            onLayoutCommit={target.commands.applyLayoutSnapshot}
+            onWidgetDropRequest={applyDrop}
+            renderWidget={(widget) => (
+              <div className="readme-demo__metric">
+                <span>{widget.data?.label}</span>
+                <strong>{widget.data?.value}</strong>
+              </div>
+            )}
+          />
+        </section>
+      </div>
+    </FeatureDemoShell>
+  );
+}
+
+const externalDropWidgets: DashboardWidget<DemoData>[] = [
+  {
+    id: "drop-alerts",
+    title: "Alerts",
+    layout: { id: "drop-alerts", x: 0, y: 0, w: 3, h: 2 },
+    data: { label: "Open alerts", value: "12" },
+  },
+  {
+    id: "drop-traffic",
+    title: "Traffic",
+    layout: { id: "drop-traffic", x: 3, y: 0, w: 3, h: 2 },
+    data: { label: "Active users", value: "2,104" },
+  },
+];
+
+function ExternalDropFeatureDemo() {
+  const dashboard = useDashboardGrid<DemoData>({
+    initialColumns: 6,
+    initialWidgets: externalDropWidgets,
+  });
+  const [status, setStatus] = useState("Drag Alerts into the archive target");
+
+  return (
+    <FeatureDemoShell
+      eyebrow="Feature highlight 02"
+      title="External HTML Drop Target"
+      description="Drop detection reports the target and leaves the resulting state change to the consumer."
+      status={status}
+      statusLabel="External drop status"
+    >
+      <div className="readme-feature-demo__external-layout">
+        <section className="readme-feature-demo__panel readme-feature-demo__external-grid">
+          <h2>Operations dashboard</h2>
+          <DashboardGrid
+            columns={dashboard.columns}
+            engineOptions={{ animate: false, cellHeight: 88 }}
+            externalDropTargets={[
+              { id: "archive", selector: "#readme-feature-trash" },
+            ]}
+            widgets={dashboard.widgets}
+            showControls={false}
+            onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+            onWidgetExternalDrop={(event) => {
+              if (event.targetId === "archive") {
+                dashboard.commands.removeWidget(event.widgetId);
+                setStatus(`Removed ${event.widgetId} from controlled state`);
+              }
+            }}
+            renderWidget={(widget) => (
+              <div className="readme-demo__metric">
+                <span>{widget.data?.label}</span>
+                <strong>{widget.data?.value}</strong>
+              </div>
+            )}
+          />
+        </section>
+        <div
+          id="readme-feature-trash"
+          className="readme-feature-demo__drop-target"
+          data-testid="readme-drop-trash"
+        >
+          <strong>Archive widget</strong>
+          <span>Drop here</span>
+        </div>
+      </div>
+    </FeatureDemoShell>
+  );
+}
+
+const persistenceWidgets: DashboardWidget<DemoData>[] = [
+  {
+    id: "persist-sales",
+    title: "Sales",
+    layout: { id: "persist-sales", x: 6, y: 0, w: 3, h: 2 },
+    data: { label: "Net sales", value: "$98.2K" },
+  },
+  {
+    id: "persist-orders",
+    title: "Orders",
+    layout: { id: "persist-orders", x: 0, y: 0, w: 3, h: 2 },
+    data: { label: "Orders", value: "3,420" },
+  },
+];
+
+function ResponsivePersistenceFeatureDemo() {
+  const dashboard = useDashboardGrid<DemoData>({
+    initialColumns: 12,
+    initialWidgets: persistenceWidgets,
+  });
+  const sales = dashboard.widgets.find((widget) => widget.id === "persist-sales");
+  const layoutCount = Object.keys(dashboard.state.layoutsByColumn).length;
+  const status = `${dashboard.columns} columns · Sales x=${sales?.layout.x ?? "-"} · ${layoutCount} saved layouts`;
+
+  return (
+    <FeatureDemoShell
+      eyebrow="Feature highlight 03"
+      title="Responsive Columns and Persistence"
+      description="Each runtime column count keeps an independent layout that returns when the viewport mode changes."
+      status={status}
+      statusLabel="Persistence status"
+    >
+      <section className="readme-feature-demo__controls" aria-label="Column controls">
+        <button type="button" onClick={() => dashboard.commands.setColumns(6)}>Use 6 columns</button>
+        <button
+          type="button"
+          onClick={() => dashboard.commands.updateWidgetLayout("persist-sales", { x: 2 })}
+          disabled={dashboard.columns !== 6}
+        >
+          Move in 6 columns
+        </button>
+        <button type="button" onClick={() => dashboard.commands.setColumns(12)}>Use 12 columns</button>
+      </section>
+      <section className="readme-feature-demo__panel readme-feature-demo__persistence-grid">
+        <DashboardGrid
+          columns={dashboard.columns}
+          engineOptions={{ animate: false, cellHeight: 96 }}
+          widgets={dashboard.widgets}
+          showControls={false}
+          onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+          renderWidget={(widget) => (
+            <div className="readme-demo__metric">
+              <span>{widget.data?.label}</span>
+              <strong>{widget.data?.value}</strong>
+            </div>
+          )}
+        />
+      </section>
+    </FeatureDemoShell>
+  );
+}
+
+const lazyWidgets: DashboardWidget<DemoData>[] = [
+  {
+    id: "lazy-eager",
+    title: "Above the fold",
+    layout: { id: "lazy-eager", x: 0, y: 0, w: 6, h: 2 },
+    data: { label: "Immediate content", value: "Ready" },
+    lazyLoad: false,
+  },
+  {
+    id: "lazy-retention",
+    title: "Retention",
+    layout: { id: "lazy-retention", x: 0, y: 2, w: 6, h: 2 },
+    data: { label: "Retention", value: "86%" },
+    lazyLoad: false,
+  },
+  {
+    id: "lazy-sessions",
+    title: "Sessions",
+    layout: { id: "lazy-sessions", x: 0, y: 4, w: 6, h: 2 },
+    data: { label: "Sessions", value: "24.1K" },
+    lazyLoad: false,
+  },
+  {
+    id: "lazy-depth",
+    title: "Scroll depth",
+    layout: { id: "lazy-depth", x: 0, y: 6, w: 6, h: 2 },
+    data: { label: "Keep scrolling", value: "↓" },
+    lazyLoad: false,
+  },
+  {
+    id: "lazy-deferred",
+    title: "Below the fold",
+    layout: { id: "lazy-deferred", x: 0, y: 8, w: 6, h: 2 },
+    data: { label: "Deferred content", value: "Mounted" },
+    lazyLoad: true,
+  },
+];
+
+function LazyFeatureContent({
+  widget,
+  onDeferredMount,
+}: {
+  widget: DashboardWidget<DemoData>;
+  onDeferredMount: () => void;
+}) {
+  useEffect(() => {
+    if (widget.id === "lazy-deferred") {
+      onDeferredMount();
+    }
+  }, [onDeferredMount, widget.id]);
+
+  const testId = widget.id === "lazy-eager"
+    ? "readme-lazy-eager-content"
+    : widget.id === "lazy-deferred"
+      ? "readme-lazy-deferred-content"
+      : undefined;
+
+  return (
+    <div
+      className="readme-demo__metric"
+      data-testid={testId}
+    >
+      <span>{widget.data?.label}</span>
+      <strong>{widget.data?.value}</strong>
+    </div>
+  );
+}
+
+function LazyRenderingFeatureDemo() {
+  const [deferredMounted, setDeferredMounted] = useState(false);
+  const status = deferredMounted
+    ? "Deferred content mounted once"
+    : "Scroll to mount deferred React content";
+
+  return (
+    <FeatureDemoShell
+      eyebrow="Feature highlight 04"
+      title="React Content Lazy Rendering"
+      description="Widget shells participate in layout immediately while expensive React content waits for intersection."
+      status={status}
+      statusLabel="Lazy render status"
+    >
+      <section
+        className="readme-feature-demo__lazy-scroll"
+        data-dashboard-lazy-scroll
+        data-testid="readme-lazy-scroll"
+      >
+        <DashboardGrid
+          columns={6}
+          engineOptions={{ animate: false, cellHeight: 72 }}
+          lazyRenderWidget
+          widgets={lazyWidgets}
+          showControls={false}
+          renderWidget={(widget) => (
+            <LazyFeatureContent
+              widget={widget}
+              onDeferredMount={() => setDeferredMounted(true)}
+            />
+          )}
+        />
+      </section>
+    </FeatureDemoShell>
   );
 }
