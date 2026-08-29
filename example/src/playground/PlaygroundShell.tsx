@@ -1,6 +1,6 @@
 import { Search } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { Link, NavLink, useNavigate } from "react-router";
 
 import { PlaygroundLocaleProvider, usePlaygroundLocale } from "./locale";
 import { playgroundMenus } from "./routes";
@@ -127,13 +127,13 @@ function PlaygroundShellContent({ children, routePath }: { children: ReactNode; 
               <div className="docs-sidebar__links">
                 {playgroundMenus.map((menu) => (
                   <div className="playground-sidebar__menu" key={menu.path}>
-                    <NavLink
+                    <Link
                       aria-current={routePath.startsWith(menu.prefix) ? "page" : undefined}
                       className="docs-sidebar__link"
                       to={menu.path}
                     >
                       {menu.label[locale]}
-                    </NavLink>
+                    </Link>
                     <div
                       aria-label={`${menu.label[locale]} ${text.submenu}`}
                       className="playground-sidebar__submenu"

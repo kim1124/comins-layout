@@ -5,11 +5,11 @@
 ## 문서 목록
 
 - `01-requirements.md`: 사용자 요구사항을 패키지 관점으로 정리한 문서
-- `02-architecture.md`: React 어댑터, GridStack 엔진 경계, 상태 모델 구조
-- `03-component-api-draft.md`: 컴포넌트와 훅 API 기준
+- `02-architecture.md`: React 어댑터, GridStack 엔진, transfer, lazy content 경계와 상태 모델 구조
+- `03-component-api-draft.md`: 파일명은 유지하지만 내용은 `0.2.1` current 컴포넌트·훅 API reference
 - `04-verification-strategy.md`: Vitest, Playwright, 빌드 검증 기준
 - `05-open-questions.md`: resolved product decisions, explicit unsupported behavior, and provider-side boundaries
-- `06-transfer-lazy-loading-plan.md`: 다음 마이너 버전의 palette/Grid transfer, lazy rendering, skeleton UI 구현 계획
+- `06-transfer-lazy-loading-plan.md`: transfer 구현 완료와 최소 lazy content boundary, 미구현 skeleton/full-lazy 범위를 함께 보존한 부분 구현 계획
 - `superpowers/plans/2026-08-28-playground-example-restructure.md`: 3개 메뉴와 기능별 서브 메뉴 Playground 구현 계약
 
 프로젝트 운영 및 기여 절차는 루트 `GUIDE.md`를 따른다.

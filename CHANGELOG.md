@@ -1,6 +1,14 @@
 # comins-grid-layout
 
-## Unreleased
+## 0.2.1
+
+- Aligned the README, active API docs, and Playground examples with the implemented palette/Grid transfer, React content lazy-rendering, event, handle, responsive, and persistence contracts.
+- Exported the existing `DashboardWidgetActionLabels` type from the package root.
+- Deprecated the ineffective native `DashboardGridEngineOptions.lazyLoad`, duplicated drag/resize aliases, the title-only `onWidgetHeaderDoubleClick` alias, legacy option-mapper fields, and the adapter-shaped mapper override while preserving `0.2.1` runtime compatibility. Removal is deferred to `0.3.0`.
+- Added a type-backed README inventory gate for every `DashboardGrid` prop, `useDashboardGrid` command, and public handle method.
+- Clarified that the configured browser matrix uses Desktop Chrome, representative `@firefox-parity`, representative `@mobile-touch`, and Chromium resource projects. The earlier `0.2.0` Playwright WebKit statement was incorrect; no WebKit or branded Safari project is configured.
+- Kept `/examples/transfer` as a compatibility redirect to the canonical multi-grid example and removed duplicated internal consumer-example routes after moving affected checks to current routes or test fixtures.
+- Updated package and lockfile metadata to `0.2.1` without changing dependencies.
 
 ## 0.2.0
 

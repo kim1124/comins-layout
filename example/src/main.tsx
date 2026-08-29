@@ -19,8 +19,8 @@ import {
   LayoutLockPlayground,
   LayoutPersistencePlayground,
 } from "./playground/LayoutExamples";
-import { AdvancedPlayground as InternalAdvancedPlayground } from "./playground/AdvancedPlayground";
-import { LayoutPlayground as InternalLayoutPlayground } from "./playground/LayoutPlayground";
+import { AdvancedPlayground as AdvancedTestHarness } from "./playground/AdvancedPlayground";
+import { LayoutPlayground as LayoutTestHarness } from "./playground/LayoutPlayground";
 import { PlaygroundShell } from "./playground/PlaygroundShell";
 import { TransferPlayground } from "./playground/TransferPlayground";
 import {
@@ -28,7 +28,7 @@ import {
   WidgetEventsPlayground,
   WidgetManagePlayground,
 } from "./playground/WidgetExamples";
-import { WidgetPlayground as InternalWidgetPlayground } from "./playground/WidgetPlayground";
+import { WidgetPlayground as WidgetTestHarness } from "./playground/WidgetPlayground";
 import { compatibilityRoutes, playgroundPaths } from "./playground/routes";
 import { ReadmeDemoPage } from "./readme-demo";
 import "gridstack/dist/gridstack.min.css";
@@ -40,9 +40,9 @@ const canonicalPaths = new Set([
   "/docs/getting-started",
   ...playgroundPaths,
   "/readme-demo",
-  "/examples/internal/widget",
-  "/examples/internal/layout",
-  "/examples/internal/advanced",
+  "/__test__/widget",
+  "/__test__/layout",
+  "/__test__/advanced",
 ]);
 
 function resolveInitialPath(pathname: string) {
@@ -117,9 +117,9 @@ const advancedFeatureByPath: Readonly<Record<string, AdvancedFeature>> = {
 
 function renderPlaygroundRoute(pathname: string) {
   switch (pathname) {
-    case "/examples/internal/widget": return <InternalWidgetPlayground />;
-    case "/examples/internal/layout": return <InternalLayoutPlayground />;
-    case "/examples/internal/advanced": return <InternalAdvancedPlayground />;
+    case "/__test__/widget": return <WidgetTestHarness />;
+    case "/__test__/layout": return <LayoutTestHarness />;
+    case "/__test__/advanced": return <AdvancedTestHarness />;
     case "/examples/widget/basic": return <WidgetBasicPlayground />;
     case "/examples/widget/manage": return <WidgetManagePlayground />;
     case "/examples/widget/events": return <WidgetEventsPlayground />;
@@ -141,7 +141,6 @@ function renderPlaygroundRoute(pathname: string) {
       />
     );
     case "/examples/advanced/public-api": return <PublicApiPlayground />;
-    case "/examples/transfer": return <TransferPlayground />;
     default: {
       const feature = advancedFeatureByPath[pathname];
       return feature ? <AdvancedFeaturePlayground feature={feature} /> : null;

@@ -69,6 +69,7 @@ export const compatibilityRoutes: Readonly<Record<string, string>> = {
   "/examples/basic": "/docs/getting-started",
   "/examples/complete": "/examples/advanced/public-api",
   "/examples/crud": "/examples/widget/manage",
+  "/examples/transfer": "/examples/advanced/multi-grid/horizontal",
   "/examples/widget": "/examples/widget/basic",
   "/examples/layout": "/examples/layout/basic",
   "/examples/advanced": "/examples/advanced/cell-height",
@@ -76,7 +77,6 @@ export const compatibilityRoutes: Readonly<Record<string, string>> = {
 
 export const playgroundPaths = new Set([
   ...playgroundMenus.flatMap((menu) => menu.submenus.map((submenu) => submenu.path)),
-  "/examples/transfer",
 ]);
 
 export function resolvePlaygroundPath(pathname: string) {

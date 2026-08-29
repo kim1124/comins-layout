@@ -71,6 +71,7 @@ test.describe("gridstack docs playground routing", () => {
       { from: "/examples/crud", heading: "추가 / 전체 삭제 / 초기화", to: "/examples/widget/manage" },
       { from: "/examples/complete", heading: "안전한 공개 핸들러 / 메서드", to: "/examples/advanced/public-api" },
       { from: "/examples/basic", heading: "시작하기", to: "/docs/getting-started" },
+      { from: "/examples/transfer", heading: "다중 Grid - 가로", to: "/examples/advanced/multi-grid/horizontal" },
       { from: "/unknown-route", heading: "Basic", to: "/examples/widget/basic" },
     ] as const;
 
@@ -101,7 +102,7 @@ test.describe("gridstack docs playground routing", () => {
   test("renders the Data Table-compatible shell for every example route", async ({ page }) => {
     await expectPlaygroundShell(page, "/examples/widget/basic", "위젯");
     await expectPlaygroundShell(page, "/examples/layout/basic", "레이아웃");
-    await expectPlaygroundShell(page, "/examples/transfer", null, 2);
+    await expectPlaygroundShell(page, "/examples/advanced/multi-grid/horizontal", "고급 예제", 2);
     await expectPlaygroundShell(page, "/examples/advanced/cell-height", "고급 예제");
   });
 
@@ -180,7 +181,8 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.getByRole("heading", { name: "5. 이동 / 리사이즈 / 잠금" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "6. Maximize / Minimize / Restore" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "7. Resize frame / Adapter utility" })).toBeVisible();
-    await expect(page.locator(".docs-reference-list__group")).toHaveCount(7);
+    await expect(page.getByRole("heading", { name: "8. Palette / Grid Transfer / Lazy Content" })).toBeVisible();
+    await expect(page.locator(".docs-reference-list__group")).toHaveCount(8);
     await expect(page.locator(".docs-reference-list__separator")).toHaveCount(0);
 
     await expect(page.getByRole("heading", { name: "컴포넌트" })).toHaveCount(0);
@@ -200,9 +202,11 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.locator("#api-interaction-lock").locator("dt").filter({ hasText: "editable / movable / resizable" })).toBeVisible();
     await expect(page.locator("#api-resize-adapter").locator("dt").filter({ hasText: "createDashboardResizeScheduler" })).toBeVisible();
     await expect(page.locator("#api-resize-adapter").getByLabel("Resize frame / Adapter utility Events").locator("dt").filter({ hasText: "onWidgetResizeFrame" })).toBeVisible();
+    await expect(page.locator("#api-transfer-lazy").locator("dt").filter({ hasText: "useDashboardDragIn" })).toBeVisible();
+    await expect(page.locator("#api-transfer-lazy").getByLabel("Palette / Grid Transfer / Lazy Content Events").locator("dt").filter({ hasText: "onWidgetDropRequest" })).toBeVisible();
     await expect(page.locator("#api-widget-crud").getByText("파라미터:")).toBeVisible();
     await expect(page.locator("#api-widget-crud").getByText("리턴값:")).toBeVisible();
-    await expect(page.locator(".docs-reference-list__sample").locator(".docs-code__pre")).toHaveCount(15);
+    await expect(page.locator(".docs-reference-list__sample").locator(".docs-code__pre")).toHaveCount(18);
 
     const layoutApi = page.locator("#api-layout-save-restore");
     await expect(layoutApi).toContainText("DashboardColumnLayoutSnapshot");

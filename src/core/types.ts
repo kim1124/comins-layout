@@ -31,6 +31,11 @@ export type DashboardGridEngineOptions = {
   minRow?: number;
   maxRow?: number;
   sizeToContent?: boolean;
+  /**
+   * @deprecated GridStack native lazy loading does not defer React-owned widget content.
+   * Use DashboardGrid.lazyRenderWidget with DashboardWidget.lazyLoad instead.
+   * This option remains mapped for 0.2.1 compatibility and is planned for removal in 0.3.0.
+   */
   lazyLoad?: boolean;
   dragHandle?: string;
   resizeHandles?: string;

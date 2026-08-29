@@ -31,7 +31,6 @@ const bodyInteractionRoutes = [
   "/examples/advanced/multi-grid/horizontal",
   "/examples/advanced/multi-grid/vertical",
   "/examples/advanced/public-api",
-  "/examples/transfer",
 ] as const;
 
 async function waitForGrid(widget: Locator) {

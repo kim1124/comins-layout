@@ -10,11 +10,14 @@ npm run verify
 
 ## Browser Checks
 
-Run when rendered example, drag and drop, resize, maximize, minimize, or responsive behavior changes:
+Run only affected Playwright specs and projects when rendered examples, drag/drop, resize, maximize/minimize, responsive behavior, or browser contracts change. For example:
 
 ```bash
-npm run verify:full
+npm run test:e2e -- test/playwright/specs/docs-playground-routing.spec.ts --project=chromium
+npm run test:e2e -- test/playwright/specs/transfer-playground.spec.ts --project=chromium
 ```
+
+`npm run verify:full` is reserved for an actual publication or explicit maintainer request.
 
 ## Vitest Scope
 
@@ -36,7 +39,7 @@ The browser project matrix is:
 - `mobile-chrome`: only scenarios tagged `@mobile-touch`; CDP-backed touch injection remains Chromium-only
 - `chromium-resource`: isolated single-worker 100-widget resource gate; Chrome DevTools Protocol counters remain Chromium-only
 
-Safari is outside the automated browser contract and requires separate consumer verification.
+Branded Edge is not directly automated. Safari is outside the automated browser contract and requires separate consumer verification; no WebKit project is configured.
 CI retries are disabled. A failed scenario remains failed evidence and is not rerun automatically inside the same job.
 
 Use Playwright for:

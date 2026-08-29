@@ -433,7 +433,7 @@ async function addWidgetFromDialog(page: Page, width = "2", height = "2") {
 }
 
 test("supports the Widget playground workflow", async ({ page }) => {
-  await page.goto("/examples/internal/widget");
+  await page.goto("/__test__/widget");
 
   await expect(page.getByRole("heading", { name: "위젯" })).toBeVisible();
   await expect(page.getByTestId("dashboard-widget-sales")).toBeVisible();
@@ -456,7 +456,7 @@ test("supports the Widget playground workflow", async ({ page }) => {
 });
 
 test("keeps widget shell aligned with the GridStack content box", async ({ page }) => {
-  await page.goto("/examples/internal/widget");
+  await page.goto("/__test__/widget");
   const sales = page.getByTestId("dashboard-widget-sales");
 
   await expect(sales).toBeVisible();
@@ -502,7 +502,7 @@ test("supports selector-significant widget IDs", async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
   const widgetId = 'sales\"] .grid-stack-item';
 
-  await page.goto("/examples/internal/layout");
+  await page.goto("/__test__/layout");
   await page.getByLabel("전체 상태 및 컬럼 캐시 JSON").fill(
     JSON.stringify({
       columns: 12,
@@ -532,7 +532,7 @@ test("keeps 100 widgets stable through repeated column changes", { tag: "@resour
   test.setTimeout(120_000);
 
   const diagnostics = collectBrowserDiagnostics(page);
-  await page.goto("/examples/internal/layout");
+  await page.goto("/__test__/layout");
 
   const grid = page.getByTestId("dashboard-grid");
   const layoutJson = page.getByLabel("전체 상태 및 컬럼 캐시 JSON");
@@ -926,7 +926,7 @@ test("emits one external drop event and removes controlled state through the con
 
 test("does not emit an external drop event when dropping outside the target", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 1400 });
-  await page.goto("/examples/internal/advanced");
+  await page.goto("/__test__/advanced");
 
   const widget = page.getByTestId("dashboard-widget-sales");
   await dragWidget(page, widget, 180, 0);
@@ -1056,7 +1056,7 @@ test("orders the external drop callback after layout commit and before drag stop
 
 test("drops a widget on a plain div with mobile touch", { tag: "@mobile-touch" }, async ({ page }) => {
   await page.setViewportSize({ width: 412, height: 1400 });
-  await page.goto("/examples/internal/advanced");
+  await page.goto("/__test__/advanced");
 
   const widget = page.getByTestId("dashboard-widget-sales");
   const dragHandle = widget.locator(".grid-stack-item-content");
@@ -1123,7 +1123,7 @@ test("resizes a widget with touch and commits the controlled layout", { tag: "@m
 
 test("expands only the selected widget when its header is double-clicked", { tag: "@firefox-parity" }, async ({ page }) => {
 
-  await page.goto("/examples/internal/advanced");
+  await page.goto("/__test__/advanced");
 
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");
@@ -1154,7 +1154,7 @@ test("expands only the selected widget when its header is double-clicked", { tag
 
 test("does not fill empty row space when a widget action button is double-clicked", async ({ page }) => {
 
-  await page.goto("/examples/internal/layout");
+  await page.goto("/__test__/layout");
 
   const sales = page.getByTestId("dashboard-widget-sales");
   const traffic = page.getByTestId("dashboard-widget-traffic");
@@ -1180,7 +1180,7 @@ test("does not fill empty row space when a widget action button is double-clicke
 
 test("does not resize row widgets on header double-click when the row has no empty space", async ({ page }) => {
 
-  await page.goto("/examples/internal/advanced");
+  await page.goto("/__test__/advanced");
 
   const sales = page.getByTestId("dashboard-widget-sales");
   const traffic = page.getByTestId("dashboard-widget-traffic");
@@ -1233,7 +1233,7 @@ test("does not resize row widgets on header double-click when the row has no emp
 test("preserves independent controlled caches when columns change during a resize", { tag: "@firefox-parity" }, async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
 
-  await page.goto("/examples/internal/layout");
+  await page.goto("/__test__/layout");
 
   const grid = page.getByTestId("dashboard-grid");
   const columnSelect = page.getByLabel("컬럼 선택");
@@ -1293,7 +1293,7 @@ test("preserves independent controlled caches when columns change during a resiz
 test("finalizes widget resize when the pointer leaves the browser boundary", { tag: "@firefox-parity" }, async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
 
-  await page.goto("/examples/internal/layout");
+  await page.goto("/__test__/layout");
 
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");
@@ -1347,7 +1347,7 @@ test("finalizes widget resize when the pointer leaves the browser boundary", { t
 test("finalizes widget drag when the pointer leaves the browser boundary", { tag: "@firefox-parity" }, async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
 
-  await page.goto("/examples/internal/widget");
+  await page.goto("/__test__/widget");
 
   const sales = page.getByTestId("dashboard-widget-sales");
   const beforeDrag = await readWidgetLayout(sales);
@@ -1388,7 +1388,7 @@ test("finalizes widget drag when the pointer leaves the browser boundary", { tag
 test("finishes widget resize after leaving the grid area", async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
 
-  await page.goto("/examples/internal/widget");
+  await page.goto("/__test__/widget");
 
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");
@@ -1416,7 +1416,7 @@ test("finishes widget resize after leaving the grid area", async ({ page }) => {
 test("finishes widget drag after leaving the grid area", async ({ page }) => {
   const diagnostics = collectBrowserDiagnostics(page);
 
-  await page.goto("/examples/internal/widget");
+  await page.goto("/__test__/widget");
 
   const grid = page.getByTestId("dashboard-grid");
   const sales = page.getByTestId("dashboard-widget-sales");

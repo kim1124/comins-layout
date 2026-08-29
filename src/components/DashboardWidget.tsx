@@ -14,6 +14,10 @@ export type DashboardWidgetShellProps<TData = unknown> = {
   onMinimize?: (id: string) => void;
   onRestore?: (id: string) => void;
   onRemove?: (id: string) => void;
+  /**
+   * @deprecated This is a title-only legacy alias. Use onTitleDoubleClick.
+   * Planned for removal in 0.3.0.
+   */
   onHeaderDoubleClick?: (id: string) => void;
   onBeforeTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
   onTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;

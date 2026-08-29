@@ -47,9 +47,13 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   onWidgetResizeFrame?: (event: DashboardWidgetResizeFrameEvent) => void;
   onWidgetExternalDrop?: (event: DashboardWidgetExternalDropEvent) => void;
   onWidgetDropRequest?: (request: DashboardWidgetDropRequest<TData>) => void;
+  /** @deprecated Use onBeforeMove. Planned for removal in 0.3.0. */
   onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
+  /** @deprecated Use onAfterMove. Planned for removal in 0.3.0. */
   onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
+  /** @deprecated Use onBeforeResize. Planned for removal in 0.3.0. */
   onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
+  /** @deprecated Use onAfterResize. Planned for removal in 0.3.0. */
   onWidgetResizeStop?: (event: DashboardWidgetInteractionEvent) => void;
   onBeforeMove?: (event: DashboardWidgetInteractionEvent) => void;
   onMove?: (event: DashboardWidgetInteractionEvent) => void;
@@ -64,6 +68,10 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   onMinimizeWidget?: (id: string) => void;
   onRestoreWidget?: (id: string) => void;
   onRemoveWidget?: (id: string) => void;
+  /**
+   * @deprecated This is a title-only legacy alias. Use onTitleDoubleClick.
+   * Planned for removal in 0.3.0.
+   */
   onWidgetHeaderDoubleClick?: (id: string) => void;
 };
 
