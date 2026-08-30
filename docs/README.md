@@ -12,7 +12,7 @@
 
 - `01-requirements.md`: 사용자 요구사항을 패키지 관점으로 정리한 문서
 - `02-architecture.md`: React 어댑터, GridStack 엔진, transfer, lazy content 경계와 상태 모델 구조
-- `03-component-api-draft.md`: 파일명은 유지하지만 내용은 `0.2.1` current 컴포넌트·훅 API reference
+- `03-component-api-draft.md`: 파일명은 유지하지만 내용은 `0.2.2` current 컴포넌트·훅 API reference
 - `04-verification-strategy.md`: Vitest, Playwright, 빌드 검증 기준
 - `05-open-questions.md`: resolved product decisions, explicit unsupported behavior, and provider-side boundaries
 - `06-transfer-lazy-loading-plan.md`: transfer 구현 완료와 최소 lazy content boundary, 미구현 skeleton/full-lazy 범위를 함께 보존한 부분 구현 계획

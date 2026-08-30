@@ -178,7 +178,7 @@ jobs:
         run: node --test test/security/sensitive-data-gates.node.mjs
       - name: Run documentation checks
         if: ${{ needs.changes.outputs.fast != 'true' && needs.changes.outputs.docs == 'true' }}
-        run: npm run test:run -- test/vitest/readme.test.ts test/vitest/playwright-project-policy.test.ts
+        run: npm run test:run -- test/vitest/readme.test.ts test/vitest/user-docs.test.ts test/vitest/document-links.test.ts test/vitest/playwright-project-policy.test.ts
       - name: Run package baseline
         if: ${{ needs.changes.outputs.fast == 'true' }}
         run: npm run verify

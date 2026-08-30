@@ -9,11 +9,13 @@
 
 ## Feature highlights
 
+The local example routes below require a source checkout. Follow [Run the demo](#run-the-demo) before opening them.
+
 ### Palette and controlled grid transfer
 
 Palette items copy into a target grid, while controlled dashboard widgets can move or copy between grids through typed, fail-closed drop requests.
 
-[Live example](http://127.0.0.1:6001/examples/advanced/multi-grid/horizontal) · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/08-palette-and-grid-transfer.md)
+Local example: `/examples/advanced/multi-grid/horizontal` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/08-palette-and-grid-transfer.md)
 
 ![Palette and grid transfer between controlled dashboards](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-transfer.gif)
 
@@ -21,7 +23,7 @@ Palette items copy into a target grid, while controlled dashboard widgets can mo
 
 Ordinary HTML can act as a typed drop target. The package reports the release and the consumer decides whether to remove or otherwise update controlled state.
 
-[Live example](http://127.0.0.1:6001/examples/advanced/public-api) · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/07-external-drop-targets.md)
+Local example: `/examples/advanced/public-api` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/07-external-drop-targets.md)
 
 ![External HTML drop target with consumer-owned state removal](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-external-drop.gif)
 
@@ -29,7 +31,7 @@ Ordinary HTML can act as a typed drop target. The package reports the release an
 
 Runtime column changes retain an independent serializable layout for every visited column count and restore it when that column count becomes active again.
 
-[Live example](http://127.0.0.1:6001/examples/advanced/responsive/breakpoints) · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/06-responsive-layouts.md)
+Local example: `/examples/advanced/responsive/breakpoints` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/06-responsive-layouts.md)
 
 ![Responsive columns with per-column layout persistence](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-responsive-persistence.gif)
 
@@ -37,7 +39,7 @@ Runtime column changes retain an independent serializable layout for every visit
 
 GridStack item geometry remains mounted while expensive React content waits for its first intersection with the configured scroll boundary.
 
-[Live example](http://127.0.0.1:6001/examples/advanced/lazy-load) · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/09-lazy-rendering.md)
+Local example: `/examples/advanced/lazy-load` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/09-lazy-rendering.md)
 
 ![React widget content rendering after lazy-scroll intersection](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-lazy-rendering.gif)
 
@@ -86,7 +88,7 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:6001/docs/getting-started](http://127.0.0.1:6001/docs/getting-started). The same server exposes every example route referenced below.
+Open `http://127.0.0.1:6001/docs/getting-started`. The same server exposes every example route referenced below.
 
 Import both stylesheets once in the client bundle:
 
@@ -213,9 +215,9 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 
 ### Deprecated compatibility props
 
-These aliases remain callable in `0.2.1` with their existing order and are planned for removal in `0.3.0`. New code should use the canonical lifecycle props above.
+These aliases remain callable throughout `0.2.x` with their existing order and are planned for removal in `0.3.0`. New code should use the canonical lifecycle props above.
 
-| Deprecated prop | Replacement | Preserved `0.2.1` behavior |
+| Deprecated prop | Replacement | Preserved `0.2.x` behavior |
 | --- | --- | --- |
 | `onWidgetDragStart` | `onBeforeMove` | Called after `onBeforeMove` |
 | `onWidgetDragStop` | `onAfterMove` | Called after layout commit and before `onAfterMove` |
@@ -349,7 +351,7 @@ export function TransferDashboard() {
 }
 ```
 
-Setting `acceptExternalWidgets` without handling `onWidgetDropRequest` is intentionally fail-closed: the adapter removes the temporary target node and no controlled state changes. For keyboard and other non-drag alternatives, call `insertDashboardWidgetAtLayout` or `transferDashboardWidget` from a button using the same state transition shown above. The complete move/copy, rejection, and button alternative is available at `/examples/advanced/multi-grid/horizontal`; `/examples/transfer` remains a `0.2.1` compatibility redirect.
+Setting `acceptExternalWidgets` without handling `onWidgetDropRequest` is intentionally fail-closed: the adapter removes the temporary target node and no controlled state changes. For keyboard and other non-drag alternatives, call `insertDashboardWidgetAtLayout` or `transferDashboardWidget` from a button using the same state transition shown above. The complete move/copy, rejection, and button alternative is available at `/examples/advanced/multi-grid/horizontal`; `/examples/transfer` remains a `0.2.x` compatibility redirect.
 
 ## Engine and responsive options
 
@@ -390,7 +392,7 @@ Without `responsive`, `columns` is authoritative. With `responsive`, `columns` i
 | --- | --- |
 | `lazyRenderWidget` | Enables the Comins React content boundary for the grid |
 | `DashboardWidget.lazyLoad` | Per-widget override; `false` opts out, while `true` does not enable global lazy rendering by itself |
-| `DashboardGridEngineOptions.lazyLoad` | Deprecated native GridStack option retained only for `0.2.1` compatibility; it does not delay React-owned widget content |
+| `DashboardGridEngineOptions.lazyLoad` | Deprecated native GridStack option retained for `0.2.x` compatibility; it does not delay React-owned widget content |
 
 The observer uses the nearest `[data-dashboard-lazy-scroll]` ancestor as its root, or the viewport when none exists. Widget shells and GridStack items remain mounted, content mounts once on first intersection and is retained afterward, and browsers without `IntersectionObserver` render content eagerly. This is content mount deferral, not full widget virtualization; no skeleton/loading-state API is currently provided.
 
@@ -524,10 +526,10 @@ Public CSS classes and custom properties are scoped under `.comins-grid-layout`.
 
 Run `npm run dev`, then use the local documentation application to inspect the package without changing consumer code:
 
-- [Getting started](http://127.0.0.1:6001/docs/getting-started) covers installation, the controlled-state model, and the first dashboard.
-- [Widget management](http://127.0.0.1:6001/examples/widget/manage) covers add, delete all, and reset; the Layout menu covers movement, resize, columns, arrange, maximize, and minimize.
-- [Advanced examples](http://127.0.0.1:6001/examples/advanced/multi-grid/horizontal) cover palette drag-in, grid transfer, external drop targets, responsive layouts, lazy rendering, nested composition, and supported GridStack options.
-- [API reference](http://127.0.0.1:6001/api) lists the current public props, commands, types, and advanced handle methods.
+- Getting started: `/docs/getting-started` covers installation, the controlled-state model, and the first dashboard.
+- Widget management: `/examples/widget/manage` covers add, delete all, and reset; the Layout menu covers movement, resize, columns, arrange, maximize, and minimize.
+- Advanced examples: `/examples/advanced/multi-grid/horizontal` covers palette drag-in, grid transfer, external drop targets, responsive layouts, lazy rendering, nested composition, and supported GridStack options.
+- API reference: `/api` lists the current public props, commands, types, and advanced handle methods.
 
 The `/readme-demo` route is an internal deterministic browser fixture used to capture the animations above. Consumer examples should use the documentation and example routes instead.
 

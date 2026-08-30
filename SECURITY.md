@@ -10,8 +10,8 @@ Before 1.0.0, only the latest published version receives security fixes.
 
 | Version | Supported |
 | --- | --- |
-| 0.2.1 | Yes |
-| < 0.2.1 | No |
+| 0.2.2 | Yes |
+| < 0.2.2 | No |
 
 ## Before a Public npm Release
 

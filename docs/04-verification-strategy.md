@@ -23,12 +23,16 @@ npm run test:e2e -- test/playwright/specs/transfer-playground.spec.ts --project=
 
 Use Vitest for:
 
+- public documentation links, Markdown anchors, and canonical example routes
+- README and English/Korean guide parity with the current public API
 - column count clamping
 - layout serialization helpers
 - maximize and minimize reducer behavior
 - auto-arrange state transformation
 - resize scheduler behavior with fake timers or mocked animation frames
 - GridStack option mapping without a real browser
+
+Repository-relative files, Markdown anchors, same-repository GitHub targets, and documented local example routes are deterministic CI contracts. Public documentation must present localhost addresses as source-checkout commands or route text rather than clickable links that appear broken outside a running local server. External sites remain a release-time/manual check because network and authentication availability are not deterministic CI inputs.
 
 ## Playwright Scope
 

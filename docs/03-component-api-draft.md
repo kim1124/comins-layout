@@ -1,4 +1,4 @@
-# Current Component API Reference (`0.2.1`)
+# Current Component API Reference (`0.2.2`)
 
 ## DashboardGrid
 
@@ -44,7 +44,7 @@ type DashboardGridProps<TWidgetData = unknown> = {
 };
 ```
 
-`onWidgetDragStart`, `onWidgetDragStop`, `onWidgetResizeStart`, `onWidgetResizeStop`, and the title-only `onWidgetHeaderDoubleClick` alias remain deprecated compatibility props in `0.2.1`. Use the canonical lifecycle props above; removal is planned for `0.3.0`.
+`onWidgetDragStart`, `onWidgetDragStop`, `onWidgetResizeStart`, `onWidgetResizeStop`, and the title-only `onWidgetHeaderDoubleClick` alias remain deprecated compatibility props throughout `0.2.x`. Use the canonical lifecycle props above; removal is planned for `0.3.0`.
 
 ## DashboardExternalDropTarget
 

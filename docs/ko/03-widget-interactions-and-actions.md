@@ -30,6 +30,6 @@
 
 이동 lifecycle은 `onBeforeMove` → `onMove` → commit → `onAfterMove`, resize는 `onBeforeResize` → `onResize` → commit → `onAfterResize`입니다. active event는 animation frame 단위로 합쳐집니다. 제목 더블클릭은 `onBeforeTitleDoubleClick`, `onTitleDoubleClick`, `onAfterTitleDoubleClick` 순서이며 자동 상태 변경은 없습니다.
 
-`0.2.1`에는 `onWidgetDragStart`, `onWidgetDragStop`, `onWidgetResizeStart`, `onWidgetResizeStop`, `onWidgetHeaderDoubleClick`이 호환 alias로 남아 있지만 deprecated이며 `0.3.0` 제거 예정입니다. 신규 코드는 canonical callback만 사용합니다.
+`0.2.x` 전반에는 `onWidgetDragStart`, `onWidgetDragStop`, `onWidgetResizeStart`, `onWidgetResizeStop`, `onWidgetHeaderDoubleClick`이 호환 alias로 남아 있지만 deprecated이며 `0.3.0` 제거 예정입니다. 신규 코드는 canonical callback만 사용합니다.
 
 Playground: `/examples/layout/basic`, `/examples/layout/lock`, `/examples/widget/events`.
