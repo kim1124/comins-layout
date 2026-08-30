@@ -50,14 +50,14 @@ function constantFailure(result) {
   assert.equal(result.stderr, failure);
 }
 
-test('references the canonical Contract v1.7 without copying common policy', () => {
+test('references the canonical Contract v1.8 without copying common policy', () => {
   const agents = read('AGENTS.md');
   const security = read('SECURITY.md');
   const packageJson = JSON.parse(read('package.json'));
   const packageLock = JSON.parse(read('package-lock.json'));
   const changelog = read('CHANGELOG.md');
 
-  assert.match(agents, /managed-start contract=v1\.7/);
+  assert.match(agents, /managed-start contract=v1\.8/);
   assert.match(agents, /comins-governance\/blob\/main\/COMINS_CONTRACT\.md/);
   assert.match(agents, /Governance is the only\s+common-policy owner/i);
   assert.match(agents, /module owns their CI implementation/i);
