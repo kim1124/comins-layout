@@ -7,7 +7,39 @@
 
 `comins-grid-layout` is a React dashboard layout module powered by GridStack. It combines serializable React state with widget CRUD, drag, resize, responsive columns, maximize/minimize flows, persistence, and an advanced escape hatch to the underlying GridStack API.
 
-![Widget CRUD, drag, and resize demo](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-demo.gif)
+## Feature highlights
+
+### Palette and controlled grid transfer
+
+Palette items copy into a target grid, while controlled dashboard widgets can move or copy between grids through typed, fail-closed drop requests.
+
+[Live example](http://127.0.0.1:6001/examples/advanced/multi-grid/horizontal) · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/08-palette-and-grid-transfer.md)
+
+![Palette and grid transfer between controlled dashboards](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-transfer.gif)
+
+### Consumer-owned external drop targets
+
+Ordinary HTML can act as a typed drop target. The package reports the release and the consumer decides whether to remove or otherwise update controlled state.
+
+[Live example](http://127.0.0.1:6001/examples/advanced/public-api) · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/07-external-drop-targets.md)
+
+![External HTML drop target with consumer-owned state removal](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-external-drop.gif)
+
+### Responsive columns with layout persistence
+
+Runtime column changes retain an independent serializable layout for every visited column count and restore it when that column count becomes active again.
+
+[Live example](http://127.0.0.1:6001/examples/advanced/responsive/breakpoints) · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/06-responsive-layouts.md)
+
+![Responsive columns with per-column layout persistence](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-responsive-persistence.gif)
+
+### React content lazy rendering
+
+GridStack item geometry remains mounted while expensive React content waits for its first intersection with the configured scroll boundary.
+
+[Live example](http://127.0.0.1:6001/examples/advanced/lazy-load) · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/09-lazy-rendering.md)
+
+![React widget content rendering after lazy-scroll intersection](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-lazy-rendering.gif)
 
 ## Features
 
@@ -44,6 +76,17 @@ Before `1.0.0`, only the latest published version receives security fixes.
 ```bash
 npm install comins-grid-layout react react-dom
 ```
+
+### Run the demo
+
+From a source checkout, install the repository dependencies and start the local documentation playground:
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://127.0.0.1:6001/docs/getting-started](http://127.0.0.1:6001/docs/getting-started). The same server exposes every example route referenced below.
 
 Import both stylesheets once in the client bundle:
 
@@ -476,6 +519,60 @@ dashboard.commands.restoreLayout(legacySnapshot);
 ## Styling
 
 Public CSS classes and custom properties are scoped under `.comins-grid-layout`. The package does not apply a global reset or require a Comins design system. Override package variables on a local container when needed.
+
+## Playground
+
+Run `npm run dev`, then use the local documentation application to inspect the package without changing consumer code:
+
+- [Getting started](http://127.0.0.1:6001/docs/getting-started) covers installation, the controlled-state model, and the first dashboard.
+- [Widget management](http://127.0.0.1:6001/examples/widget/manage) covers add, delete all, and reset; the Layout menu covers movement, resize, columns, arrange, maximize, and minimize.
+- [Advanced examples](http://127.0.0.1:6001/examples/advanced/multi-grid/horizontal) cover palette drag-in, grid transfer, external drop targets, responsive layouts, lazy rendering, nested composition, and supported GridStack options.
+- [API reference](http://127.0.0.1:6001/api) lists the current public props, commands, types, and advanced handle methods.
+
+The `/readme-demo` route is an internal deterministic browser fixture used to capture the animations above. Consumer examples should use the documentation and example routes instead.
+
+## Documentation
+
+The repository provides [complete English guides](https://github.com/kim1124/comins-layout/tree/main/docs/user) and [matching Korean guides](https://github.com/kim1124/comins-layout/tree/main/docs/ko). Start with the [Quick Start guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/01-quick-start.md), then use the topic guide that matches the feature.
+
+| Topic | Guide |
+| --- | --- |
+| Controlled state and CRUD | [State and CRUD](https://github.com/kim1124/comins-layout/blob/main/docs/user/02-controlled-state-and-crud.md) |
+| Widget actions and lifecycle | [Interactions and actions](https://github.com/kim1124/comins-layout/blob/main/docs/user/03-widget-interactions-and-actions.md) |
+| Columns and arrange | [Columns, arrange, and reset](https://github.com/kim1124/comins-layout/blob/main/docs/user/04-columns-arrange-and-reset.md) |
+| Complete serializable snapshots | [Persistence](https://github.com/kim1124/comins-layout/blob/main/docs/user/05-persistence.md) |
+| Responsive columns | [Responsive layouts](https://github.com/kim1124/comins-layout/blob/main/docs/user/06-responsive-layouts.md) |
+| Grid → HTML release | [External drop targets](https://github.com/kim1124/comins-layout/blob/main/docs/user/07-external-drop-targets.md) |
+| Palette and grid → grid transfer | [Palette and grid transfer](https://github.com/kim1124/comins-layout/blob/main/docs/user/08-palette-and-grid-transfer.md) |
+| React content deferral | [Lazy rendering](https://github.com/kim1124/comins-layout/blob/main/docs/user/09-lazy-rendering.md) |
+| Event selection and content resize | [Events and content resize](https://github.com/kim1124/comins-layout/blob/main/docs/user/10-events-and-content-resize.md) |
+| Supported GridStack mapping | [Engine options](https://github.com/kim1124/comins-layout/blob/main/docs/user/11-engine-options.md) |
+| Engine escape hatch | [Advanced GridStack access](https://github.com/kim1124/comins-layout/blob/main/docs/user/12-advanced-gridstack-access.md) |
+| CSS, accessibility, and support | [Styling and boundaries](https://github.com/kim1124/comins-layout/blob/main/docs/user/13-styling-accessibility-and-boundaries.md) |
+| Executable examples | [Playground](https://github.com/kim1124/comins-layout/blob/main/docs/user/14-playground.md) |
+
+## Current boundaries
+
+- Widget move and resize are pointer/touch interactions; keyboard alternatives must be implemented by the consumer with the public state helpers or commands.
+- Safari and branded Edge are not directly certified by the automated browser matrix. Chromium compatibility does not replace consumer testing in those browsers.
+- Lazy rendering defers React content mounting only. It is not full widget virtualization and does not provide a skeleton/loading-state API.
+- External drop targets are same-document light-DOM elements. Cross-frame and shadow-root targets are outside the contract.
+- Native dynamic GridStack sub-grid ownership and raw engine CRUD are outside the controlled React state contract; compose controlled `DashboardGrid` instances instead.
+- The package makes no runtime network requests and does not include persistence storage, telemetry, authentication, or framework-specific server integration.
+
+## Development
+
+```bash
+npm run dev                # local documentation and examples
+npm run test:run           # Vitest suite
+npm run typecheck          # public and internal TypeScript contracts
+npm run build              # production bundle and declarations
+npm run test:e2e           # Playwright browser suite
+npm run verify             # package baseline gate
+npm run docs:readme-gif    # regenerate all four README animations atomically
+```
+
+`npm run verify:full` is reserved for publication or an explicit maintainer request because it adds the complete browser and resource gate.
 
 ## Verification and security
 
