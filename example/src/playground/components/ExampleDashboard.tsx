@@ -1,4 +1,4 @@
-import { Move, Settings2, Trash2 } from "lucide-react";
+import { Move, MoveDiagonal2, Trash2 } from "lucide-react";
 
 import { DashboardGrid } from "../../../../src";
 import type {
@@ -7,6 +7,7 @@ import type {
 } from "../../../../src";
 import { usePlaygroundLocale } from "../locale";
 import type { DashboardRuntime, ExampleWidgetData } from "../types";
+import { WidgetSettingsTable } from "./WidgetSettingsTable";
 
 type ExampleDashboardProps = Pick<
   DashboardGridProps<ExampleWidgetData>,
@@ -15,6 +16,7 @@ type ExampleDashboardProps = Pick<
   | "movable"
   | "resizable"
   | "responsive"
+  | "showControls"
   | "lazyRenderWidget"
   | "onBeforeMove"
   | "onMove"
@@ -37,6 +39,7 @@ export function ExampleDashboard({
   ...callbacks
 }: ExampleDashboardProps) {
   const { locale, text } = usePlaygroundLocale();
+  const className = ["playground-grid--numbered", callbacks.className].filter(Boolean).join(" ");
   const renderActions = (widget: DashboardWidget<ExampleWidgetData>) => {
     const resizeLocked = widget.locked === true || widget.resizable === false;
     const moveLocked = widget.locked === true || widget.movable === false;
@@ -53,7 +56,7 @@ export function ExampleDashboard({
           type="button"
           onClick={() => dashboard.commands.updateWidget(widget.id, { resizable: resizeLocked })}
         >
-          <Settings2 aria-hidden="true" size={15} />
+          <MoveDiagonal2 aria-hidden="true" size={15} />
         </button>
         <button
           aria-label={locale === "ko"
@@ -84,6 +87,7 @@ export function ExampleDashboard({
   return (
     <DashboardGrid
       {...callbacks}
+      className={className}
       columns={dashboard.columns}
       engineOptions={{ animate: false, ...engineOptions }}
       movable={movable}
@@ -96,7 +100,7 @@ export function ExampleDashboard({
       onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
       renderWidget={(widget) => (
         <div className="playground-numbered-widget-content">
-          Content {widget.data?.number ?? widget.data?.value ?? widget.id}
+          <WidgetSettingsTable movable={movable} resizable={resizable} widget={widget} />
         </div>
       )}
     />

@@ -29,7 +29,6 @@ const bodyInteractionRoutes = [
   "/examples/advanced/size-to-content",
   "/examples/advanced/transform",
   "/examples/advanced/multi-grid/horizontal",
-  "/examples/advanced/multi-grid/vertical",
   "/examples/advanced/public-api",
 ] as const;
 
@@ -200,14 +199,19 @@ test("keeps the title-only drag contract isolated to its named example", async (
   await dragFrom(page, widget.locator(".comins-grid-layout-widget__body"));
   await expect.poll(() => readGeometry(widget)).toEqual(beforeBodyDrag);
 
-  await expectMoveAndResize(page, widget, widget.locator(".comins-grid-layout-widget__title"));
+  const title = widget.locator(".comins-grid-layout-widget__title");
+  const header = widget.locator(".comins-grid-layout-widget__header");
+  const [titleBox, headerBox] = await Promise.all([title.boundingBox(), header.boundingBox()]);
+  if (!titleBox || !headerBox) throw new Error("Title drag handle geometry is unavailable");
+  expect(titleBox.width).toBeGreaterThan(headerBox.width * 0.45);
+  await expect(title).toHaveCSS("cursor", "grab");
+  await expect(title).toHaveCSS("touch-action", "none");
+  await expect(title).toHaveCSS("user-select", "none");
+
+  await expectMoveAndResize(page, widget, title);
 });
 
-for (const route of [
-  "/examples/advanced/nested/basic",
-  "/examples/advanced/nested/advanced",
-  "/examples/advanced/nested/constraints",
-] as const) {
+for (const route of ["/examples/advanced/nested/basic"] as const) {
   test(`allows title move and resize without crossing nested grid ownership on ${route}`, async ({ page }) => {
     await page.goto(route);
     const widget = page.locator(".grid-stack").last().locator(":scope > .grid-stack-item").nth(1);
@@ -218,9 +222,19 @@ for (const route of [
     if (!gridBox) throw new Error("Nested grid geometry is unavailable");
 
     const beforeMove = await readGeometry(widget);
+    const title = widget.locator(".comins-grid-layout-widget__title").first();
+    const [titleBox, headerBox] = await Promise.all([
+      title.boundingBox(),
+      widget.locator(".comins-grid-layout-widget__header").first().boundingBox(),
+    ]);
+    if (!titleBox || !headerBox) throw new Error("Nested title drag handle geometry is unavailable");
+    expect(titleBox.width).toBeGreaterThan(headerBox.width * 0.65);
+    await expect(title).toHaveCSS("cursor", "grab");
+    await expect(title).toHaveCSS("touch-action", "none");
+    await expect(title).toHaveCSS("user-select", "none");
     await dragFrom(
       page,
-      widget.locator(".comins-grid-layout-widget__title").first(),
+      title,
       -gridBox.width / 4,
       0,
     );

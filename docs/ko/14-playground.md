@@ -25,11 +25,12 @@ npm run dev
 | React content lazy | `/examples/advanced/lazy-load` |
 | 반응형 column width | `/examples/advanced/responsive/column` |
 | 반응형 breakpoint | `/examples/advanced/responsive/breakpoints` |
-| 팔레트와 Grid 전송 | `/examples/advanced/multi-grid/horizontal` |
+| 다중 Grid 전송과 배치 방향 전환 | `/examples/advanced/multi-grid/horizontal` |
+| 외부 휴지통 드롭 | `/examples/advanced/external-drop-trash` |
 | 안전한 public handle | `/examples/advanced/public-api` |
 | API reference | `/api` |
 
-Advanced 메뉴에는 grid line, float, mobile touch, nested composition, responsive `none`, RTL, size to content, static mode, title drag handle, transform, vertical multi-grid 예제도 있습니다.
+Advanced 메뉴에는 grid line, float, mobile touch, 2/3단계 nested composition, responsive `none`, RTL, size to content, static mode, title drag handle, transform 예제도 있습니다. 다중 Grid route에서는 가로/세로 배치를 페이지 안에서 전환합니다.
 
 `/readme-demo`는 README GIF 재생성을 위한 내부 deterministic fixture이며 소비자 예제 또는 지원 package route가 아닙니다.
 

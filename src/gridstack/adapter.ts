@@ -79,6 +79,8 @@ export interface DashboardGridHandle {
 
 const layoutFields = ["id", "x", "y", "w", "h", "minW", "minH", "maxW", "maxH"] as const;
 let dashboardDropOperationSequence = 0;
+type DashboardDragPointerOffset = { xRatio: number; yRatio: number };
+const dashboardDragPointerOffsets = new WeakMap<Element, DashboardDragPointerOffset>();
 
 export function sameDashboardLayoutSnapshot(
   left: DashboardLayoutSnapshot | undefined,
@@ -210,6 +212,51 @@ function readDashboardDroppedLayout(node: GridStackNode, widgetId: string): Dash
     minH: node.minH,
     maxW: node.maxW,
     maxH: node.maxH,
+  };
+}
+
+function captureDashboardDragPointerOffset(item: GridItemHTMLElement, event: Event): void {
+  const point = readDashboardClientPoint(event);
+  const bounds = item.getBoundingClientRect();
+  if (!point || bounds.width <= 0 || bounds.height <= 0) {
+    return;
+  }
+  dashboardDragPointerOffsets.set(item, {
+    xRatio: Math.min(1, Math.max(0, (point.clientX - bounds.left) / bounds.width)),
+    yRatio: Math.min(1, Math.max(0, (point.clientY - bounds.top) / bounds.height)),
+  });
+}
+
+export function readDashboardDroppedLayoutAtPointer(
+  node: GridStackNode,
+  widgetId: string,
+  event: Event,
+  targetElement: HTMLElement,
+  columns: number,
+  cellHeight: number,
+  pointerOffset: DashboardDragPointerOffset | undefined,
+): DashboardWidgetLayout {
+  const layout = readDashboardDroppedLayout(node, widgetId);
+  const point = readDashboardClientPoint(event);
+  const bounds = targetElement.getBoundingClientRect();
+  const cellWidth = bounds.width / columns;
+  if (
+    !point
+    || !pointerOffset
+    || !Number.isFinite(cellWidth)
+    || cellWidth <= 0
+    || !Number.isFinite(cellHeight)
+    || cellHeight <= 0
+  ) {
+    return layout;
+  }
+  const x = Math.round((point.clientX - bounds.left) / cellWidth - pointerOffset.xRatio * layout.w);
+  const y = Math.round((point.clientY - bounds.top) / cellHeight - pointerOffset.yRatio * layout.h);
+  const maxX = Math.max(0, columns - layout.w);
+  return {
+    ...layout,
+    x: Math.min(maxX, Math.max(0, x)),
+    y: Math.max(0, y),
   };
 }
 
@@ -771,6 +818,9 @@ export function createDashboardGridAdapter<TData>(
       (event?.target instanceof HTMLElement
         ? (event.target.closest(".grid-stack-item") as GridItemHTMLElement | null) ?? undefined
         : undefined);
+    if (kind === "drag" && event && activeInteractionItem) {
+      captureDashboardDragPointerOffset(activeInteractionItem, event);
+    }
     cancelFrame(finishInteractionFrame);
     cancelFrame(forceEndFrame);
     cancelFrame(interactionActionFrame);
@@ -833,7 +883,7 @@ export function createDashboardGridAdapter<TData>(
   };
 
   const droppedHandler = (
-    _event: Event,
+    event: Event,
     previousNode: GridStackNode | undefined,
     newNode: GridStackNode | undefined,
   ) => {
@@ -843,6 +893,18 @@ export function createDashboardGridAdapter<TData>(
     const acceptedSource = resolveAcceptedDropSource(item);
     let request: DashboardWidgetDropRequest<TData> | undefined;
     if (acceptedSource && newNode) {
+      const pointerLayout = readDashboardDroppedLayoutAtPointer(
+        newNode,
+        acceptedSource.candidate.widget.id,
+        event,
+        element,
+        grid.getColumn(),
+        grid.getCellHeight(true),
+        item ? dashboardDragPointerOffsets.get(item) : undefined,
+      );
+      if (newNode.el && (pointerLayout.x !== newNode.x || pointerLayout.y !== newNode.y)) {
+        grid.update(newNode.el, { x: pointerLayout.x, y: pointerLayout.y });
+      }
       const targetLayout = readDashboardDroppedLayout(newNode, acceptedSource.candidate.widget.id);
       const targetSnapshot = readDashboardLayoutSnapshot(grid, grid.getColumn());
       request = createDashboardWidgetDropRequest(
@@ -854,6 +916,9 @@ export function createDashboardGridAdapter<TData>(
       );
     }
 
+    if (item) {
+      dashboardDragPointerOffsets.delete(item);
+    }
     pendingAcceptedExternalSource = undefined;
     completeDashboardWidgetDrop(
       request,

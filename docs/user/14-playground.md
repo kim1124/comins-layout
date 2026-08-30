@@ -27,11 +27,12 @@ Open `http://127.0.0.1:6001/docs/getting-started`. The API reference is `http://
 | Lazy React content | `/examples/advanced/lazy-load` |
 | Responsive column width | `/examples/advanced/responsive/column` |
 | Responsive breakpoints | `/examples/advanced/responsive/breakpoints` |
-| Palette and grid transfer | `/examples/advanced/multi-grid/horizontal` |
+| Multi-grid transfer and orientation toggle | `/examples/advanced/multi-grid/horizontal` |
+| External trash drop | `/examples/advanced/external-drop-trash` |
 | Safe public handle | `/examples/advanced/public-api` |
 | API reference | `/api` |
 
-Additional Advanced menu routes demonstrate grid lines, float, mobile touch, controlled nested composition, responsive `none`, RTL, size to content, static mode, title-only drag handles, transforms, and vertical multi-grid layout.
+Additional Advanced menu routes demonstrate grid lines, float, mobile touch, controlled two-/three-level nested composition, responsive `none`, RTL, size to content, static mode, title-only drag handles, and transforms. The multi-grid route switches horizontal and vertical presentation in place.
 
 The internal `/readme-demo` route is a deterministic browser fixture used to regenerate README animations. It is not a consumer example or a supported package route.
 

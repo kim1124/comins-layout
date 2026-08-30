@@ -6,6 +6,7 @@ import {
   detachControlledDashboardGridOwner,
   findWidgetElementById,
   isDashboardDropCandidateAccepted,
+  readDashboardDroppedLayoutAtPointer,
   rollbackDashboardExternalWidget,
   sameDashboardLayoutSnapshot,
   shouldSuppressDashboardExternalChange,
@@ -80,6 +81,36 @@ describe("sameDashboardLayoutSnapshot", () => {
         widgets: [{ ...baseline.widgets[0]!, maxW: 5 }, baseline.widgets[1]!],
       }),
     ).toBe(false);
+  });
+});
+
+describe("readDashboardDroppedLayoutAtPointer", () => {
+  it("preserves the normalized grab point when source and target grids use different column widths", () => {
+    const targetElement = {
+      getBoundingClientRect: () => ({ left: 777, top: 361.21875, width: 446, height: 336 }),
+    } as unknown as HTMLElement;
+    const event = { clientX: 962, clientY: 368 } as unknown as Event;
+    const droppedNode = { x: 3, y: 2, w: 2, h: 2 } as GridStackNode;
+
+    expect(readDashboardDroppedLayoutAtPointer(
+      droppedNode,
+      "a-sales",
+      event,
+      targetElement,
+      12,
+      84,
+      { xRatio: 0.5, yRatio: 0.1 },
+    )).toMatchObject({ id: "a-sales", x: 4, y: 0, w: 2, h: 2 });
+
+    expect(readDashboardDroppedLayoutAtPointer(
+      droppedNode,
+      "a-sales",
+      event,
+      targetElement,
+      12,
+      84,
+      undefined,
+    )).toMatchObject({ id: "a-sales", x: 3, y: 2, w: 2, h: 2 });
   });
 });
 

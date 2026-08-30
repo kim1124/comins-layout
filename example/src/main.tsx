@@ -6,9 +6,8 @@ import { BrowserRouter, useLocation } from "react-router";
 import { DocsShell } from "./docs/DocsShell";
 import {
   AdvancedFeaturePlayground,
-  NestedAdvancedPlayground,
+  ExternalDropTrashPlayground,
   NestedBasicPlayground,
-  NestedConstraintsPlayground,
   PublicApiPlayground,
 } from "./playground/AdvancedExamples";
 import type { AdvancedFeature } from "./playground/AdvancedExamples";
@@ -129,17 +128,8 @@ function renderPlaygroundRoute(pathname: string) {
     case "/examples/layout/arrange": return <LayoutArrangePlayground />;
     case "/examples/layout/events": return <LayoutEventsPlayground />;
     case "/examples/advanced/nested/basic": return <NestedBasicPlayground />;
-    case "/examples/advanced/nested/advanced": return <NestedAdvancedPlayground />;
-    case "/examples/advanced/nested/constraints": return <NestedConstraintsPlayground />;
-    case "/examples/advanced/multi-grid/horizontal": return (
-      <TransferPlayground title={{ ko: "다중 Grid - 가로", en: "Multiple Grids - Horizontal" }} />
-    );
-    case "/examples/advanced/multi-grid/vertical": return (
-      <TransferPlayground
-        orientation="vertical"
-        title={{ ko: "다중 Grid - 세로", en: "Multiple Grids - Vertical" }}
-      />
-    );
+    case "/examples/advanced/external-drop-trash": return <ExternalDropTrashPlayground />;
+    case "/examples/advanced/multi-grid/horizontal": return <TransferPlayground />;
     case "/examples/advanced/public-api": return <PublicApiPlayground />;
     default: {
       const feature = advancedFeatureByPath[pathname];

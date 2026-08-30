@@ -23,7 +23,7 @@ Local example: `/examples/advanced/multi-grid/horizontal` · [Guide](https://git
 
 Ordinary HTML can act as a typed drop target. The package reports the release and the consumer decides whether to remove or otherwise update controlled state.
 
-Local example: `/examples/advanced/public-api` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/07-external-drop-targets.md)
+Local example: `/examples/advanced/external-drop-trash` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/07-external-drop-targets.md)
 
 ![External HTML drop target with consumer-owned state removal](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-external-drop.gif)
 
@@ -528,7 +528,7 @@ Run `npm run dev`, then use the local documentation application to inspect the p
 
 - Getting started: `/docs/getting-started` covers installation, the controlled-state model, and the first dashboard.
 - Widget management: `/examples/widget/manage` covers add, delete all, and reset; the Layout menu covers movement, resize, columns, arrange, maximize, and minimize.
-- Advanced examples: `/examples/advanced/multi-grid/horizontal` covers palette drag-in, grid transfer, external drop targets, responsive layouts, lazy rendering, nested composition, and supported GridStack options.
+- Advanced examples: `/examples/advanced/multi-grid/horizontal` covers palette drag-in and Grid-to-Grid transfer; `/examples/advanced/external-drop-trash` covers controlled deletion through an external drop target. The remaining advanced routes cover responsive layouts, lazy rendering, nested composition, and supported GridStack options.
 - API reference: `/api` lists the current public props, commands, types, and advanced handle methods.
 
 The `/readme-demo` route is an internal deterministic browser fixture used to capture the animations above. Consumer examples should use the documentation and example routes instead.
