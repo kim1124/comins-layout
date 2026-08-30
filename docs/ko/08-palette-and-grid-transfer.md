@@ -56,4 +56,6 @@ Grid source request는 `transferDashboardWidget`에 source/target 상태와 requ
 
 거부 사유는 `missing-widget`, `duplicate-id`, `not-transferable`, `invalid-layout`입니다. 동일 상태 전송, locked/이동 불가/최소화/최대화 위젯, 잘못된 mode는 거부되며 양쪽 상태는 변경되지 않아야 합니다.
 
-Playground: `/examples/advanced/multi-grid/horizontal`.
+Playground: `/examples/advanced/multi-grid/horizontal`. 페이지의 배치 방향 컨트롤로 전송 계약은 유지한 채 가로/세로 Grid 배치를 비교합니다.
+
+외부 DOM 드롭 대상에서 consumer 제어 상태로 삭제하는 예제는 `/examples/advanced/external-drop-trash`에서 별도로 확인합니다.

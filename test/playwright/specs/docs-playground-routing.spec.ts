@@ -41,7 +41,7 @@ async function expectPlaygroundShell(
   await expect(page.getByRole("searchbox", { name: "문서 및 예제 검색" })).toBeVisible();
   await expect(page.locator(".docs-sidebar")).toBeVisible();
   await expect(page.locator(".playground-sidebar__submenu")).toHaveCount(3);
-  await expect(page.locator(".playground-sidebar__submenu-link")).toHaveCount(27);
+  await expect(page.locator(".playground-sidebar__submenu-link")).toHaveCount(25);
   await expect(page.locator(".playground-nav")).toHaveCount(0);
   await expect(page.locator(".grid-stack")).toHaveCount(expectedGridCount);
 
@@ -71,7 +71,10 @@ test.describe("gridstack docs playground routing", () => {
       { from: "/examples/crud", heading: "추가 / 전체 삭제 / 초기화", to: "/examples/widget/manage" },
       { from: "/examples/complete", heading: "안전한 공개 핸들러 / 메서드", to: "/examples/advanced/public-api" },
       { from: "/examples/basic", heading: "시작하기", to: "/docs/getting-started" },
-      { from: "/examples/transfer", heading: "다중 Grid - 가로", to: "/examples/advanced/multi-grid/horizontal" },
+      { from: "/examples/transfer", heading: "다중 Grid 전송", to: "/examples/advanced/multi-grid/horizontal" },
+      { from: "/examples/advanced/multi-grid/vertical", heading: "다중 Grid 전송", to: "/examples/advanced/multi-grid/horizontal" },
+      { from: "/examples/advanced/nested/advanced", heading: "Nested Grid - 구성", to: "/examples/advanced/nested/basic" },
+      { from: "/examples/advanced/nested/constraints", heading: "다중 Grid 전송", to: "/examples/advanced/multi-grid/horizontal" },
       { from: "/unknown-route", heading: "Basic", to: "/examples/widget/basic" },
     ] as const;
 

@@ -65,4 +65,6 @@ The helper rejects `missing-widget`, `duplicate-id`, `not-transferable`, or `inv
 
 `acceptExternalWidgets` requires a non-empty `gridId`; `gridTransferMode` also requires `gridId`. Invalid configuration throws `DashboardGridConfigurationError`.
 
-Playground: `/examples/advanced/multi-grid/horizontal`.
+Playground: `/examples/advanced/multi-grid/horizontal`. Use the in-page orientation control to compare horizontal and vertical Grid placement without changing the transfer contract.
+
+Controlled deletion through an external DOM drop target is demonstrated separately at `/examples/advanced/external-drop-trash`.

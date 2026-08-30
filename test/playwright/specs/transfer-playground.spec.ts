@@ -35,7 +35,7 @@ async function openTransferPlayground(page: Page) {
 }
 
 async function waitForTransferPlayground(page: Page) {
-  await expect(page.getByRole("heading", { name: "다중 Grid - 가로" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "다중 Grid 전송" })).toBeVisible();
   await waitForGridEngine(gridPanel(page, "grid-a").locator(".grid-stack"));
   await waitForGridEngine(gridPanel(page, "grid-b").locator(".grid-stack"));
 }
@@ -62,6 +62,22 @@ async function readOperation(page: Page): Promise<TransferOperation> {
 }
 
 test.describe("Transfer Playground", () => {
+  test("switches horizontal and vertical presentation without duplicating routes", async ({ page }) => {
+    const diagnostics = collectBrowserDiagnostics(page);
+    await openTransferPlayground(page);
+    const playground = page.locator(".transfer-playground");
+    await expect(playground).toHaveAttribute("data-transfer-orientation", "horizontal");
+    await expect(page.getByRole("button", { name: "가로 배치" })).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByRole("button", { name: "세로 배치" }).click();
+    await expect(playground).toHaveAttribute("data-transfer-orientation", "vertical");
+    await expect(page.getByRole("button", { name: "세로 배치" })).toHaveAttribute("aria-pressed", "true");
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    }));
+    expect(diagnostics).toEqual([]);
+  });
+
   test("copies a palette widget into a grid and keeps the button alternative on the same controlled path", async ({ page }) => {
     const diagnostics = collectBrowserDiagnostics(page);
     await openTransferPlayground(page);

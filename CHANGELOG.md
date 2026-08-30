@@ -5,7 +5,12 @@
 - Replaced clickable localhost links with source-checkout route guidance so the published README no longer presents unavailable local URLs as live links.
 - Added deterministic documentation checks for repository files, Markdown anchors, same-repository GitHub targets, and implemented Playground routes, and included the English/Korean guide contracts in docs-only CI.
 - Aligned README, active API docs, Playground descriptions, and public type comments with the `0.2.x` compatibility contract while retaining the planned `0.3.0` removals.
-- Kept the public API, runtime behavior, dependencies, and package boundary unchanged after the 100-widget Chromium resource baseline remained stable.
+- Reworked all 25 canonical Playground routes into feature guidance, controls, and live GridStack example sections with localized option differences and focused code samples.
+- Changed numbered Playground widgets to a W3/H2 baseline, added live N/W/H and interaction-setting tables, and replaced ambiguous per-widget action icons with four-direction move and diagonal resize affordances.
+- Expanded title-only and nested drag targets, fixed responsive example toggles, and clarified nested composition, responsive strategies, Static Grid versus layout locking, and the safe public handle surface.
+- Added event-handler and public-method reference tables, explicitly mapped the `onDblClickTitle` example event to the public `onTitleDoubleClick` prop, and restored a dedicated controlled external-trash drop example.
+- Consolidated duplicate nested and multi-grid menu entries into depth and orientation controls while preserving the former URLs as compatibility redirects.
+- Kept the public package API, runtime implementation, dependencies, and package boundary unchanged after the 100-widget Chromium resource baseline remained stable.
 
 ## 0.2.1
 

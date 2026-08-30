@@ -18,6 +18,7 @@ import type {
   UseDashboardGridResult,
 } from "../../../src";
 import { PlaygroundHeader, toggleStateProps } from "./components/DashboardPreview";
+import { PlaygroundFeatureGuide, PlaygroundStage } from "./components/ExampleGuide";
 import { WidgetPalette } from "./components/WidgetPalette";
 import type { WidgetPaletteDefinition } from "./components/WidgetPalette";
 import { createWidget } from "./fixtures";
@@ -49,14 +50,8 @@ const gridLabels: Record<GridId, string> = {
   "grid-b": "Grid B",
 };
 
-export function TransferPlayground({
-  orientation = "horizontal",
-  title = { ko: "팔레트와 Grid 전송", en: "Palette and Grid Transfer" },
-}: {
-  orientation?: "horizontal" | "vertical";
-  title?: LocalizedText;
-} = {}) {
-  const { locale, text } = usePlaygroundLocale();
+export function TransferPlayground() {
+  const { text } = usePlaygroundLocale();
   const gridA = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 6,
     initialWidgets: [
@@ -70,6 +65,7 @@ export function TransferPlayground({
       createTransferWidget("b-table", "주문 표", 0, 0, 4, 2, "table", "1,284건"),
     ],
   });
+  const [orientation, setOrientation] = useState<"horizontal" | "vertical">("horizontal");
   const [transferMode, setTransferMode] = useState<DashboardWidgetTransferMode>("move");
   const [operation, setOperation] = useState<TransferOperation>(INITIAL_OPERATION);
   const paletteSequence = useRef<Record<string, number>>({});
@@ -292,69 +288,102 @@ export function TransferPlayground({
           "Verifies external palette copies, cross-grid move/copy, approval, and rollback in controlled state.",
         )}
         kicker={text("전송 예제", "Transfer Example")}
-        title={title[locale]}
+        title={text("다중 Grid 전송", "Multiple Grid Transfer")}
       />
-      <section aria-label={text("전송 예제 컨트롤", "Transfer example controls")} className="playground-controls transfer-controls">
-        <section aria-label={text("Grid 전송 모드", "Grid transfer mode")} className="example-control-group">
-          <h2>{text("Grid 간 전송 모드", "Cross-grid transfer mode")}</h2>
-          <div className="example-actions">
-            <button
-              className="example-toggle-button"
-              type="button"
-              onClick={() => setTransferMode((mode) => mode === "move" ? "copy" : "move")}
-              {...toggleStateProps(transferMode === "copy")}
+      <PlaygroundFeatureGuide
+        code={`<DashboardGrid\n  gridId="grid-a"\n  gridTransferMode={mode}\n  acceptExternalWidgets={acceptCandidate}\n  onWidgetDropRequest={applyAcceptedRequest}\n/>`}
+        items={[
+          text("Palette 항목은 항상 copy 후보로 전달되고 대상 Grid의 승인 후 제어 상태에 추가됩니다.", "Palette items are always copy candidates and enter controlled state only after target approval."),
+          text("Grid source는 move/copy 모드를 선택하며 중복 ID, locked, non-movable, 거부 predicate는 변경 없이 rollback됩니다.", "Grid sources select move/copy mode; duplicate IDs, locked or non-movable widgets, and rejected predicates roll back without state changes."),
+          text(orientation === "horizontal" ? "두 Grid를 가로로 배치해 좌우 전송 동선을 확인합니다." : "두 Grid를 세로로 배치해 상하 전송 동선을 확인합니다.", orientation === "horizontal" ? "Places both grids horizontally to inspect left-right transfer flow." : "Places both grids vertically to inspect top-bottom transfer flow."),
+          text("드래그 대신 위젯의 전송 버튼으로도 동일한 transferDashboardWidget 상태 전이를 실행할 수 있습니다.", "Widget transfer buttons provide the same transferDashboardWidget state transition as a keyboard-accessible drag alternative."),
+        ]}
+      />
+      <PlaygroundStage kind="controls">
+        <section aria-label={text("전송 예제 컨트롤", "Transfer example controls")} className="playground-controls transfer-controls">
+          <section aria-label={text("Grid 배치 방향", "Grid layout orientation")} className="example-control-group">
+            <h3>{text("Grid 배치 방향", "Grid layout orientation")}</h3>
+            <div className="example-actions">
+              <button
+                className="example-toggle-button"
+                type="button"
+                onClick={() => setOrientation("horizontal")}
+                {...toggleStateProps(orientation === "horizontal")}
+              >
+                {text("가로 배치", "Horizontal layout")}
+              </button>
+              <button
+                className="example-toggle-button"
+                type="button"
+                onClick={() => setOrientation("vertical")}
+                {...toggleStateProps(orientation === "vertical")}
+              >
+                {text("세로 배치", "Vertical layout")}
+              </button>
+            </div>
+          </section>
+          <section aria-label={text("Grid 전송 모드", "Grid transfer mode")} className="example-control-group">
+            <h3>{text("Grid 간 전송 모드", "Cross-grid transfer mode")}</h3>
+            <div className="example-actions">
+              <button
+                className="example-toggle-button"
+                type="button"
+                onClick={() => setTransferMode((mode) => mode === "move" ? "copy" : "move")}
+                {...toggleStateProps(transferMode === "copy")}
+              >
+                {transferMode === "copy" ? <Copy aria-hidden="true" size={14} /> : <MoveRight aria-hidden="true" size={14} />}
+                {transferMode === "copy" ? text("복사 모드", "Copy mode") : text("이동 모드", "Move mode")}
+              </button>
+            </div>
+            <p className="example-status">
+              {text(
+                `Palette는 항상 copy이며 Grid source는 현재 ${transferMode} 모드를 사용합니다.`,
+                `The palette always copies; grid sources currently use ${transferMode} mode.`,
+              )}
+            </p>
+          </section>
+          <section aria-label={text("전송 작업 결과", "Transfer operation result")} className="example-control-group transfer-operation-panel">
+            <h3>{text("최근 전송 결과", "Latest transfer result")}</h3>
+            <p
+              aria-label={text("전송 작업 상태", "Transfer operation status")}
+              className="example-status"
+              data-reason={operation.reason}
+              data-transfer-result={operation.status}
+              role="status"
             >
-              {transferMode === "copy" ? <Copy aria-hidden="true" size={14} /> : <MoveRight aria-hidden="true" size={14} />}
-              {transferMode === "copy" ? text("복사 모드", "Copy mode") : text("이동 모드", "Move mode")}
-            </button>
-          </div>
-          <p className="example-status">
-            {text(
-              `Palette는 항상 copy이며 Grid source는 현재 ${transferMode} 모드를 사용합니다.`,
-              `The palette always copies; grid sources currently use ${transferMode} mode.`,
-            )}
-          </p>
+              {operation.status}: {operation.reason
+                ?? (operation.status === "idle"
+                  ? text("팔레트 또는 Grid 전송을 실행해 보세요.", "Try a palette or grid transfer.")
+                  : `${operation.widgetId} → ${operation.target}`)}
+            </p>
+            <pre aria-label={text("전송 작업 JSON", "Transfer operation JSON")}>{JSON.stringify(operation, null, 2)}</pre>
+          </section>
         </section>
-        <section aria-label={text("전송 작업 결과", "Transfer operation result")} className="example-control-group transfer-operation-panel">
-          <h2>{text("최근 전송 결과", "Latest transfer result")}</h2>
-          <p
-            aria-label={text("전송 작업 상태", "Transfer operation status")}
-            className="example-status"
-            data-reason={operation.reason}
-            data-transfer-result={operation.status}
-            role="status"
-          >
-            {operation.status}: {operation.reason
-              ?? (operation.status === "idle"
-                ? text("팔레트 또는 Grid 전송을 실행해 보세요.", "Try a palette or grid transfer.")
-                : `${operation.widgetId} → ${operation.target}`)}
-          </p>
-          <pre aria-label={text("전송 작업 JSON", "Transfer operation JSON")}>{JSON.stringify(operation, null, 2)}</pre>
+        <WidgetPalette definitions={paletteDefinitions} onAdd={addPaletteWidget} />
+      </PlaygroundStage>
+
+      <PlaygroundStage kind="grid">
+        <section aria-label={text("전송 Grid 영역", "Transfer grid area")} className="transfer-grid-layout playground-grid-region">
+          <TransferGridPanel
+            dashboard={gridA}
+            gridId="grid-a"
+            mode={transferMode}
+            targetGridId="grid-b"
+            onAccept={acceptCandidate}
+            onDropRequest={applyAcceptedRequest}
+            onTransferButton={transferWithButton}
+          />
+          <TransferGridPanel
+            dashboard={gridB}
+            gridId="grid-b"
+            mode={transferMode}
+            targetGridId="grid-a"
+            onAccept={acceptCandidate}
+            onDropRequest={applyAcceptedRequest}
+            onTransferButton={transferWithButton}
+          />
         </section>
-      </section>
-
-      <WidgetPalette definitions={paletteDefinitions} onAdd={addPaletteWidget} />
-
-      <section aria-label={text("전송 Grid 영역", "Transfer grid area")} className="transfer-grid-layout playground-grid-region">
-        <TransferGridPanel
-          dashboard={gridA}
-          gridId="grid-a"
-          mode={transferMode}
-          targetGridId="grid-b"
-          onAccept={acceptCandidate}
-          onDropRequest={applyAcceptedRequest}
-          onTransferButton={transferWithButton}
-        />
-        <TransferGridPanel
-          dashboard={gridB}
-          gridId="grid-b"
-          mode={transferMode}
-          targetGridId="grid-a"
-          onAccept={acceptCandidate}
-          onDropRequest={applyAcceptedRequest}
-          onTransferButton={transferWithButton}
-        />
-      </section>
+      </PlaygroundStage>
     </section>
   );
 }

@@ -34,6 +34,21 @@ async function resizeWidget(page: Page, widget: Locator, deltaX: number, deltaY:
   await page.mouse.up();
 }
 
+async function dragToTarget(page: Page, source: Locator, target: Locator) {
+  await source.scrollIntoViewIfNeeded();
+  await target.scrollIntoViewIfNeeded();
+  const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
+  if (!sourceBox || !targetBox) throw new Error("Playground drag geometry is unavailable");
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    targetBox.x + targetBox.width / 2,
+    targetBox.y + Math.min(targetBox.height / 2, 40),
+    { steps: 20 },
+  );
+  await page.mouse.up();
+}
+
 function widget(page: Page, number: number) {
   return page.getByTestId(`dashboard-widget-widget-${number}`);
 }
@@ -53,8 +68,6 @@ const supportedExampleRoutes = [
   "/examples/advanced/lazy-load",
   "/examples/advanced/mobile-touch",
   "/examples/advanced/nested/basic",
-  "/examples/advanced/nested/advanced",
-  "/examples/advanced/nested/constraints",
   "/examples/advanced/responsive/column",
   "/examples/advanced/responsive/breakpoints",
   "/examples/advanced/responsive/none",
@@ -63,8 +76,8 @@ const supportedExampleRoutes = [
   "/examples/advanced/static",
   "/examples/advanced/title-drag",
   "/examples/advanced/transform",
+  "/examples/advanced/external-drop-trash",
   "/examples/advanced/multi-grid/horizontal",
-  "/examples/advanced/multi-grid/vertical",
   "/examples/advanced/public-api",
 ] as const;
 
@@ -92,7 +105,7 @@ test.describe("Playground localization", () => {
     await expect(page.getByText(/raw CRUD bypasses React controlled state/)).toBeVisible();
 
     await page.goto("/examples/advanced/multi-grid/horizontal");
-    await expect(page.getByRole("heading", { name: "Multiple Grids - Horizontal" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Multiple Grid Transfer" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Widget Palette" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Move mode" })).toBeVisible();
     await expect(page.locator('[data-palette-id="palette-kpi"]').getByRole("button", { name: "Add to Grid A" })).toBeVisible();
@@ -109,6 +122,89 @@ test.describe("Playground localization", () => {
       expect(await content.innerText(), route).not.toMatch(/[가-힣]/);
       await expect(page.locator("html"), route).toHaveAttribute("lang", "en");
     }
+  });
+});
+
+test.describe("Playground example guidance", () => {
+  test("uses the documented feature, controls, and GridStack example structure on every route", async ({ page }) => {
+    for (const route of supportedExampleRoutes) {
+      await page.goto(route);
+      const content = page.locator(".playground-route-content");
+
+      await expect(content.locator(".playground-feature-guide"), route).toBeVisible();
+      await expect(content.getByRole("heading", { name: "기능 구성", exact: true }), route).toBeVisible();
+      await expect(content.getByRole("heading", { name: "GridStack 예제 컨트롤", exact: true }), route).toBeVisible();
+      await expect(content.getByRole("heading", { name: "GridStack 예제", exact: true }), route).toBeVisible();
+      expect(await content.locator(".playground-feature-guide__item").count(), route).toBeGreaterThan(0);
+    }
+  });
+
+  test("explains the differences between related advanced examples and lists the safe handle surface", async ({ page }) => {
+    await page.addInitScript(() => {
+      const errors: string[] = [];
+      Object.defineProperty(window, "__playgroundWindowErrors", { value: errors });
+      window.addEventListener("error", (event) => {
+        errors.push(event.message);
+      });
+    });
+    await page.goto("/examples/advanced/nested/basic");
+    await expect(page.getByText(/2단계.*독립된 React 제어 상태/)).toBeVisible();
+    await expect(page.getByRole("link", { name: "A/B Grid 이동·복사 예제" })).toHaveAttribute(
+      "href",
+      "/examples/advanced/multi-grid/horizontal",
+    );
+
+    await page.getByRole("button", { name: "3단계" }).click();
+    await expect(page.getByText(/3단계.*재귀 구성/)).toBeVisible();
+    await expect(page.locator(".nested-example-level")).toHaveCount(2);
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    }));
+    expect(await page.evaluate(() => (
+      window as typeof window & { __playgroundWindowErrors: string[] }
+    ).__playgroundWindowErrors)).toEqual([]);
+
+    await page.getByRole("button", { name: "2단계" }).click();
+    await expect(page.locator(".nested-example-level")).toHaveCount(1);
+    await page.evaluate(() => new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    }));
+    expect(await page.evaluate(() => (
+      window as typeof window & { __playgroundWindowErrors: string[] }
+    ).__playgroundWindowErrors)).toEqual([]);
+
+    await page.goto("/examples/advanced/responsive/column");
+    await expect(page.getByText(/columnWidth.*컨테이너 너비/)).toBeVisible();
+
+    await page.goto("/examples/advanced/responsive/breakpoints");
+    await expect(page.getByText(/640px.*2컬럼.*960px.*6컬럼/)).toBeVisible();
+
+    await page.goto("/examples/advanced/responsive/none");
+    await expect(page.getByText(/layout: "none".*좌표/)).toBeVisible();
+
+    await page.goto("/examples/advanced/static");
+    await expect(page.getByText(/engineOptions\.staticGrid/)).toBeVisible();
+    await expect(page.getByText(/레이아웃 잠금.*movable.*resizable/)).toBeVisible();
+
+    await page.goto("/examples/advanced/public-api");
+    const guide = page.locator(".playground-feature-guide");
+    await expect(guide).toContainText("getColumnCount");
+    await expect(guide).toContainText("getRowCount");
+    await expect(guide).toContainText("getFloat");
+    await expect(guide).toContainText("isAreaEmpty");
+    await expect(guide).toContainText("willItFit");
+    await expect(guide).toContainText("compact");
+    await expect(guide).toContainText("refresh");
+
+    const methodTable = page.getByRole("table", { name: "공개 메서드" });
+    await expect(methodTable.getByRole("row", { name: /getColumnCount/ })).toBeVisible();
+    await expect(methodTable.getByRole("row", { name: /compact/ })).toBeVisible();
+    await expect(methodTable.getByRole("row", { name: /getGridStack/ })).toContainText("escape hatch");
+
+    await page.goto("/examples/widget/events");
+    const eventTable = page.getByRole("table", { name: "이벤트 핸들러" });
+    await expect(eventTable.getByRole("row", { name: /onBeforeMove/ })).toBeVisible();
+    await expect(eventTable.getByRole("row", { name: /onDblClickTitle/ })).toContainText("onTitleDoubleClick");
   });
 });
 
@@ -144,6 +240,18 @@ test.describe("Widget Playground", () => {
     await expect(widget(page, 1)).toContainText("Content 1");
     await expect(widget(page, 10)).toContainText("Title 10");
     await expect(widget(page, 10)).toContainText("Content 10");
+    expect(await widget(page, 1).locator(".comins-grid-layout-widget__title").evaluate((title) =>
+      title.scrollWidth <= title.clientWidth,
+    )).toBe(true);
+    await expect(widget(page, 1)).toHaveAttribute("data-layout-w", "3");
+    await expect(widget(page, 1)).toHaveAttribute("data-layout-h", "2");
+    const settings = widget(page, 1).getByRole("table", { name: "Title 1 위젯 설정" });
+    await expect(settings).toBeVisible();
+    await expect(settings.getByRole("row", { name: "N 1" })).toBeVisible();
+    await expect(settings.getByRole("row", { name: "W 3" })).toBeVisible();
+    await expect(settings.getByRole("row", { name: "H 2" })).toBeVisible();
+    await expect(settings.getByRole("row", { name: "이동 가능" })).toBeVisible();
+    await expect(settings.getByRole("row", { name: "리사이즈 가능" })).toBeVisible();
     await expect(page.locator(".playground-example-toolbar")).toHaveCount(0);
     await expect(page.locator(".example-widget-count, .example-status, [aria-label='현재 위젯 상태 JSON']")).toHaveCount(0);
     await expect(widget(page, 1).locator(".comins-grid-layout-widget__actions button")).toHaveCount(3);
@@ -158,6 +266,9 @@ test.describe("Widget Playground", () => {
     const resizeToggle = first.locator('[data-widget-action="resize-lock"]');
     const moveToggle = first.locator('[data-widget-action="move-lock"]');
 
+    await expect(resizeToggle.locator("svg")).toHaveClass(/lucide-move-diagonal-2/);
+    await expect(moveToggle.locator("svg")).toHaveClass(/lucide-move/);
+
     for (const toggle of [resizeToggle, moveToggle]) {
       await expect(toggle).toHaveAttribute("aria-pressed", "false");
       await expect(toggle).toHaveCSS("background-color", "rgb(255, 255, 255)");
@@ -166,6 +277,10 @@ test.describe("Widget Playground", () => {
       await expect(toggle).toHaveCSS("background-color", "rgb(223, 248, 238)");
       await expect(toggle).toHaveCSS("border-color", "rgb(16, 185, 129)");
     }
+
+    const settings = first.getByRole("table", { name: "Title 1 위젯 설정" });
+    await expect(settings.getByRole("row", { name: "이동 불가" })).toBeVisible();
+    await expect(settings.getByRole("row", { name: "리사이즈 불가" })).toBeVisible();
   });
 
   test("keeps generated numbers monotonic across delete, clear, and reset", async ({ page }) => {
@@ -196,7 +311,7 @@ test.describe("Widget Playground", () => {
     const output = page.getByRole("textbox", { name: "위젯 이벤트" });
 
     await first.locator(".comins-grid-layout-widget__title").dblclick();
-    await expect(output).toHaveValue(/onBeforeTitleDoubleClick[\s\S]*onTitleDoubleClick[\s\S]*onAfterTitleDoubleClick/);
+    await expect(output).toHaveValue(/onBeforeTitleDoubleClick[\s\S]*onDblClickTitle[\s\S]*onAfterTitleDoubleClick/);
 
     await dragWidget(page, first, 180, 110);
     await expect(output).toHaveValue(/onBeforeMove[\s\S]*onMove[\s\S]*onAfterMove/);
@@ -282,8 +397,6 @@ test.describe("Advanced Playground", () => {
     "/examples/advanced/lazy-load",
     "/examples/advanced/mobile-touch",
     "/examples/advanced/nested/basic",
-    "/examples/advanced/nested/advanced",
-    "/examples/advanced/nested/constraints",
     "/examples/advanced/responsive/column",
     "/examples/advanced/responsive/breakpoints",
     "/examples/advanced/responsive/none",
@@ -292,8 +405,8 @@ test.describe("Advanced Playground", () => {
     "/examples/advanced/static",
     "/examples/advanced/title-drag",
     "/examples/advanced/transform",
+    "/examples/advanced/external-drop-trash",
     "/examples/advanced/multi-grid/horizontal",
-    "/examples/advanced/multi-grid/vertical",
     "/examples/advanced/public-api",
   ];
 
@@ -321,6 +434,23 @@ test.describe("Advanced Playground", () => {
     await expect(page.getByLabel("공개 메서드 실행 결과")).toContainText('"widgets"');
   });
 
+  test("removes a widget through the controlled external trash drop example", async ({ page }) => {
+    await page.goto("/examples/advanced/external-drop-trash");
+    const first = widget(page, 1);
+    await dragToTarget(
+      page,
+      first.locator(".comins-grid-layout-widget__title"),
+      page.getByTestId("playground-external-drop-trash"),
+    );
+
+    await expect(first).toHaveCount(0);
+    await expect(page.getByRole("status", { name: "외부 드롭 처리 상태" })).toContainText("widget-1");
+    await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
+    await expect(page.getByRole("status", { name: "External drop status" })).toHaveText(
+      "Removed widget-1 from controlled state.",
+    );
+  });
+
   test("renders lazy content once when an offscreen widget enters the scroll boundary", async ({ page }) => {
     await page.goto("/examples/advanced/lazy-load");
     const lastBoundary = widget(page, 10).locator(".comins-grid-layout-widget__render-boundary");
@@ -331,13 +461,11 @@ test.describe("Advanced Playground", () => {
   });
 
   test("keeps every nested level under a named controlled grid owner", async ({ page }) => {
-    await page.goto("/examples/advanced/nested/advanced");
+    await page.goto("/examples/advanced/nested/basic");
+    await page.getByRole("button", { name: "3단계" }).click();
     await expect(page.locator("[data-nested-level]")).toHaveCount(2);
     await expect(page.locator("[data-grid-id='nested-grid-1']")).toBeVisible();
     await expect(page.locator("[data-grid-id='nested-grid-2']")).toBeVisible();
-
-    await page.goto("/examples/advanced/nested/constraints");
-    await expect(page.getByText("허용: chart category")).toBeVisible();
   });
 
   test("applies the width-only responsive column option without adapter errors", async ({ page }) => {
@@ -345,6 +473,22 @@ test.describe("Advanced Playground", () => {
     await page.goto("/examples/advanced/responsive/column");
     await expect.poll(() => page.getByTestId("dashboard-grid").getAttribute("data-columns")).not.toBe("12");
     await expect(page.locator(".grid-stack-item").first()).toBeVisible();
+  });
+
+  test("disables and restores the responsive example configuration from its control", async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 800 });
+    await page.goto("/examples/advanced/responsive/column");
+    const grid = page.getByTestId("dashboard-grid");
+    await expect.poll(() => grid.getAttribute("data-columns")).not.toBe("12");
+
+    await page.getByRole("button", { name: "반응형 설정 적용" }).click();
+    await expect(grid).toHaveAttribute("data-columns", "12");
+    const disabledToggle = page.getByRole("button", { name: "반응형 설정 해제" });
+    await expect(disabledToggle).toHaveAttribute("aria-pressed", "false");
+
+    await disabledToggle.click();
+    await expect.poll(() => grid.getAttribute("data-columns")).not.toBe("12");
+    await expect(page.getByRole("button", { name: "반응형 설정 적용" })).toHaveAttribute("aria-pressed", "true");
   });
 
   test("supports move and resize handles on the Mobile Touch example", { tag: "@mobile-touch" }, async ({ page }) => {
