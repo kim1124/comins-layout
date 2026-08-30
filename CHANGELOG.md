@@ -10,6 +10,8 @@
 - Expanded title-only and nested drag targets, fixed responsive example toggles, and clarified nested composition, responsive strategies, Static Grid versus layout locking, and the safe public handle surface.
 - Added event-handler and public-method reference tables, explicitly mapped the `onDblClickTitle` example event to the public `onTitleDoubleClick` prop, and restored a dedicated controlled external-trash drop example.
 - Consolidated duplicate nested and multi-grid menu entries into depth and orientation controls while preserving the former URLs as compatibility redirects.
+- Simplified the multi-grid example controls to a compact single row with layout, transfer mode, one Grid A/B clear action, and concise operation status controls.
+- Preserved the normalized pointer grab position when transferring widgets across grids with different column widths, preventing adjacent drops from falling into the next row.
 - Kept the public package API, runtime implementation, dependencies, and package boundary unchanged after the 100-widget Chromium resource baseline remained stable.
 
 ## 0.2.1

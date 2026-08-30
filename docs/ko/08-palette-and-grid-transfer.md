@@ -52,6 +52,8 @@ export function TransferTarget() {
 
 Grid 간 전송에서는 source/target마다 고유 `gridId`를 지정합니다. source의 `gridTransferMode`는 `move` 또는 `copy`, target의 `acceptExternalWidgets`는 boolean 또는 predicate입니다. target은 `onWidgetDropRequest`를 처리합니다.
 
+source와 target Grid의 컬럼 너비가 달라도 adapter는 포인터로 잡은 지점의 비율을 보존해 target 셀 좌표로 환산합니다. 따라서 기존 위젯 바로 옆에 놓은 위젯이 한 컬럼 앞에서 충돌해 아래 행으로 내려가지 않습니다.
+
 Grid source request는 `transferDashboardWidget`에 source/target 상태와 request 좌표, snapshot, widget ID, mode를 전달합니다. 승인 결과의 양쪽 상태를 `serializeDashboardState` 후 각 hook에 `restoreLayout`합니다.
 
 거부 사유는 `missing-widget`, `duplicate-id`, `not-transferable`, `invalid-layout`입니다. 동일 상태 전송, locked/이동 불가/최소화/최대화 위젯, 잘못된 mode는 거부되며 양쪽 상태는 변경되지 않아야 합니다.

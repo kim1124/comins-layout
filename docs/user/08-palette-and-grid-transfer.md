@@ -59,6 +59,8 @@ export function TransferTarget() {
 
 Give every source and target a unique `gridId`. Set the source `gridTransferMode` to `move` or `copy`; the default registered source mode is `move`. The target enables `acceptExternalWidgets` as `true` or a predicate and handles `onWidgetDropRequest`.
 
+When source and target grids use different column widths, the adapter preserves the pointer's normalized grab point and maps it into the target cell geometry. A drop beside an existing widget therefore remains in the intended row instead of colliding one column early and falling to a lower row.
+
 For a grid source request, call `transferDashboardWidget` with the source state, target state, request layout/snapshot, widget ID, and mode. On acceptance, restore `serializeDashboardState(result.source)` and `serializeDashboardState(result.target)` into the corresponding hooks. `move` removes the source identity; `copy` preserves it.
 
 The helper rejects `missing-widget`, `duplicate-id`, `not-transferable`, or `invalid-layout`. Same-state transfer, locked/non-movable widgets, minimized/maximized widgets, and invalid modes are not transferable. Rejection must leave both controlled states unchanged. Deduplicate requests by `operationId` if the application can replay external events.

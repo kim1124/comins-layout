@@ -1886,10 +1886,45 @@ button.dashboard-widget-body[data-selected="true"] {
 }
 
 .transfer-controls {
-  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  padding-block: 2px;
+  white-space: nowrap;
 }
 
-.transfer-operation-panel pre,
+.transfer-controls__group {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.transfer-controls__status {
+  align-items: center;
+  color: #52645f;
+  display: flex;
+  flex: 1 1 160px;
+  font-size: 12px;
+  font-weight: 800;
+  margin: 0 0 0 auto;
+  min-width: 68px;
+}
+
+.transfer-controls__status span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.transfer-controls__clear {
+  flex: 0 0 32px;
+  justify-content: center;
+  padding-inline: 0;
+  width: 32px;
+}
+
 .transfer-grid-state {
   background: #f8fafc;
   border: 1px solid var(--comins-color-border);
@@ -2110,7 +2145,6 @@ button.dashboard-widget-body[data-selected="true"] {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .transfer-controls,
   .transfer-grid-layout {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2159,6 +2193,16 @@ button.dashboard-widget-body[data-selected="true"] {
   .playground-controls .example-input,
   .playground-controls .example-input input {
     width: 100%;
+  }
+
+  .transfer-controls .example-actions {
+    align-items: center;
+    flex-direction: row;
+  }
+
+  .transfer-controls .example-actions > button,
+  .transfer-controls .transfer-controls__mode {
+    width: auto;
   }
 
   .playground-controls .example-select,
