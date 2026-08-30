@@ -17,7 +17,7 @@ When grid-level lazy rendering is enabled, widgets are lazy by default. Set a wi
 
 Add `data-dashboard-lazy-scroll` to the nearest scroll container to make it the `IntersectionObserver` root. Without that ancestor, the viewport is the root. When `IntersectionObserver` is unavailable, content renders eagerly. Once content becomes visible it stays mounted.
 
-The native `engineOptions.lazyLoad` mapping remains only for `0.2.1` compatibility and is planned for removal in `0.3.0`; it does not defer React-owned content. Use the component prop and widget flag for new code.
+The native `engineOptions.lazyLoad` mapping remains only for `0.2.x` compatibility and is planned for removal in `0.3.0`; it does not defer React-owned content. Use the component prop and widget flag for new code.
 
 The package does not supply skeletons, loading placeholders, unmount-on-exit behavior, or data fetching. Implement those inside `renderWidget` when required.
 

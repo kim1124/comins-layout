@@ -1,5 +1,12 @@
 # comins-grid-layout
 
+## 0.2.2
+
+- Replaced clickable localhost links with source-checkout route guidance so the published README no longer presents unavailable local URLs as live links.
+- Added deterministic documentation checks for repository files, Markdown anchors, same-repository GitHub targets, and implemented Playground routes, and included the English/Korean guide contracts in docs-only CI.
+- Aligned README, active API docs, Playground descriptions, and public type comments with the `0.2.x` compatibility contract while retaining the planned `0.3.0` removals.
+- Kept the public API, runtime behavior, dependencies, and package boundary unchanged after the 100-widget Chromium resource baseline remained stable.
+
 ## 0.2.1
 
 - Aligned the README, active API docs, and Playground examples with the implemented palette/Grid transfer, React content lazy-rendering, event, handle, responsive, and persistence contracts.

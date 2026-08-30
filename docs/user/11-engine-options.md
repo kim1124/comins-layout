@@ -38,7 +38,7 @@ Use `engineOptions` for the supported GridStack configuration surface. Keep prod
 
 Widget-level `sizeToContent` and `resizeToContentParent` override content sizing for an item. Widget `locked`, `movable`, and `resizable` combine with grid-level `editable`, `movable`, and `resizable`.
 
-The `lazyLoad` engine field is deprecated compatibility mapping in `0.2.1`. It does not defer React content; use `lazyRenderWidget` and widget `lazyLoad` as described in [Lazy Rendering](./09-lazy-rendering.md).
+The `lazyLoad` engine field is a deprecated compatibility mapping retained throughout `0.2.x`. It does not defer React content; use `lazyRenderWidget` and widget `lazyLoad` as described in [Lazy Rendering](./09-lazy-rendering.md).
 
 Invalid supported configuration throws `DashboardGridConfigurationError`. Unsupported GridStack options are intentionally not passed through. Use the advanced handle only when a required operation cannot be represented by component props, and keep controlled state synchronized afterward.
 

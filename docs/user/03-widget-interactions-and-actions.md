@@ -44,7 +44,7 @@ Move and resize callbacks receive `{ id, layout }`. `onBeforeMove`/`onBeforeResi
 
 ## Compatibility aliases
 
-The following aliases still exist in `0.2.1` but are deprecated and planned for removal in `0.3.0`:
+The following aliases remain available throughout `0.2.x` but are deprecated and planned for removal in `0.3.0`:
 
 | Deprecated prop | Canonical prop |
 | --- | --- |

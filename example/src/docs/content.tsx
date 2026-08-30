@@ -451,7 +451,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         name: "onTitleDoubleClick",
         type: "(event: DashboardWidgetInteractionEvent) => void",
         description: "위젯 title-only double-click action callback입니다.",
-        detail: "fitWidgetToColumns와 조합하면 row 빈 공간 확장 interaction을 만들 수 있습니다. onWidgetHeaderDoubleClick은 0.2.1 deprecated alias입니다.",
+        detail: "fitWidgetToColumns와 조합하면 row 빈 공간 확장 interaction을 만들 수 있습니다. onWidgetHeaderDoubleClick은 0.2.1부터 deprecated인 alias입니다.",
       },
       {
         name: "Move / Resize / Title lifecycle callbacks",
@@ -468,7 +468,7 @@ export const apiFeatures: ApiFeatureSection[] = [
       {
         name: "onWidgetDragStart / onWidgetDragStop / onWidgetResizeStart / onWidgetResizeStop / onWidgetHeaderDoubleClick",
         type: "deprecated compatibility callbacks",
-        description: "0.2.1에서 호출 순서를 유지하는 legacy alias입니다.",
+        description: "0.2.x에서 호출 순서를 유지하는 legacy alias입니다.",
         detail: "신규 예제에서는 canonical lifecycle만 사용하며 alias 제거는 0.3.0 별도 breaking-change gate에서 검토합니다.",
       },
     ],
@@ -586,7 +586,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         name: "DashboardGridEngineOptions.lazyLoad",
         type: "boolean (deprecated)",
         description: "React-owned content를 지연하지 않는 GridStack native option입니다.",
-        detail: "0.2.1 compatibility mapping만 유지하며 신규 코드는 lazyRenderWidget을 사용합니다. 0.3.0 제거 대상입니다.",
+        detail: "0.2.x compatibility mapping만 유지하며 신규 코드는 lazyRenderWidget을 사용합니다. 0.3.0 제거 대상입니다.",
       },
     ],
     methods: [

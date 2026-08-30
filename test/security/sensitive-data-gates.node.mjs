@@ -69,11 +69,12 @@ test('references the canonical Contract v1.7 without copying common policy', () 
     security,
     /Before 1\.0\.0, only the latest published version receives security fixes\./,
   );
-  assert.equal(packageJson.version, '0.2.1');
-  assert.equal(packageLock.version, '0.2.1');
-  assert.equal(packageLock.packages[''].version, '0.2.1');
-  assert.match(security, /\| 0\.2\.1 \| Yes \|/);
-  assert.match(security, /\| < 0\.2\.1 \| No \|/);
+  assert.equal(packageJson.version, '0.2.2');
+  assert.equal(packageLock.version, '0.2.2');
+  assert.equal(packageLock.packages[''].version, '0.2.2');
+  assert.match(security, /\| 0\.2\.2 \| Yes \|/);
+  assert.match(security, /\| < 0\.2\.2 \| No \|/);
+  assert.match(changelog, /^## 0\.2\.2$/m);
   assert.match(changelog, /^## 0\.2\.1$/m);
   assert.match(changelog, /^## 0\.2\.0$/m);
   assert.match(changelog, /external widget drop targets/i);
