@@ -60,7 +60,7 @@ Use Playwright for:
 
 ## 100-Widget Resource Stability Gate
 
-1. Complete example의 JSON restore control로 100개 widget을 로드하고, `1..12` column cycle을 두 번 수행해 column runtime을 warm-up한다.
+1. Complete example의 JSON restore control로 100개 widget을 로드한다. `12 -> 6 -> 12` 전환의 직접 자식 DOM 삽입 횟수가 400회 이하인지 검증해 위젯별 반복 재정렬을 방지한다. 이후 `1..12` column cycle을 두 번 수행해 column runtime을 warm-up한다.
 2. 각 counter 측정은 animation frame 및 100ms idle 대기, 강제 garbage collection, 250ms idle 대기, 두 번째 강제 garbage collection 순서로 안정화한다. warm-up 직후 첫 column sample을 기록하고, 각 추가 sample 전에 전체 `1..12` column cycle을 수행한다.
 3. Column sample은 최소 8개를 수집한다. 마지막 3개 sample이 2% final-growth 범위에 들어오면 종료하고, 안정화되지 않으면 최대 11개까지 수집한다.
 4. Drag/resize 1회로 GridStack interaction runtime을 warm-up하고 counter를 기록한다. 이후 같은 drag/resize interaction을 반복하면서 최소 3개 sample을 수집하고, 마지막 3개 sample이 안정화되지 않으면 최대 6개까지 수집한다.

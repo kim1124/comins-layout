@@ -1,5 +1,12 @@
 # comins-grid-layout
 
+## Unreleased
+
+- Batch controlled widget synchronization so GridStack 13.2 does not repeatedly reorder all widget DOM nodes during column changes.
+- Update runtime and development dependencies, including GridStack 13.2 and Vitest 5, while preserving the public API and React peer ranges.
+- Align React third-party source and license links with its current upstream repository.
+- Keep browser interaction checks tied to widget IDs and compare column-cache geometry independently of DOM order; add a DOM-reordering budget to the existing 100-widget resource gate.
+
 ## 0.2.2
 
 - Replaced clickable localhost links with source-checkout route guidance so the published README no longer presents unavailable local URLs as live links.

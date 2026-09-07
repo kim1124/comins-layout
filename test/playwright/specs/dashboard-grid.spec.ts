@@ -133,8 +133,12 @@ async function readWidgetLayout(widget: Locator): Promise<WidgetLayout> {
   }));
 }
 
+function layoutsById(layouts: IdentifiedWidgetLayout[]): IdentifiedWidgetLayout[] {
+  return [...layouts].sort((left, right) => left.id.localeCompare(right.id));
+}
+
 async function readDashboardLayouts(page: Page): Promise<IdentifiedWidgetLayout[]> {
-  return page.locator(".grid-stack-item").evaluateAll((elements) =>
+  const layouts = await page.locator(".grid-stack-item").evaluateAll((elements) =>
     elements.flatMap((element) => {
       const id = element.getAttribute("gs-id") ?? element.getAttribute("data-widget-id");
       return id
@@ -148,6 +152,7 @@ async function readDashboardLayouts(page: Page): Promise<IdentifiedWidgetLayout[
         : [];
     }),
   );
+  return layoutsById(layouts);
 }
 
 async function readGridEngineColumn(grid: Locator): Promise<number> {
@@ -544,6 +549,36 @@ test("keeps 100 widgets stable through repeated column changes", { tag: "@resour
   await expect(grid.locator(".grid-stack-item")).toHaveCount(100);
 
   const columnSelect = page.getByLabel("컬럼 선택");
+  let columnRoundTripInsertedItems = 0;
+  const reorderProbe = await grid.evaluateHandle((element) => {
+    let insertedItems = 0;
+    const count = (records: MutationRecord[]) => {
+      insertedItems += records.reduce((total, record) => total + record.addedNodes.length, 0);
+    };
+    const observer = new MutationObserver(count);
+    observer.observe(element, { childList: true });
+    return {
+      finish() {
+        count(observer.takeRecords());
+        observer.disconnect();
+        return insertedItems;
+      },
+    };
+  });
+  try {
+    await columnSelect.selectOption("6");
+    await expect(grid).toHaveAttribute("data-columns", "6");
+    await columnSelect.selectOption("12");
+    await expect(grid).toHaveAttribute("data-columns", "12");
+    await waitForPageToSettle(page);
+    columnRoundTripInsertedItems = await reorderProbe.evaluate((probe) => probe.finish());
+    // Each transition may reorder once for the engine column change and once
+    // for the complete controlled snapshot, rather than once per widget.
+    expect(columnRoundTripInsertedItems).toBeLessThanOrEqual(100 * 2 * 2);
+  } finally {
+    await reorderProbe.evaluate((probe) => probe.finish());
+    await reorderProbe.dispose();
+  }
   for (let warmupCycle = 0; warmupCycle < 2; warmupCycle += 1) {
     await runColumnCycle(columnSelect, grid);
   }
@@ -586,6 +621,7 @@ test("keeps 100 widgets stable through repeated column changes", { tag: "@resour
   const allInteractionCounters = [...interactionWarmupCounters, ...interactionCounters];
 
   const resourceCounters = {
+    columnRoundTripInsertedItems,
     columnCycles: columnCycleCounters,
     interactionWarmup: interactionWarmupCounters,
     repeatedInteractions: interactionCounters,
@@ -1281,10 +1317,10 @@ test("preserves independent controlled caches when columns change during a resiz
   const restoredState = JSON.parse(await stateEditor.inputValue()) as {
     layoutsByColumn: Record<string, { widgets: IdentifiedWidgetLayout[] }>;
   };
-  expect(restoredState.layoutsByColumn["6"]?.widgets).toEqual(sourceSix);
-  expect(restoredState.layoutsByColumn["12"]?.widgets).toEqual(targetTwelve);
-  expect(restoredState.layoutsByColumn["6"]?.widgets).not.toEqual(
-    restoredState.layoutsByColumn["12"]?.widgets,
+  expect(layoutsById(restoredState.layoutsByColumn["6"]!.widgets)).toEqual(sourceSix);
+  expect(layoutsById(restoredState.layoutsByColumn["12"]!.widgets)).toEqual(targetTwelve);
+  expect(layoutsById(restoredState.layoutsByColumn["6"]!.widgets)).not.toEqual(
+    layoutsById(restoredState.layoutsByColumn["12"]!.widgets),
   );
 
   expect(diagnostics).toEqual([]);

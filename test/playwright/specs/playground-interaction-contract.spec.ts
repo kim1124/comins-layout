@@ -60,12 +60,36 @@ async function waitForWidgetPosition(widget: Locator) {
   })).toBe(true);
 }
 
+async function widgetAt(grid: Locator, index: number) {
+  // Responsive initialization can reorder items across several controlled
+  // renders. Select identities only after the model and engine agree.
+  await expect.poll(() => grid.evaluate((element) => {
+    const instance = (element as HTMLElement & {
+      gridstack?: { getColumn: () => number };
+    }).gridstack;
+    if (!instance || element.getAttribute("data-columns") !== String(instance.getColumn())) return false;
+    const items = Array.from(element.querySelectorAll(":scope > .grid-stack-item"));
+    return items.length > 0 && items.every((item) => {
+      const node = (item as HTMLElement & { gridstackNode?: Record<string, number> }).gridstackNode;
+      return node && ["x", "y", "w", "h"].every((key) =>
+        item.getAttribute(`data-layout-${key}`) === String(node[key] ?? (key === "x" || key === "y" ? 0 : 1)),
+      );
+    });
+  })).toBe(true);
+  const item = grid.locator(":scope > .grid-stack-item").nth(index);
+  const testId = await item.getAttribute("data-testid");
+  if (!testId) throw new Error("Widget identity is unavailable");
+  // GridStack may reorder the DOM after an interaction. Keep observing the
+  // original widget instead of whichever item now occupies the same position.
+  return grid.getByTestId(testId);
+}
+
 function firstWidget(page: Page) {
-  return page.locator(".grid-stack").first().locator(":scope > .grid-stack-item").first();
+  return widgetAt(page.locator(".grid-stack").first(), 0);
 }
 
 function secondWidget(page: Page) {
-  return page.locator(".grid-stack").first().locator(":scope > .grid-stack-item").nth(1);
+  return widgetAt(page.locator(".grid-stack").first(), 1);
 }
 
 function bodyDragSource(widget: Locator) {
@@ -97,6 +121,14 @@ async function dragTo(page: Page, source: Locator, target: Locator) {
   await target.scrollIntoViewIfNeeded();
   const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
   if (!sourceBox || !targetBox) throw new Error("Drag geometry is unavailable");
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Drag viewport is unavailable");
+  for (const box of [sourceBox, targetBox]) {
+    expect(box.x + box.width / 2).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width / 2).toBeLessThan(viewport.width);
+    expect(box.y + box.height / 2).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height / 2).toBeLessThan(viewport.height);
+  }
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
   await page.mouse.down();
   await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 12 });
@@ -165,23 +197,23 @@ async function expectResize(page: Page, widget: Locator) {
 for (const route of bodyInteractionRoutes) {
   test(`allows body move and resize on ${route}`, async ({ page }) => {
     await page.goto(route);
-    const widget = firstWidget(page);
+    const widget = await firstWidget(page);
     await expectMove(
       page,
       widget,
       bodyDragSource(widget),
       undefined,
-      secondWidget(page),
+      await secondWidget(page),
     );
 
     await page.goto(route);
-    await expectResize(page, firstWidget(page));
+    await expectResize(page, await firstWidget(page));
   });
 }
 
 test("keeps Static Grid locked until editing is enabled", async ({ page }) => {
   await page.goto("/examples/advanced/static");
-  const widget = firstWidget(page);
+  const widget = await firstWidget(page);
   await waitForGrid(widget);
   const locked = await readGeometry(widget);
   await dragFrom(page, widget.locator(".comins-grid-layout-widget__body"));
@@ -193,7 +225,7 @@ test("keeps Static Grid locked until editing is enabled", async ({ page }) => {
 
 test("keeps the title-only drag contract isolated to its named example", async ({ page }) => {
   await page.goto("/examples/advanced/title-drag");
-  const widget = firstWidget(page);
+  const widget = await firstWidget(page);
   await waitForGrid(widget);
   const beforeBodyDrag = await readGeometry(widget);
   await dragFrom(page, widget.locator(".comins-grid-layout-widget__body"));
@@ -214,7 +246,7 @@ test("keeps the title-only drag contract isolated to its named example", async (
 for (const route of ["/examples/advanced/nested/basic"] as const) {
   test(`allows title move and resize without crossing nested grid ownership on ${route}`, async ({ page }) => {
     await page.goto(route);
-    const widget = page.locator(".grid-stack").last().locator(":scope > .grid-stack-item").nth(1);
+    const widget = await widgetAt(page.locator(".grid-stack").last(), 1);
     await waitForGrid(widget);
     await widget.scrollIntoViewIfNeeded();
     await waitForWidgetPosition(widget);

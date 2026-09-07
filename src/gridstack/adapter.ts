@@ -537,7 +537,16 @@ export function createDashboardGridAdapter<TData>(
     isSyncingControlledState = true;
     try {
       applyRuntimeEngineOptions(previousOptions, nextOptions);
-      syncGridWidgets(grid, element, registeredItems, nextOptions.widgets, nextOptions);
+      // Apply the controlled snapshot as one engine transaction. GridStack
+      // 13.1+ sorts DOM on change, so per-widget commits cause quadratic DOM
+      // churn during column changes. Preserve a consumer-owned outer batch.
+      const wasBatching = grid.engine.batchMode;
+      if (!wasBatching) grid.batchUpdate();
+      try {
+        syncGridWidgets(grid, element, registeredItems, nextOptions.widgets, nextOptions);
+      } finally {
+        if (!wasBatching) grid.batchUpdate(false);
+      }
       syncTransferSourceRegistry();
     } finally {
       isSyncingControlledState = false;
