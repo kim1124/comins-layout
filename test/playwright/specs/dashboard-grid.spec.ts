@@ -410,6 +410,7 @@ async function dragWidgetWithDomEvents(widget: Locator, deltaX: number, deltaY: 
 
 async function startWidgetResize(page: Page, widget: Locator) {
   await waitForWidgetGridEngine(widget);
+  await widget.evaluate((element) => element.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" }));
   await widget.hover();
   const handle = widget.locator(":scope > .ui-resizable-se");
   // A hidden auto-hide handle cannot receive mousedown. Require the actual
@@ -1293,7 +1294,16 @@ test("preserves independent controlled caches when columns change during a resiz
   await columnSelect.selectOption("6");
   await expect.poll(() => readDashboardLayouts(page)).toEqual(sourceSix);
 
+  // Exercise a low initial viewport position before the resize helper makes
+  // room for the gesture; leaving the browser would correctly end resizing.
+  await sales.evaluate((element) => element.scrollIntoView({ block: "end", behavior: "instant" }));
   const { startX, startY } = await startWidgetResize(page, sales);
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Resize viewport is unavailable");
+  expect(startX).toBeGreaterThanOrEqual(0);
+  expect(startY).toBeGreaterThanOrEqual(0);
+  expect(startX + 180).toBeLessThan(viewport.width);
+  expect(startY + 130).toBeLessThan(viewport.height);
 
   await page.mouse.move(startX + 120, startY + 90, { steps: 8 });
   await expect.poll(async () => (await readWidgetInteractionState(sales)).isResizing).toBe(true);
