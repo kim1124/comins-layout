@@ -26,7 +26,6 @@ const bodyInteractionRoutes = [
   "/examples/advanced/responsive/breakpoints",
   "/examples/advanced/responsive/none",
   "/examples/advanced/rtl",
-  "/examples/advanced/size-to-content",
   "/examples/advanced/transform",
   "/examples/advanced/multi-grid/horizontal",
   "/examples/advanced/public-api",
@@ -211,15 +210,37 @@ for (const route of bodyInteractionRoutes) {
   });
 }
 
+test("allows body move and resize on /examples/advanced/size-to-content", async ({ page }) => {
+  await page.goto("/examples/advanced/size-to-content");
+  const widget = await firstWidget(page);
+  await expect(page.locator(".grid-stack > .grid-stack-item")).toHaveCount(1);
+  await widget.scrollIntoViewIfNeeded();
+  const gridBox = await page.locator(".grid-stack").boundingBox();
+  if (!gridBox) throw new Error("Content sizing grid geometry is unavailable");
+  // This example has one card. Move into its empty neighboring column,
+  // rather than waiting for a second numbered widget from the old fixture.
+  await expectMove(page, widget, widget.locator(".content-sizing-list"), { x: gridBox.width / 6, y: 0 });
+  await expect(widget).toHaveAttribute("data-layout-x", "1");
+
+  await page.goto("/examples/advanced/size-to-content");
+  await expectResize(page, await firstWidget(page));
+});
+
 test("keeps Static Grid locked until editing is enabled", async ({ page }) => {
   await page.goto("/examples/advanced/static");
+  await expect(page).toHaveURL(/\/examples\/layout\/lock$/);
+  await page.getByRole("combobox", { name: "잠금 방식" }).selectOption("static");
+  await page.getByRole("button", { name: "레이아웃 잠금", exact: true }).click();
+  await expect(page.locator(".grid-stack")).toHaveClass(/grid-stack-static/);
   const widget = await firstWidget(page);
   await waitForGrid(widget);
+  await widget.scrollIntoViewIfNeeded();
   const locked = await readGeometry(widget);
   await dragFrom(page, widget.locator(".comins-grid-layout-widget__body"));
   await expect.poll(() => readGeometry(widget)).toEqual(locked);
 
-  await page.getByRole("button", { name: "Static Grid" }).click();
+  await page.getByRole("button", { name: "레이아웃 해제", exact: true }).click();
+  await expect(page.locator(".grid-stack")).not.toHaveClass(/grid-stack-static/);
   await expectMoveAndResize(page, widget, bodyDragSource(widget));
 });
 

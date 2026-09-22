@@ -301,8 +301,8 @@ export function TransferPlayground() {
     >
       <PlaygroundHeader
         description={text(
-          "외부 팔레트 복사, Grid 간 move/copy, 승인과 rollback을 제어 상태로 확인합니다.",
-          "Verifies external palette copies, cross-grid move/copy, approval, and rollback in controlled state.",
+          "팔레트에서 위젯을 추가하거나 두 Grid 사이에서 이동·복사하고, 허용 조건에 따른 결과를 확인합니다.",
+          "Add widgets from a palette or move and copy them between two grids, then inspect acceptance results.",
         )}
         kicker={text("전송 예제", "Transfer Example")}
         title={text("다중 Grid 전송", "Multiple Grid Transfer")}
@@ -310,10 +310,12 @@ export function TransferPlayground() {
       <PlaygroundFeatureGuide
         code={`<DashboardGrid\n  gridId="grid-a"\n  gridTransferMode={mode}\n  acceptExternalWidgets={acceptCandidate}\n  onWidgetDropRequest={applyAcceptedRequest}\n/>`}
         items={[
-          text("Palette 항목은 항상 copy 후보로 전달되고 대상 Grid의 승인 후 제어 상태에 추가됩니다.", "Palette items are always copy candidates and enter controlled state only after target approval."),
-          text("Grid source는 move/copy 모드를 선택하며 서로 다른 컬럼 수에서도 잡은 지점을 대상 셀 크기로 환산합니다. 중복 ID, locked, non-movable, 거부 predicate는 변경 없이 rollback됩니다.", "Grid sources select move/copy mode and map the normalized grab point into target cells even when column counts differ. Duplicate IDs, locked or non-movable widgets, and rejected predicates roll back without state changes."),
+          text("복사 모드에서는 원래 위치에 원본 모양을 남기고 + 윤곽선만 움직입니다. 대상 Grid의 배치 예정 영역에 놓으면 복사됩니다. 같은 Grid 안에 놓으면 기존처럼 위치만 바뀌며 복제되지 않습니다.", "Copy mode leaves a visual of the source in place and moves only a + outline. Drop on the target grid's placement preview to copy. Dropping within the same grid still moves the widget; it does not duplicate it."),
+          text("팔레트 항목은 복사 방식으로 새 위젯을 만듭니다. acceptExternalWidgets가 허용한 요청을 onWidgetDropRequest에서 받아 앱의 React 상태를 갱신해야 추가됩니다. 요청만 받고 상태를 갱신하지 않으면 추가되지 않습니다.", "Palette items create widgets by copying. After acceptExternalWidgets accepts a candidate, handle onWidgetDropRequest and update the app's React state to add it. Receiving the request alone does not add a widget."),
+          text("Grid 간 이동은 원본을 제거하고 복사는 원본을 유지합니다. 복사도 위젯 ID를 유지하므로 대상에 같은 ID가 있으면 거부됩니다. locked·이동 불가·최소화·최대화 위젯도 전송할 수 없습니다.", "Moving between grids removes the source widget; copying keeps it. Copies retain the widget ID, so an existing target ID causes rejection. Locked, non-movable, minimized, and maximized widgets cannot transfer."),
+          text("서로 다른 컬럼 수에서도 포인터로 잡은 지점을 대상 셀 크기로 환산합니다. 제한 위젯은 허용 조건에서 거부됩니다. 적용되지 않은 전송은 양쪽 위젯 목록을 유지합니다.", "The grab point is mapped into target cells even when column counts differ. The restricted widget is rejected by the acceptance rule. Unapplied transfers preserve both widget lists."),
           text(orientation === "horizontal" ? "두 Grid를 가로로 배치해 좌우 전송 동선을 확인합니다." : "두 Grid를 세로로 배치해 상하 전송 동선을 확인합니다.", orientation === "horizontal" ? "Places both grids horizontally to inspect left-right transfer flow." : "Places both grids vertically to inspect top-bottom transfer flow."),
-          text("드래그 대신 위젯의 전송 버튼으로도 동일한 transferDashboardWidget 상태 전이를 실행할 수 있습니다.", "Widget transfer buttons provide the same transferDashboardWidget state transition as a keyboard-accessible drag alternative."),
+          text("전송 버튼은 같은 transferDashboardWidget 함수를 사용하는 키보드 조작 대안입니다. 드래그는 놓은 위치를 사용하고, 버튼은 대상 Grid의 마지막 행 아래에 배치합니다.", "Transfer buttons provide a keyboard alternative using the same transferDashboardWidget helper. Dragging uses the drop location; buttons place the widget below the target grid's last row."),
         ]}
       />
       <PlaygroundStage kind="controls">

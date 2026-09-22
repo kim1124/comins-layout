@@ -85,6 +85,104 @@ async function readOperation(page: Page): Promise<TransferOperation> {
 }
 
 test.describe("Transfer Playground", () => {
+  test("copy preview does not join forms or change checked inputs", async ({ page }) => {
+    await openTransferPlayground(page);
+    const result = await page.evaluate(async (modulePath) => {
+      const { beginCopyDragPreview } = await import(modulePath);
+      const gridElement = document.querySelector<HTMLElement>('[data-transfer-grid="grid-a"] .grid-stack')!;
+      const form = document.createElement("form");
+      gridElement.before(form);
+      form.append(gridElement);
+      const item = gridElement.querySelector<HTMLElement>('[data-widget-id="a-chart"]')!;
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "choice";
+      input.value = "kept";
+      input.checked = true;
+      item.querySelector(".grid-stack-item-content")!.append(input);
+      const cleanup = beginCopyDragPreview((gridElement as HTMLElement & { gridstack: unknown }).gridstack, item);
+      const during = { checked: input.checked, values: new FormData(form).getAll("choice") };
+      cleanup();
+      return { during, after: input.checked };
+    }, `/@fs${process.cwd()}/src/gridstack/copy-drag-preview.ts`);
+    expect(result).toEqual({ during: { checked: true, values: ["kept"] }, after: true });
+  });
+
+  test("copy preview preserves canvas pixels and scoped SVG references", async ({ page }) => {
+    await openTransferPlayground(page);
+    const result = await page.evaluate(async (modulePath) => {
+      const { beginCopyDragPreview } = await import(modulePath);
+      const gridElement = document.querySelector<HTMLElement>('[data-transfer-grid="grid-a"] .grid-stack')!;
+      const item = gridElement.querySelector<HTMLElement>('[data-widget-id="a-chart"]')!;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 2;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = "red";
+      context.fillRect(0, 0, 2, 2);
+      const content = item.querySelector(".grid-stack-item-content")!;
+      content.append(canvas);
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.innerHTML = '<defs><linearGradient id="copy-test-gradient"><stop offset="0" stop-color="red"/></linearGradient></defs><rect width="2" height="2" fill="url(#copy-test-gradient)"/>';
+      content.append(svg);
+      const cleanup = beginCopyDragPreview((gridElement as HTMLElement & { gridstack: unknown }).gridstack, item);
+      const preview = gridElement.querySelector(".comins-grid-layout-copy-source")!;
+      const pixel = [...preview.querySelector("canvas")!.getContext("2d")!.getImageData(0, 0, 1, 1).data];
+      const gradientId = preview.querySelector("linearGradient")!.id;
+      const fill = preview.querySelector("svg rect")!.getAttribute("fill");
+      cleanup();
+      return { pixel, gradientId, fill };
+    }, `/@fs${process.cwd()}/src/gridstack/copy-drag-preview.ts`);
+    expect(result.pixel).toEqual([255, 0, 0, 255]);
+    expect(result.gradientId).not.toBe("");
+    expect(result.gradientId).not.toBe("copy-test-gradient");
+    expect(result.fill).toBe(`url(#${result.gradientId})`);
+  });
+
+  test("copy preview retains nested grid layout classes", async ({ page }) => {
+    await openTransferPlayground(page);
+    const result = await page.evaluate(async (modulePath) => {
+      const { beginCopyDragPreview } = await import(modulePath);
+      const gridElement = document.querySelector<HTMLElement>('[data-transfer-grid="grid-a"] .grid-stack')!;
+      const item = gridElement.querySelector<HTMLElement>('[data-widget-id="a-chart"]')!;
+      const child = document.createElement("div");
+      child.className = "grid-stack";
+      const nested = document.createElement("div");
+      nested.className = "grid-stack-item";
+      child.append(nested);
+      item.querySelector(".grid-stack-item-content")!.append(child);
+      const cleanup = beginCopyDragPreview((gridElement as HTMLElement & { gridstack: unknown }).gridstack, item);
+      const preserved = Boolean(gridElement.querySelector(".comins-grid-layout-copy-source .grid-stack > .grid-stack-item"));
+      cleanup();
+      return preserved;
+    }, `/@fs${process.cwd()}/src/gridstack/copy-drag-preview.ts`);
+    expect(result).toBe(true);
+  });
+  test("copy drag keeps a stationary source preview and moves only an outline @firefox-parity", async ({ page }) => {
+    await openTransferPlayground(page);
+    await page.getByRole("button", { name: "이동 모드" }).click();
+    const source = gridPanel(page, "grid-a").getByTestId("dashboard-widget-a-chart");
+    const title = source.locator(".comins-grid-layout-widget__title");
+    await title.scrollIntoViewIfNeeded();
+    const origin = await source.boundingBox();
+    const grab = await title.boundingBox();
+    const target = await gridPanel(page, "grid-b").locator(".grid-stack").boundingBox();
+    if (!origin || !grab || !target) throw new Error("Missing drag geometry");
+    await page.mouse.move(grab.x + grab.width / 2, grab.y + grab.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(target.x + target.width / 2, target.y + 30, { steps: 20 });
+    const preview = page.locator(".comins-grid-layout-copy-source");
+    await expect(preview).toBeVisible();
+    const stationary = await preview.boundingBox();
+    expect(Math.abs(stationary!.x - origin.x)).toBeLessThan(2);
+    expect(Math.abs(stationary!.y - origin.y)).toBeLessThan(2);
+    await expect(page.locator(".comins-grid-layout-copy-drag > .grid-stack-item-content")).toHaveCSS("visibility", "hidden");
+    await expect(preview.locator("[id], [data-widget-id], [data-testid]")).toHaveCount(0);
+    await page.mouse.up();
+    await expect(preview).toHaveCount(0);
+    await expect(page.locator(".comins-grid-layout-copy-drag")).toHaveCount(0);
+    await expect(gridPanel(page, "grid-a").getByTestId("dashboard-widget-a-chart")).toBeVisible();
+    await expect(gridPanel(page, "grid-b").getByTestId("dashboard-widget-a-chart")).toBeVisible();
+  });
   test("switches horizontal and vertical presentation without duplicating routes", async ({ page }) => {
     const diagnostics = collectBrowserDiagnostics(page);
     await openTransferPlayground(page);
@@ -239,6 +337,56 @@ test.describe("Transfer Playground", () => {
     await expect(gridPanel(page, "grid-a").getByLabel("Grid A 위젯 수")).toHaveText("2개");
     await expect(gridPanel(page, "grid-b").getByLabel("Grid B 위젯 수")).toHaveText("2개");
     expect(diagnostics).toEqual([]);
+  });
+
+  test("copy outlines clean up on Escape and rejected duplicate drops", async ({ page }) => {
+    const diagnostics = collectBrowserDiagnostics(page);
+    await openTransferPlayground(page);
+    await page.getByRole("button", { name: "이동 모드" }).click();
+    const source = gridPanel(page, "grid-a").getByTestId("dashboard-widget-a-chart");
+    const title = source.locator(".comins-grid-layout-widget__title");
+    const target = gridPanel(page, "grid-b").locator(".grid-stack");
+    const before = await source.getAttribute("data-layout-x");
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await title.scrollIntoViewIfNeeded();
+      const from = await title.boundingBox();
+      const to = await target.boundingBox();
+      if (!from || !to) throw new Error("Missing drag geometry");
+      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(to.x + to.width / 2, to.y + 30, { steps: 20 });
+      await expect(page.locator(".comins-grid-layout-copy-source")).toHaveCount(1);
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      await expect(page.locator(".comins-grid-layout-copy-source, .comins-grid-layout-copy-drag")).toHaveCount(0);
+      await expect(source).toHaveAttribute("data-layout-x", before!);
+      await expect(gridPanel(page, "grid-b").getByTestId("dashboard-widget-a-chart")).toHaveCount(0);
+    }
+    await dragToTarget(page, title, target);
+    await expect(gridPanel(page, "grid-b").getByTestId("dashboard-widget-a-chart")).toBeVisible();
+    await dragToTarget(page, title, target);
+    await expect(page.locator(".comins-grid-layout-copy-source, .comins-grid-layout-copy-drag")).toHaveCount(0);
+    await expect(gridPanel(page, "grid-a").getByLabel("Grid A 위젯 수")).toHaveText("2개");
+    await expect(gridPanel(page, "grid-b").getByLabel("Grid B 위젯 수")).toHaveText("2개");
+    expect(diagnostics).toEqual([]);
+  });
+
+  test("copy mode still moves inside its own grid without duplicating", async ({ page }) => {
+    await openTransferPlayground(page);
+    await page.getByRole("button", { name: "이동 모드" }).click();
+    const source = gridPanel(page, "grid-a").getByTestId("dashboard-widget-a-chart");
+    const title = source.locator(".comins-grid-layout-widget__title");
+    await title.scrollIntoViewIfNeeded();
+    const grab = await title.boundingBox();
+    const grid = await gridPanel(page, "grid-a").locator(".grid-stack").boundingBox();
+    if (!grab || !grid) throw new Error("Missing drag geometry");
+    await page.mouse.move(grab.x + grab.width / 2, grab.y + grab.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(grab.x + grab.width / 2 - grid.width / 3, grab.y + grab.height / 2, { steps: 20 });
+    await page.mouse.up();
+    await expect(source).toHaveAttribute("data-layout-x", "0");
+    await expect(gridPanel(page, "grid-a").getByLabel("Grid A 위젯 수")).toHaveText("2개");
+    await expect(page.locator(".comins-grid-layout-copy-source, .comins-grid-layout-copy-drag")).toHaveCount(0);
   });
 
   test("rejects a restricted palette candidate and disposes route-owned drag sources on navigation", async ({ page }) => {

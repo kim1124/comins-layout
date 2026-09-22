@@ -26,8 +26,9 @@ export function LayoutToolbar() {
 }
 ```
 
-- `autoArrangeWidgets` compacts widgets into deterministic row-major positions.
-- `fitWidgetsToColumns` clamps all active layouts to the current width; `fitWidgetToColumns` applies the same rule to one ID.
+- `autoArrangeWidgets` places widgets from left to right in array order, wrapping to a new row when needed. It does not optimally fill every gap.
+- `fitWidgetsToColumns` groups widgets by their starting `y` and redistributes widths evenly when the group has horizontal space to fill, respecting column bounds and widget size constraints.
+- `fitWidgetToColumns` adds the available horizontal space in the selected widget's row to that widget's width instead of distributing it among the group.
 - `resetLayout()` restores the hook's initial snapshot. Passing a layout or full state snapshot resets to that value instead.
 - `onColumnsChange` is required when `responsive` owns the active column count. Without responsive options, the controlled `columns` prop is authoritative.
 - `className` adds a consumer class beside `.grid-stack` and `.comins-grid-layout`.

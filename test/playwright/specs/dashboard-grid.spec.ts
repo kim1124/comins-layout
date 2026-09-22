@@ -1170,14 +1170,16 @@ test("expands only the selected widget when its header is double-clicked", { tag
     widgets: [
       { id: "sales", title: "매출", layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 } },
       { id: "traffic", title: "트래픽", layout: { id: "traffic", x: 3, y: 0, w: 3, h: 2 } },
-      { id: "orders", title: "주문", layout: { id: "orders", x: 0, y: 2, w: 6, h: 2 } },
-      { id: "alerts", title: "알림", layout: { id: "alerts", x: 6, y: 2, w: 6, h: 2 } },
+      // Full-width lower rows cannot compact into the first row's empty half.
+      { id: "orders", title: "주문", layout: { id: "orders", x: 0, y: 2, w: 12, h: 2 } },
+      { id: "alerts", title: "알림", layout: { id: "alerts", x: 0, y: 4, w: 12, h: 2 } },
     ],
   }));
   await page.getByRole("button", { name: "전체 상태 복원" }).click();
   await expect(grid).toHaveAttribute("data-columns", "12");
   await expect(sales).toHaveAttribute("data-layout-w", "3");
   await expect(traffic).toHaveAttribute("data-layout-x", "3");
+  await expect(page.getByTestId("dashboard-widget-alerts")).toHaveAttribute("gs-y", "4");
 
   await salesTitle.dblclick();
 

@@ -24,69 +24,39 @@ export type AdvancedFeature =
   | "cell-height"
   | "grid-lines"
   | "float"
-  | "lazy-load"
   | "mobile-touch"
-  | "responsive-column"
-  | "responsive-breakpoints"
-  | "responsive-none"
   | "rtl"
-  | "size-to-content"
-  | "static"
   | "title-drag"
   | "transform";
 
 const featureText: Record<AdvancedFeature, { title: LocalizedText; description: LocalizedText }> = {
   "cell-height": {
     title: { ko: "셀 높이", en: "Cell Height" },
-    description: { ko: "런타임에서 Grid 셀 높이를 변경합니다.", en: "Changes the grid cell height at runtime." },
+    description: { ko: "한 행의 픽셀 높이를 바꿔 위젯을 더 촘촘하거나 여유 있게 표시합니다.", en: "Changes the pixel height of each row to make widgets more compact or spacious." },
   },
   "grid-lines": {
     title: { ko: "그리드 라인", en: "Grid Lines" },
-    description: { ko: "현재 12컬럼과 셀 높이에 맞춘 가이드 라인을 표시합니다.", en: "Displays guide lines for the current 12 columns and cell height." },
+    description: { ko: "위젯 배치 단위를 보기 쉽게 예제 전용 보조선을 표시합니다.", en: "Displays example-only guide lines to make widget placement units visible." },
   },
   float: {
     title: { ko: "Float", en: "Float" },
-    description: { ko: "Float 모드에 따른 위젯의 빈 공간 유지 동작을 비교합니다.", en: "Compares how widgets preserve gaps with Float mode enabled or disabled." },
-  },
-  "lazy-load": {
-    title: { ko: "Lazy Loading", en: "Lazy Loading" },
-    description: { ko: "스크롤 영역에 진입한 위젯의 Content를 한 번만 렌더링합니다.", en: "Renders widget content once when it enters the scroll area." },
+    description: { ko: "위젯 위쪽의 빈 공간을 유지할지, 가능한 위쪽으로 당겨 채울지 비교합니다.", en: "Compares preserving gaps above widgets with packing widgets upward." },
   },
   "mobile-touch": {
     title: { ko: "모바일 터치", en: "Mobile Touch" },
-    description: { ko: "터치 환경에서 이동과 리사이즈 핸들을 확인합니다.", en: "Verifies movement and resize handles in a touch environment." },
-  },
-  "responsive-column": {
-    title: { ko: "반응형 - 컬럼 너비", en: "Responsive - Column Width" },
-    description: { ko: "컨테이너 너비를 기준으로 컬럼 수를 계산합니다.", en: "Calculates the column count from the container width." },
-  },
-  "responsive-breakpoints": {
-    title: { ko: "반응형 - Breakpoint", en: "Responsive - Breakpoints" },
-    description: { ko: "명시적인 Breakpoint별 컬럼과 레이아웃 변환을 적용합니다.", en: "Applies explicit columns and layout transformations for each breakpoint." },
-  },
-  "responsive-none": {
-    title: { ko: "반응형 - Layout None", en: "Responsive - Layout None" },
-    description: { ko: "Breakpoint 전환 시 저장된 위치를 다시 계산하지 않습니다.", en: "Preserves saved positions without recalculating them during breakpoint changes." },
+    description: { ko: "터치로 위젯을 이동하고 크기를 조절하며, 리사이즈 핸들의 표시 방식을 비교합니다.", en: "Move and resize widgets by touch and compare resize-handle visibility modes." },
   },
   rtl: {
     title: { ko: "RTL", en: "RTL" },
-    description: { ko: "오른쪽에서 왼쪽 방향의 배치와 상호작용을 확인합니다.", en: "Verifies right-to-left placement and interaction." },
-  },
-  "size-to-content": {
-    title: { ko: "Size To Content", en: "Size To Content" },
-    description: { ko: "위젯 Content 높이를 기준으로 행 높이를 조정합니다.", en: "Adjusts row height to the widget content height." },
-  },
-  static: {
-    title: { ko: "Static Grid", en: "Static Grid" },
-    description: { ko: "상태를 유지한 채 Grid 전체 편집 가능 여부를 전환합니다.", en: "Toggles editing for the entire grid while preserving state." },
+    description: { ko: "오른쪽을 기준으로 위젯을 배치하는 RTL 화면에서 이동과 크기 조절을 확인합니다.", en: "Try moving and resizing widgets in a right-to-left layout anchored to the right edge." },
   },
   "title-drag": {
     title: { ko: "타이틀 Drag Handle", en: "Title Drag Handle" },
-    description: { ko: "타이틀 영역에서만 위젯 이동을 시작합니다.", en: "Starts widget movement only from the title area." },
+    description: { ko: "콘텐츠를 조작할 때 위젯이 움직이지 않도록 드래그 시작 영역을 타이틀로 제한합니다.", en: "Restricts dragging to the title so interacting with content does not move the widget." },
   },
   transform: {
     title: { ko: "Transform", en: "Transform" },
-    description: { ko: "Scale과 Offset이 적용된 컨테이너에서 좌표 보정을 확인합니다.", en: "Verifies coordinate correction in a scaled and offset container." },
+    description: { ko: "CSS로 확대·축소하거나 이동한 부모 영역 안에서도 위젯을 이동하고 크기를 조절합니다.", en: "Move and resize widgets inside a parent transformed with CSS scale and translate." },
   },
 };
 
@@ -106,45 +76,17 @@ const featureGuidance: Record<AdvancedFeature, { items: ReadonlyArray<LocalizedT
   },
   float: {
     items: [
-      { ko: "float=true는 위젯 아래의 빈 행을 유지하고, false는 가능한 위쪽으로 압축합니다.", en: "float=true preserves vertical gaps; false compacts widgets upward when possible." },
+      { ko: "float=true는 위젯 위쪽의 빈 공간을 유지하고, false는 가능한 위쪽으로 당겨 배치합니다. 패키지 기본값은 false이며 이 예제는 true로 시작합니다.", en: "float=true preserves gaps above widgets; false packs widgets upward. The package default is false; this example starts with true." },
       { ko: "토글 전후에 위젯을 이동해 빈 공간 처리 차이를 확인합니다.", en: "Move widgets before and after toggling to observe gap handling." },
     ],
     code: { ko: "<DashboardGrid engineOptions={{ float: enabled }} />", en: "<DashboardGrid engineOptions={{ float: enabled }} />" },
   },
-  "lazy-load": {
-    items: [
-      { ko: "lazyRenderWidget는 스크롤 경계에 들어온 위젯 Content를 처음 한 번 렌더링합니다.", en: "lazyRenderWidget renders widget content once when it first enters the scroll boundary." },
-      { ko: "위젯 Shell과 레이아웃은 먼저 존재하므로 GridStack geometry는 Content 지연과 독립적입니다.", en: "The widget shell and layout exist first, so GridStack geometry remains independent from deferred content." },
-    ],
-    code: { ko: "<DashboardGrid lazyRenderWidget widgets={widgets} />", en: "<DashboardGrid lazyRenderWidget widgets={widgets} />" },
-  },
   "mobile-touch": {
     items: [
-      { ko: "터치 포인터에서 이동과 southeast 리사이즈 핸들의 동작을 확인합니다.", en: "Verifies movement and the southeast resize handle with touch pointers." },
-      { ko: "alwaysShowResizeHandle='mobile'은 coarse pointer 환경에서 리사이즈 affordance를 항상 표시합니다.", en: "alwaysShowResizeHandle='mobile' keeps the resize affordance visible for coarse pointers." },
+      { ko: "터치로 위젯을 이동하고 우측 하단 핸들로 크기를 조절합니다. 토글은 핸들 표시 방식만 바꾸며 이동·리사이즈 기능을 끄지 않습니다.", en: "Move widgets by touch and resize from the bottom-right handle. The toggle changes handle visibility, not whether movement or resizing is enabled." },
+      { ko: "터치 환경에서 핸들을 상시 표시하는 mobile 설정과 자동 숨김 설정을 비교합니다. 640px 이하 컨테이너의 3컬럼 전환은 이 예제의 설정입니다.", en: "Compare the mobile setting, which keeps handles visible on touch devices, with auto-hide. Switching to 3 columns at container widths up to 640px is specific to this example." },
     ],
     code: { ko: "<DashboardGrid engineOptions={{ alwaysShowResizeHandle: \"mobile\" }} />", en: "<DashboardGrid engineOptions={{ alwaysShowResizeHandle: \"mobile\" }} />" },
-  },
-  "responsive-column": {
-    items: [
-      { ko: "columnWidth=180이 컨테이너 너비를 나누어 활성 컬럼 수를 자동 계산하고 columnMax=12로 상한을 둡니다.", en: "columnWidth=180 divides the container width to calculate active columns automatically, capped by columnMax=12." },
-      { ko: "moveScale은 컬럼 수 변화에 맞춰 위치와 너비를 비례 변환합니다.", en: "moveScale transforms positions and widths proportionally as the column count changes." },
-    ],
-    code: { ko: "responsive={{ columnWidth: 180, columnMax: 12, layout: \"moveScale\" }}", en: "responsive={{ columnWidth: 180, columnMax: 12, layout: \"moveScale\" }}" },
-  },
-  "responsive-breakpoints": {
-    items: [
-      { ko: "창 너비가 640px 이하이면 2컬럼, 960px 이하이면 6컬럼, 그보다 넓으면 최대 12컬럼을 사용합니다.", en: "The grid uses 2 columns at 640px or below, 6 columns at 960px or below, and up to 12 columns above that." },
-      { ko: "각 Breakpoint는 moveScale을 사용해 명시된 컬럼별 geometry로 전환합니다.", en: "Each breakpoint uses moveScale to transition geometry for its explicit column count." },
-    ],
-    code: { ko: "breakpoints: [{ maxWidth: 640, columns: 2 }, { maxWidth: 960, columns: 6 }]", en: "breakpoints: [{ maxWidth: 640, columns: 2 }, { maxWidth: 960, columns: 6 }]" },
-  },
-  "responsive-none": {
-    items: [
-      { ko: "layout: \"none\"은 Breakpoint에서 컬럼 수만 바꾸고 기존 위젯 좌표와 크기를 재배치하거나 비례 변환하지 않습니다.", en: "layout: \"none\" changes only the column count at the breakpoint without repositioning or scaling existing widget coordinates." },
-      { ko: "moveScale 예제와 비교해 좌표 보존이 필요한 소비자 레이아웃을 확인합니다.", en: "Compare it with moveScale when consumer layouts must preserve coordinates." },
-    ],
-    code: { ko: "responsive={{ breakpoints: [{ maxWidth: 760, columns: 4, layout: \"none\" }], layout: \"none\" }}", en: "responsive={{ breakpoints: [{ maxWidth: 760, columns: 4, layout: \"none\" }], layout: \"none\" }}" },
   },
   rtl: {
     items: [
@@ -153,24 +95,10 @@ const featureGuidance: Record<AdvancedFeature, { items: ReadonlyArray<LocalizedT
     ],
     code: { ko: "<DashboardGrid engineOptions={{ rtl: true }} />", en: "<DashboardGrid engineOptions={{ rtl: true }} />" },
   },
-  "size-to-content": {
-    items: [
-      { ko: "sizeToContent는 Content의 실제 높이를 측정해 필요한 Grid 행 높이에 맞춥니다.", en: "sizeToContent measures actual content height and fits the required grid rows." },
-      { ko: "제어 위젯 데이터와 ID는 유지되고 GridStack geometry만 Content 크기에 맞게 갱신됩니다.", en: "Controlled widget data and IDs remain stable while GridStack geometry follows content size." },
-    ],
-    code: { ko: "<DashboardGrid engineOptions={{ sizeToContent: true }} />", en: "<DashboardGrid engineOptions={{ sizeToContent: true }} />" },
-  },
-  static: {
-    items: [
-      { ko: "engineOptions.staticGrid는 GridStack 엔진을 정적 모드로 전환해 이동·리사이즈 UI와 상호작용을 함께 비활성화합니다.", en: "engineOptions.staticGrid switches the GridStack engine to static mode and disables move/resize UI and interactions together." },
-      { ko: "레이아웃 잠금 / 해제 예제는 staticGrid가 아니라 movable과 resizable props만 전환하므로 엔진 모드는 유지됩니다.", en: "The Lock / Unlock Layout example keeps the engine mode and toggles only movable and resizable props instead of staticGrid." },
-    ],
-    code: { ko: "<DashboardGrid engineOptions={{ staticGrid: !editable }} />", en: "<DashboardGrid engineOptions={{ staticGrid: !editable }} />" },
-  },
   "title-drag": {
     items: [
       { ko: "dragHandle을 타이틀 selector로 제한해 Content 조작과 위젯 이동 시작 영역을 분리합니다.", en: "Limits dragHandle to the title selector, separating content interaction from the widget move start area." },
-      { ko: "타이틀 전체의 grab 영역에서만 이동할 수 있고 Content 영역 드래그는 레이아웃을 변경하지 않습니다.", en: "Movement starts only from the full grab-enabled title area; dragging content does not change layout." },
+      { ko: "설정이 켜져 있을 때 타이틀과 콘텐츠를 각각 드래그해 비교합니다. 타이틀에서만 이동이 시작되며 리사이즈는 우측 하단 핸들을 사용합니다.", en: "With the setting enabled, compare dragging the title and the content. Only the title starts movement; resize using the bottom-right handle." },
     ],
     code: { ko: "engineOptions={{ dragHandle: \".comins-grid-layout-widget__title\" }}", en: "engineOptions={{ dragHandle: \".comins-grid-layout-widget__title\" }}" },
   },
@@ -185,27 +113,21 @@ const featureGuidance: Record<AdvancedFeature, { items: ReadonlyArray<LocalizedT
 export function AdvancedFeaturePlayground({ feature }: { feature: AdvancedFeature }) {
   const { dashboard } = useNumberedDashboard();
   const { locale, text } = usePlaygroundLocale();
-  const [enabled, setEnabled] = useState(feature !== "static");
+  const [enabled, setEnabled] = useState(true);
   const [cellHeight, setCellHeight] = useState(96);
   const copy = featureText[feature];
   const guidance = featureGuidance[feature];
   const title = copy.title[locale];
-  const isResponsiveFeature = feature === "responsive-column" || feature === "responsive-breakpoints" || feature === "responsive-none";
-  const responsive = enabled ? createResponsiveOptions(feature) : undefined;
+  const responsive = createResponsiveOptions(feature);
   const toggleFeature = () => {
-    if (enabled && isResponsiveFeature) {
-      dashboard.commands.setColumns(12);
-    }
     setEnabled((value) => !value);
   };
   const engineOptions: DashboardGridEngineOptions = {
-    alwaysShowResizeHandle: feature === "mobile-touch" && enabled ? "mobile" : undefined,
-    cellHeight: feature === "cell-height" ? cellHeight : feature === "lazy-load" ? 180 : 96,
+    alwaysShowResizeHandle: feature === "mobile-touch" ? (enabled ? "mobile" : false) : undefined,
+    cellHeight: feature === "cell-height" ? cellHeight : 96,
     dragHandle: feature === "title-drag" && enabled ? ".comins-grid-layout-widget__title" : undefined,
     float: feature === "float" ? enabled : false,
     rtl: feature === "rtl" ? enabled : false,
-    sizeToContent: feature === "size-to-content" ? enabled : false,
-    staticGrid: feature === "static" ? !enabled : false,
   };
   const className = [
     feature === "grid-lines" && enabled ? "playground-grid--lines" : undefined,
@@ -216,7 +138,6 @@ export function AdvancedFeaturePlayground({ feature }: { feature: AdvancedFeatur
       className={className}
       dashboard={dashboard}
       engineOptions={engineOptions}
-      lazyRenderWidget={feature === "lazy-load" && enabled}
       responsive={responsive}
       showControls={feature === "title-drag" ? false : undefined}
     />
@@ -246,11 +167,7 @@ export function AdvancedFeaturePlayground({ feature }: { feature: AdvancedFeatur
         </ExampleToolbar>
       </PlaygroundStage>
       <PlaygroundStage kind="grid">
-        {feature === "lazy-load" ? (
-          <div className="advanced-lazy-scroll" data-dashboard-lazy-scroll>
-            <section aria-label={`${title} Grid`} className="playground-grid-region">{dashboardNode}</section>
-          </div>
-        ) : feature === "transform" && enabled ? (
+        {feature === "transform" && enabled ? (
           <div className="advanced-transform-stage">
             <section aria-label={`${title} Grid`} className="playground-grid-region">{dashboardNode}</section>
           </div>
@@ -268,38 +185,16 @@ function advancedToggleLabel(feature: AdvancedFeature, enabled: boolean, locale:
     case "float": return localized(`Float ${enabled ? "켜짐" : "꺼짐"}`, `Float ${enabled ? "on" : "off"}`);
     case "grid-lines": return localized(`그리드 라인 ${enabled ? "표시" : "숨김"}`, `Grid lines ${enabled ? "shown" : "hidden"}`);
     case "rtl": return localized(`RTL ${enabled ? "켜짐" : "꺼짐"}`, `RTL ${enabled ? "on" : "off"}`);
-    case "size-to-content": return localized(`Size To Content ${enabled ? "켜짐" : "꺼짐"}`, `Size To Content ${enabled ? "on" : "off"}`);
-    case "static": return localized(enabled ? "편집 가능" : "Static Grid", enabled ? "Editable" : "Static Grid");
     case "transform": return localized(`Transform ${enabled ? "적용" : "해제"}`, `Transform ${enabled ? "applied" : "removed"}`);
-    case "lazy-load": return localized("스크롤하여 Content 렌더링", "Scroll to render content");
-    case "mobile-touch": return localized("터치 이동 / 리사이즈", "Touch move / resize");
-    case "responsive-column":
-    case "responsive-breakpoints":
-    case "responsive-none": return localized(`반응형 설정 ${enabled ? "적용" : "해제"}`, `Responsive settings ${enabled ? "applied" : "disabled"}`);
+    case "mobile-touch": return localized(enabled ? "리사이즈 핸들 항상 표시" : "리사이즈 핸들 자동 표시", enabled ? "Resize handles always visible" : "Resize handles shown automatically");
     case "title-drag": return localized(enabled ? "타이틀로만 이동" : "전체 위젯에서 이동", enabled ? "Move from title only" : "Move from the full widget");
     default: return localized(enabled ? "사용" : "미사용", enabled ? "Enabled" : "Disabled");
   }
 }
 
 function createResponsiveOptions(feature: AdvancedFeature): DashboardResponsiveOptions | undefined {
-  if (feature === "responsive-column") {
-    return { columnWidth: 180, columnMax: 12, layout: "moveScale" };
-  }
-  if (feature === "responsive-breakpoints") {
-    return {
-      breakpoints: [
-        { maxWidth: 640, columns: 2, layout: "moveScale" },
-        { maxWidth: 960, columns: 6, layout: "moveScale" },
-      ],
-      columnMax: 12,
-    };
-  }
-  if (feature === "responsive-none") {
-    return {
-      breakpoints: [{ maxWidth: 760, columns: 4, layout: "none" }],
-      columnMax: 12,
-      layout: "none",
-    };
+  if (feature === "mobile-touch") {
+    return { breakpoints: [{ maxWidth: 640, columns: 3, layout: "none" }], columnMax: 12, layout: "none" };
   }
   return undefined;
 }
@@ -315,13 +210,13 @@ function NestedPlayground({ depth, onDepthChange }: { depth: 2 | 3; onDepthChang
   const guideItems = depth === 3
     ? [
         text("3단계 DashboardGrid를 재귀 구성해 Root → Child → Grandchild의 독립된 React 제어 상태를 확인합니다.", "Recursively composes three DashboardGrid levels to inspect independent React controlled state for Root → Child → Grandchild."),
-        text("각 단계는 고유 gridId와 layout commit 소유자를 가지며 native sub-grid routing을 사용하지 않습니다.", "Each level has its own gridId and layout commit owner without native sub-grid routing."),
+        text("각 단계의 위젯과 배치는 해당 React 상태에서 관리합니다. 자식 Grid의 gridId는 서로 다르며 GridStack의 자동 하위 Grid 생성 기능은 사용하지 않습니다.", "Each level manages its widgets and layout in its own React state. Child grids have distinct gridId values; GridStack's automatic sub-grid creation is not used."),
         text("계층 내부 이동은 같은 Grid의 layout 이동이며 A→B Grid 전송은 다중 Grid 예제로 분리되어 있습니다.", "Movement inside the hierarchy changes layout within one grid; A-to-B grid transfer is separated into the Multiple Grids example."),
         text("중첩 경계 충돌을 피하기 위해 각 위젯은 표시된 타이틀 grab 영역에서 이동합니다.", "Widgets move from the visible title grab area to avoid interaction conflicts across nested boundaries."),
       ]
     : [
         text("2단계 Root와 Child Grid가 각각 독립된 React 제어 상태와 layout commit을 소유합니다.", "The two-level Root and Child grids each own independent React controlled state and layout commits."),
-        text("명시적인 DashboardGrid 합성만 사용하며 GridStack native sub-grid ownership은 사용하지 않습니다.", "Uses explicit DashboardGrid composition without GridStack native sub-grid ownership."),
+        text("부모 위젯의 renderWidget 안에 자식 DashboardGrid를 렌더링합니다. 중첩만으로 위젯이 다른 Grid로 전송되지는 않습니다.", "Render a child DashboardGrid inside the parent widget's renderWidget. Nesting alone does not transfer widgets between grids."),
         text("계층 내부 이동은 같은 Grid의 layout 이동이며 A→B Grid 전송은 다중 Grid 예제로 분리되어 있습니다.", "Movement inside the hierarchy changes layout within one grid; A-to-B grid transfer is separated into the Multiple Grids example."),
         text("중첩 경계 충돌을 피하기 위해 각 위젯은 표시된 타이틀 grab 영역에서 이동합니다.", "Widgets move from the visible title grab area to avoid interaction conflicts across nested boundaries."),
       ];
@@ -335,7 +230,7 @@ function NestedPlayground({ depth, onDepthChange }: { depth: 2 | 3; onDepthChang
   return (
     <section className="playground-workspace" data-advanced-feature="nested">
       <PlaygroundHeader
-        description={text(`${depth}단계의 제어된 Grid를 React 상태 소유권을 유지한 채 구성합니다.`, `Builds a ${depth}-level controlled grid while React retains state ownership.`)}
+        description={text(`위젯 안에 다른 Grid를 넣어 ${depth}단계 대시보드를 구성하고 각 단계의 배치를 독립적으로 관리합니다.`, `Build a ${depth}-level dashboard by placing grids inside widgets, with independent layout state at each level.`)}
         kicker={text("고급 예제", "Advanced Examples")}
         title={title}
       />
@@ -470,8 +365,8 @@ export function ExternalDropTrashPlayground() {
     <section className="playground-workspace" data-advanced-feature="external-drop-trash">
       <PlaygroundHeader
         description={text(
-          "Grid 외부의 휴지통 영역으로 드롭한 위젯을 consumer 제어 상태에서 삭제합니다.",
-          "Deletes a widget from consumer-controlled state after it is dropped on a trash target outside the grid.",
+          "위젯을 그리드 밖 휴지통에 놓으면 드롭 이벤트를 받아 앱의 위젯 목록에서 삭제합니다.",
+          "Drop a widget on the trash area outside the grid to remove it from the app's widget list through a drop event.",
         )}
         kicker={text("고급 예제", "Advanced Examples")}
         title={text("외부 드롭 - 휴지통 삭제", "External Drop - Trash Delete")}
@@ -479,9 +374,9 @@ export function ExternalDropTrashPlayground() {
       <PlaygroundFeatureGuide
         code={`const targets = [{ id: "trash", selector: "[data-dashboard-drop-target='trash']" }];\n\n<DashboardGrid\n  externalDropTargets={targets}\n  onWidgetExternalDrop={(event) => {\n    if (event.targetId === "trash") removeWidget(event.widgetId);\n  }}\n/>`}
         items={[
-          text("externalDropTargets는 Grid 외부의 DOM target을 typed ID와 selector로 등록합니다.", "externalDropTargets registers an external DOM target with a typed ID and selector."),
-          text("패키지는 drop event만 전달하며 삭제는 consumer가 targetId === \"trash\"를 확인한 뒤 removeWidget으로 수행합니다.", "The package only emits the drop event; the consumer checks targetId === \"trash\" and calls removeWidget."),
-          text("휴지통 밖에 놓거나 이벤트를 처리하지 않으면 제어 위젯 상태는 변경되지 않습니다.", "Dropping outside the trash or ignoring the event leaves controlled widget state unchanged."),
+          text("externalDropTargets는 같은 문서의 HTML 영역을 ID와 CSS 선택자로 등록합니다. iframe과 Shadow DOM 내부 대상은 지원하지 않습니다.", "externalDropTargets registers HTML areas in the same document by ID and CSS selector. Targets inside iframes or Shadow DOM are not supported."),
+          text("패키지는 onWidgetExternalDrop으로 드롭을 알립니다. 이 예제는 targetId === \"trash\"를 확인하고 removeWidget을 호출해 삭제합니다.", "The package reports drops through onWidgetExternalDrop. This example checks targetId === \"trash\" and calls removeWidget to delete the widget."),
+          text("휴지통 밖에 놓거나 삭제 콜백을 연결하지 않으면 위젯은 삭제되지 않습니다. 일반 드래그에 따른 배치 변경은 onLayoutCommit을 통해 별도로 반영될 수 있습니다.", "Dropping outside the trash or omitting the deletion callback does not delete the widget. Ordinary drag layout changes may still be applied through onLayoutCommit."),
         ]}
       />
       <PlaygroundStage kind="controls">
@@ -499,11 +394,14 @@ export function ExternalDropTrashPlayground() {
           </div>
           <div className="external-trash-controls__status">
             <p aria-label={text("외부 드롭 처리 상태", "External drop status")} id="playground-external-drop-status" role="status">{statusText}</p>
-            <button type="button" onClick={reset}><RotateCcw aria-hidden="true" size={15} />{text("초기화", "Reset")}</button>
           </div>
         </section>
       </PlaygroundStage>
-      <PlaygroundStage kind="grid">
+      <PlaygroundStage kind="grid" actions={(
+        <button className="external-trash-reset" type="button" onClick={reset}>
+          <RotateCcw aria-hidden="true" size={15} />{text("초기화", "Reset")}
+        </button>
+      )}>
         <section aria-label={text("휴지통 삭제 Grid", "Trash delete grid")} className="playground-grid-region">
           <DashboardGrid
             className="playground-grid--numbered playground-grid--title-handle"
@@ -550,7 +448,7 @@ export function PublicApiPlayground() {
   return (
     <section className="playground-workspace" data-advanced-feature="public-api">
       <PlaygroundHeader
-        description={text("제어 상태를 우회하지 않는 공개 핸들러와 메서드만 실행합니다.", "Runs only public handlers and methods that preserve controlled state.")}
+        description={text("Grid의 컬럼·행·빈 영역을 조회하고, 배치 정리와 콘텐츠 재측정을 실행합니다.", "Query grid columns, rows, and empty areas; compact layouts and remeasure content.")}
         kicker={text("고급 예제", "Advanced Examples")}
         title={text("안전한 공개 핸들러 / 메서드", "Safe Public Handlers / Methods")}
       />
@@ -558,20 +456,22 @@ export function PublicApiPlayground() {
         code={`const columns = gridRef.current?.getColumnCount();\nconst snapshot = gridRef.current?.compact("compact", true);\ngridRef.current?.refresh();`}
         items={[
           text("읽기 메서드: getColumnCount, getRowCount, getFloat, isAreaEmpty, willItFit으로 엔진 상태를 조회합니다.", "Read methods: query engine state with getColumnCount, getRowCount, getFloat, isAreaEmpty, and willItFit."),
-          text("제어 커밋 메서드: compact는 정렬 후 DashboardLayoutSnapshot을 제어 상태에 커밋합니다.", "Controlled commit method: compact arranges and commits a DashboardLayoutSnapshot to controlled state."),
-          text("동기화 메서드: refresh는 현재 React 위젯과 GridStack geometry를 다시 맞춥니다.", "Synchronization method: refresh realigns current React widgets and GridStack geometry."),
+          text("compact는 배치를 정리하고 결과를 onLayoutCommit으로 전달합니다. 이 예제는 applyLayoutSnapshot을 연결해 React 상태에 반영합니다. commitLayout은 현재 배치를 전달하며 같은 결과의 중복 전달을 억제합니다.", "compact rearranges widgets and reports the result through onLayoutCommit. This example connects applyLayoutSnapshot to update React state. commitLayout reports the current layout and suppresses duplicates."),
+          text("refresh는 콘텐츠와 드래그 핸들을 다시 측정하고 필요한 배치 보정을 전달합니다. 엔진 준비 전에는 조회 결과와 배치 반환값이 null일 수 있습니다.", "refresh remeasures content and drag handles and reports any needed layout corrections. Queries and layout-returning methods may return null before the engine is ready."),
+          text("isAreaEmpty는 지정 영역의 점유 여부를 검사합니다. willItFit은 위젯 배치 후 최대 행 수 maxRow를 넘는지 검사하며, 이 예제처럼 제한이 없으면 true입니다.", "isAreaEmpty checks occupancy of a specified area. willItFit checks whether placing a widget would exceed maxRow; it is true without that limit, as in this example."),
           text("getGridStack은 하위 호환 escape hatch이며 raw addWidget/removeWidget/load/destroy는 제어 상태를 우회하므로 사용하지 않습니다.", "getGridStack is a compatibility escape hatch; raw addWidget/removeWidget/load/destroy bypass controlled state and are not used here."),
         ]}
         referenceCaption={text("공개 메서드", "Public methods")}
         referenceNameLabel={text("메서드명", "Method name")}
         references={[
           { name: "getColumnCount", description: text("현재 Grid의 활성 컬럼 수를 조회합니다.", "Returns the active grid column count.") },
-          { name: "getRowCount", description: text("현재 Grid가 사용하는 행 수를 조회합니다.", "Returns the current number of occupied grid rows.") },
+          { name: "getRowCount", description: text("최소 행 수 minRow 설정을 포함한 현재 Grid의 행 수를 조회합니다.", "Returns the current grid row count, including the minRow setting.") },
           { name: "getFloat", description: text("현재 GridStack float 설정을 조회합니다.", "Returns the current GridStack float setting.") },
           { name: "isAreaEmpty", description: text("지정한 x, y, w, h 영역이 비어 있는지 확인합니다.", "Checks whether a specified x, y, w, h area is empty.") },
-          { name: "willItFit", description: text("지정한 위젯 geometry를 현재 Grid에 배치할 수 있는지 확인합니다.", "Checks whether widget geometry can fit in the current grid.") },
-          { name: "compact", description: text("정렬 결과를 DashboardLayoutSnapshot으로 제어 상태에 커밋합니다.", "Compacts and commits the resulting DashboardLayoutSnapshot to controlled state.") },
-          { name: "refresh", description: text("현재 React 위젯과 GridStack geometry를 다시 동기화합니다.", "Resynchronizes current React widgets and GridStack geometry.") },
+          { name: "willItFit", description: text("최대 행 수 maxRow 안에 배치 가능한지 검사합니다. 제한이 없으면 true이며 지정 위치가 비었다는 보장은 아닙니다.", "Checks whether placement fits within maxRow. Without that limit it returns true; this does not guarantee the requested position is empty.") },
+          { name: "compact", description: text("배치를 정리하고 onLayoutCommit으로 결과를 전달한 뒤 스냅샷을 반환합니다.", "Compacts the layout, reports it through onLayoutCommit, and returns the snapshot.") },
+          { name: "refresh", description: text("콘텐츠와 핸들을 재측정하고 필요한 배치 보정을 전달합니다. 반환값은 없습니다.", "Remeasures content and handles and reports needed layout corrections. Returns no value.") },
+          { name: "commitLayout", description: text("현재 배치를 콜백으로 전달하고 반환합니다. 동일 스냅샷의 중복 전달은 억제합니다.", "Reports and returns the current layout, suppressing duplicate snapshot notifications.") },
           { name: "getGridStack", description: text("하위 호환 escape hatch입니다. raw CRUD는 제어 상태를 우회하므로 사용하지 않습니다.", "Backward-compatibility escape hatch. Do not use raw CRUD because it bypasses controlled state.") },
         ]}
       />

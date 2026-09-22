@@ -8,6 +8,8 @@ Report potential vulnerabilities privately through this repository's GitHub Secu
 
 Before 1.0.0, only the latest published version receives security fixes.
 
+Source version in preparation: `0.2.3`. The published-version support table below is updated after publication is verified; a source version bump does not change it by itself.
+
 | Version | Supported |
 | --- | --- |
 | 0.2.2 | Yes |

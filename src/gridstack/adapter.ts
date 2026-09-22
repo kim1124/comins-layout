@@ -7,6 +7,7 @@ import type {
   GridStackWidget,
 } from "gridstack";
 import { mapDashboardGridOptions, mapDashboardWidgetOptions } from "./option-mapper";
+import { beginCopyDragPreview } from "./copy-drag-preview";
 import type { DashboardGridOptionInput } from "./option-mapper";
 import { clampDashboardColumnCount } from "../core/columns";
 import { createDashboardLayoutState, insertDashboardWidgetAtLayout } from "../core/layout-state";
@@ -326,6 +327,7 @@ export function createDashboardGridAdapter<TData>(
   let pendingSync = false;
   let finishInteractionFrame: number | undefined;
   let deferredSyncFrame: number | undefined;
+  let controlledSyncFrame: number | undefined;
   let forceEndFrame: number | undefined;
   let refreshFrame: number | undefined;
   let columnsFrame: number | undefined;
@@ -504,7 +506,6 @@ export function createDashboardGridAdapter<TData>(
     registeredItems.set(widgetId, transferredItem as GridItemHTMLElement);
     pendingCommit = false;
     runSync(appliedOptions, currentOptions);
-    appliedOptions = currentOptions;
   };
 
   const syncTransferSourceRegistry = () => {
@@ -534,25 +535,53 @@ export function createDashboardGridAdapter<TData>(
     previousOptions: DashboardGridAdapterOptions<TData>,
     nextOptions: DashboardGridAdapterOptions<TData>,
   ) => {
+    cancelFrame(controlledSyncFrame);
+    controlledSyncFrame = undefined;
+    // load() owns its batch boundary. Wait for a consumer's transaction to
+    // finish instead of closing it or publishing its intermediate geometry.
+    if (grid.engine.batchMode) {
+      controlledSyncFrame = window.requestAnimationFrame(() => {
+        controlledSyncFrame = undefined;
+        if (isInteracting) {
+          pendingSync = true;
+          return;
+        }
+        runSync(appliedOptions, currentOptions);
+      });
+      return;
+    }
     isSyncingControlledState = true;
     try {
+      // Runtime Float must change before batching: GridStack restores the
+      // Float value captured when its batch opens.
       applyRuntimeEngineOptions(previousOptions, nextOptions);
-      // Apply the controlled snapshot as one engine transaction. GridStack
-      // 13.1+ sorts DOM on change, so per-widget commits cause quadratic DOM
-      // churn during column changes. Preserve a consumer-owned outer batch.
-      const wasBatching = grid.engine.batchMode;
-      if (!wasBatching) grid.batchUpdate();
-      try {
-        syncGridWidgets(grid, element, registeredItems, nextOptions.widgets, nextOptions);
-      } finally {
-        if (!wasBatching) grid.batchUpdate(false);
-      }
+      grid.batchUpdate();
+      syncGridWidgets(grid, element, registeredItems, nextOptions.widgets, nextOptions);
       syncTransferSourceRegistry();
     } finally {
+      grid.batchUpdate(false);
       isSyncingControlledState = false;
     }
-    if (lastCommittedLayout) {
-      lastCommittedLayout = readDashboardLayoutSnapshot(grid, grid.getColumn());
+    appliedOptions = nextOptions;
+    const controlled = {
+      columns: clampDashboardColumnCount(nextOptions.columns ?? 12),
+      widgets: nextOptions.widgets.map((widget) => widget.layout),
+    };
+    const snapshot = readDashboardLayoutSnapshot(grid, grid.getColumn());
+    if (sameDashboardLayoutSnapshot(controlled, snapshot)) {
+      lastCommittedLayout = snapshot;
+    } else if (
+      snapshot.columns === controlled.columns
+      && !pendingAcceptedExternalSource
+      && !shouldSuppressDashboardExternalChange(undefined, grid.engine.nodes, element, nextOptions.gridId?.trim() ?? "")
+    ) {
+      // Acknowledge packing/bounds corrections once. Merely remembering the
+      // engine result here leaves React and serialized state behind.
+      if (!sameDashboardLayoutSnapshot(controlled, {
+        columns: clampDashboardColumnCount(previousOptions.columns ?? 12),
+        widgets: previousOptions.widgets.map((widget) => widget.layout),
+      })) lastCommittedLayout = undefined;
+      commitLayout();
     }
     scheduleColumnsChange(false);
   };
@@ -759,12 +788,18 @@ export function createDashboardGridAdapter<TData>(
         return;
       }
       runSync(appliedOptions, currentOptions);
-      appliedOptions = currentOptions;
       revealPendingForcedItem();
     });
   };
 
+  let clearCopyDragPreview: (() => void) | undefined;
+  const clearCopyPreview = () => {
+    clearCopyDragPreview?.();
+    clearCopyDragPreview = undefined;
+  };
+
   const flushInteraction = () => {
+    clearCopyPreview();
     finishInteractionFrame = undefined;
     detachInteractionGuards();
     const stoppedKind = activeInteractionKind;
@@ -829,6 +864,10 @@ export function createDashboardGridAdapter<TData>(
         : undefined);
     if (kind === "drag" && event && activeInteractionItem) {
       captureDashboardDragPointerOffset(activeInteractionItem, event);
+      clearCopyPreview();
+      if (currentOptions.gridId?.trim() && currentOptions.gridTransferMode === "copy") {
+        clearCopyDragPreview = beginCopyDragPreview(grid, activeInteractionItem);
+      }
     }
     cancelFrame(finishInteractionFrame);
     cancelFrame(forceEndFrame);
@@ -854,6 +893,7 @@ export function createDashboardGridAdapter<TData>(
   };
 
   const stopInteraction = (event?: Event, item?: GridItemHTMLElement) => {
+    clearCopyPreview();
     if (event) {
       captureInteractionPoint(event);
     }
@@ -886,7 +926,6 @@ export function createDashboardGridAdapter<TData>(
       resolvedSource?.restoreSource,
       () => {
         runSync(appliedOptions, currentOptions);
-        appliedOptions = currentOptions;
       },
     );
   };
@@ -937,7 +976,7 @@ export function createDashboardGridAdapter<TData>(
   };
 
   const changeHandler = (_event: Event, nodes: GridStackNode[] | undefined) => {
-    if (isSyncingControlledState) {
+    if (isSyncingControlledState || controlledSyncFrame !== undefined) {
       return;
     }
     if (pendingAcceptedExternalSource) {
@@ -947,7 +986,6 @@ export function createDashboardGridAdapter<TData>(
       }
       pendingAcceptedExternalSource = undefined;
       runSync(appliedOptions, currentOptions);
-      appliedOptions = currentOptions;
       return;
     }
     if (shouldSuppressDashboardExternalChange(nodes, grid.engine.nodes, element, currentOptions.gridId?.trim() ?? "")) {
@@ -996,7 +1034,6 @@ export function createDashboardGridAdapter<TData>(
         return;
       }
       runSync(appliedOptions, nextOptions);
-      appliedOptions = nextOptions;
     },
     refresh() {
       grid.onResize();
@@ -1005,9 +1042,12 @@ export function createDashboardGridAdapter<TData>(
       refreshFrame = window.requestAnimationFrame(() => {
         refreshFrame = undefined;
         grid.onResize();
-        if (currentOptions.engineOptions?.sizeToContent) {
-          grid.getGridItems().forEach((item) => grid.resizeToContent(item));
-        }
+        grid.getGridItems().forEach((item) => {
+          const sizing = item.gridstackNode?.sizeToContent ?? currentOptions.engineOptions?.sizeToContent;
+          if (sizing) grid.resizeToContent(item);
+        });
+        // Reuse interaction and external-preview guards for refreshed sizes.
+        if (!grid.engine.batchMode) changeHandler(new Event("change"), undefined);
         notifyWidgetSizes();
         scheduleColumnsChange();
       });
@@ -1019,6 +1059,7 @@ export function createDashboardGridAdapter<TData>(
     commit: commitLayout,
     destroy() {
       destroyed = true;
+      clearCopyPreview();
       detachInteractionGuards();
       columnsObserver?.disconnect();
       pendingForcedRevealItem = undefined;
@@ -1029,6 +1070,7 @@ export function createDashboardGridAdapter<TData>(
       touchPointerActive = false;
       cancelFrame(finishInteractionFrame);
       cancelFrame(deferredSyncFrame);
+      cancelFrame(controlledSyncFrame);
       cancelFrame(forceEndFrame);
       cancelFrame(refreshFrame);
       cancelFrame(columnsFrame);
@@ -1068,6 +1110,10 @@ export function toGridStackWidget<TData>(
 
   return {
     ...widget.layout,
+    minW: widget.layout.minW,
+    minH: widget.layout.minH,
+    maxW: widget.layout.maxW,
+    maxH: widget.layout.maxH,
     id: widget.id,
     ...widgetOptions,
   };
@@ -1085,8 +1131,9 @@ export function readDashboardLayoutSnapshot(grid: GridStack, columns: number): D
         id: item.id,
         x: item.x ?? 0,
         y: item.y ?? 0,
-        w: item.w ?? 1,
-        h: item.h ?? 1,
+        // GridStack omits dimensions equal to their configured minimum.
+        w: item.w ?? item.minW ?? 1,
+        h: item.h ?? item.minH ?? 1,
         minW: item.minW,
         minH: item.minH,
         maxW: item.maxW,
@@ -1126,13 +1173,29 @@ function syncGridWidgets<TData>(
       grid.removeWidget(registeredItem, false, false);
     }
     const gridWidget = toGridStackWidget(widget, options);
-    if (gridItem.gridstackNode) {
-      grid.update(gridItem, gridWidget);
-    } else {
+    if (!gridItem.gridstackNode) {
       grid.makeWidget(gridItem, gridWidget);
+    } else if (gridItem.gridstackNode.sizeToContent !== gridWidget.sizeToContent) {
+      // Update sizing before load() decides whether to retain the old height.
+      grid.update(gridItem, { sizeToContent: gridWidget.sizeToContent });
     }
+    gridItem.classList.toggle("size-to-content", Boolean(gridWidget.sizeToContent ?? options.engineOptions?.sizeToContent));
     registeredItems.set(widget.id, gridItem);
     grid.movable(gridItem, !(gridWidget.noMove ?? false));
     grid.resizable(gridItem, !(gridWidget.noResize ?? false));
   });
+  // Updating coordinates one widget at a time lets old positions displace
+  // already updated widgets. load() resolves the complete layout together,
+  // retaining registered DOM and React content. Pass fresh objects because
+  // GridStack normalizes its input; React still owns widget creation/removal.
+  grid.load(widgets.map((widget) => toGridStackWidget(widget, options)), false);
+  const contentItems = grid.getGridItems().filter((item) => item.classList.contains("size-to-content"));
+  if (contentItems.length) {
+    grid.batchUpdate();
+    try {
+      contentItems.forEach((item) => grid.resizeToContent(item));
+    } finally {
+      grid.batchUpdate(false);
+    }
+  }
 }

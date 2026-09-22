@@ -44,15 +44,12 @@ export const playgroundMenus: ReadonlyArray<PlaygroundMenu> = [
       { label: { en: "Cell Height", ko: "셀 높이" }, path: "/examples/advanced/cell-height" },
       { label: { en: "Grid Lines", ko: "그리드 라인" }, path: "/examples/advanced/grid-lines" },
       { label: { en: "Float", ko: "Float" }, path: "/examples/advanced/float" },
-      { label: { en: "Lazy Loading", ko: "Lazy Loading" }, path: "/examples/advanced/lazy-load" },
+      { label: { en: "Lazy Content Rendering", ko: "콘텐츠 지연 렌더링" }, path: "/examples/advanced/lazy-load" },
       { label: { en: "Mobile Touch", ko: "모바일 터치" }, path: "/examples/advanced/mobile-touch" },
       { label: { en: "Nested Grid - Composition", ko: "Nested Grid - 구성" }, path: "/examples/advanced/nested/basic" },
-      { label: { en: "Responsive - Column Width", ko: "반응형 - 컬럼 너비" }, path: "/examples/advanced/responsive/column" },
-      { label: { en: "Responsive - Breakpoints", ko: "반응형 - Breakpoint" }, path: "/examples/advanced/responsive/breakpoints" },
-      { label: { en: "Responsive - Layout None", ko: "반응형 - Layout None" }, path: "/examples/advanced/responsive/none" },
+      { label: { en: "Responsive", ko: "반응형" }, path: "/examples/advanced/responsive" },
       { label: { en: "RTL", ko: "RTL" }, path: "/examples/advanced/rtl" },
       { label: { en: "Size To Content", ko: "Size To Content" }, path: "/examples/advanced/size-to-content" },
-      { label: { en: "Static Grid", ko: "Static Grid" }, path: "/examples/advanced/static" },
       { label: { en: "Title Drag Handle", ko: "타이틀 Drag Handle" }, path: "/examples/advanced/title-drag" },
       { label: { en: "Transform", ko: "Transform" }, path: "/examples/advanced/transform" },
       { label: { en: "External Drop - Trash Delete", ko: "외부 드롭 - 휴지통 삭제" }, path: "/examples/advanced/external-drop-trash" },
@@ -63,6 +60,10 @@ export const playgroundMenus: ReadonlyArray<PlaygroundMenu> = [
 ];
 
 export const compatibilityRoutes: Readonly<Record<string, string>> = {
+  "/examples/advanced/responsive/column": "/examples/advanced/responsive",
+  "/examples/advanced/responsive/breakpoints": "/examples/advanced/responsive",
+  "/examples/advanced/responsive/none": "/examples/advanced/responsive",
+  "/examples/advanced/static": "/examples/layout/lock",
   "/": "/examples/widget/basic",
   "/examples/basic": "/docs/getting-started",
   "/examples/complete": "/examples/advanced/public-api",

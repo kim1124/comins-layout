@@ -56,3 +56,5 @@ The root exports also include pure state helpers for reducers or non-React code.
 Do not use raw GridStack add/remove methods for React content. Raw engine CRUD changes only engine/DOM state and can be replaced by the next controlled render.
 
 Playground: `/examples/widget/manage`.
+
+In 0.2.3, the adapter applies controlled geometry as one layout while retaining widget DOM. Packing after removal or Float changes can correct the requested coordinates; connect `onLayoutCommit` to `applyLayoutSnapshot` so those corrections reach React state. The pure commands themselves do not measure browser geometry.

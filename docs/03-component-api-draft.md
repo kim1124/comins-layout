@@ -1,4 +1,6 @@
-# Current Component API Reference (`0.2.2`)
+# Current Component API Reference (`0.2.3`)
+
+This reference follows source version `0.2.3`. For an interactive reading path, run the example server and open `/api`: choose a feature, run its shared Playground example, inspect minimal code, then expand detailed signatures. Registry availability is independent of this source reference.
 
 ## DashboardGrid
 
@@ -165,6 +167,7 @@ The handle is an optional advanced escape hatch. Comins commands remain the prim
 ## Option Semantics
 
 - `editable=false`: movement and resizing are disabled.
+- `engineOptions.staticGrid=true`: engine movement, resizing, and incoming external widget drops are disabled. Neither mode disables consumer-owned inputs, action callbacks, or state commands.
 - `movable=false`: movement is disabled even when `editable=true`.
 - `resizable=false`: resizing is disabled even when `editable=true`.
 - Widget-level `locked=true`: the widget cannot move or resize.
@@ -172,12 +175,18 @@ The handle is an optional advanced escape hatch. Comins commands remain the prim
 - Without `responsive`, `columns` is authoritative. With `responsive`, it is the initial/fallback count and `grid.getColumn()` is the active source of truth.
 - `engineOptions.nonce` is initialization-only and requires a remount to change.
 - `engineOptions.rtl` and `engineOptions.sizeToContent` safely reinitialize the adapter. Other supported routine options synchronize in place.
+- Content sizing includes the header and honors widget overrides and `minH`/`maxH`. Maximize/minimize suspends sizing until restore. Use `refreshKey` or `refresh()` after asynchronous content changes.
+- Responsive breakpoints use container width unless `breakpointForWindow=true`. `none` skips proportional transforms but still corrects bounds and overlaps.
+- `columnWidth` and breakpoints decide the column count; layout policy decides how geometry changes. Breakpoints take precedence if both are set. `none` is not a responsive off switch or a pixel-size lock. Previously visited columns restore their cached layout.
+- `float=true` preserves vertical gaps; `false` compacts upward. Explicit `alwaysShowResizeHandle=false` disables persistent resize-handle visibility on coarse pointers.
 - `engineOptions.lazyLoad` is deprecated: GridStack native lazy loading does not defer React-owned content. Use `lazyRenderWidget`.
 - Invalid supported engine or responsive options throw `DashboardGridConfigurationError` during render without echoing values.
 
 ## Event Semantics
 
 - `onLayoutCommit` runs after committed layout changes, not on every pointer move.
+- Controlled packing or content-size corrections also emit a changed layout once. Wire `onLayoutCommit` to `applyLayoutSnapshot` to keep React and serialized state aligned with the engine.
+- `refresh()` measurements commit after active interaction finishes. Controlled updates wait for an open consumer-owned GridStack batch to close and retain existing widget DOM.
 - `onWidgetResizeFrame` is an animation-frame-scheduled content-pixel notification; `onResize` is an active layout-geometry lifecycle event.
 - `onWidgetExternalDrop` reports a final pointer or touch release in a configured same-document light DOM target. It is non-destructive: consumers choose whether to call `removeWidget(widgetId)`, and no DOM `CustomEvent` is dispatched.
 - Move start ordering is `onBeforeMove` -> deprecated `onWidgetDragStart`. Stop ordering is `onWidgetLayoutChange` -> `onLayoutCommit` -> optional `onWidgetExternalDrop` -> deprecated `onWidgetDragStop` -> `onAfterMove`.
@@ -215,6 +224,7 @@ dashboard.commands.restoreLayout(saved);
 - `onWidgetDropRequest` is fail-closed. The adapter rolls back temporary GridStack DOM first; no callback means no controlled mutation.
 - Use `insertDashboardWidgetAtLayout` when palette insertion rejection details are required.
 - Use `transferDashboardWidget` for atomic source/target move or copy results.
+- In copy mode, a stationary visual snapshot stays at the source while a `+` outline follows the pointer; cleanup runs on drop, cancellation, and teardown. It is not a second React widget. Same-grid drops still move; cross-grid copies retain the source and preserve its ID, so an existing target ID rejects the copy.
 - `insertWidgetAt` is a fire-and-forget reducer command for an already validated single-grid insertion.
 - Rejected duplicate IDs, predicates, or non-transferable grid sources leave both controlled states unchanged.
 
@@ -223,5 +233,6 @@ dashboard.commands.restoreLayout(saved);
 - `lazyRenderWidget=false` renders all widget content eagerly.
 - When enabled, `DashboardWidget.lazyLoad=false` opts that widget out; `true` alone does not enable the global boundary.
 - The nearest `[data-dashboard-lazy-scroll]` ancestor is the observer root; otherwise the viewport is used.
-- Content mounts once and remains mounted. Without `IntersectionObserver`, client rendering falls back to eager content.
+- Content mounts on first intersection and remains mounted offscreen; normal React updates still rerender it. Re-enabling lazy rendering does not hide already mounted content. Without `IntersectionObserver`, client rendering falls back to eager content.
 - Skeletons, loading state, root-margin/threshold options, and full virtualization are not public features.
+- The Playground's actual mount count, per-widget status, on/off labels, and restart action are example-only observability controls, not additional public props.

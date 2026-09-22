@@ -29,6 +29,8 @@ The event includes `widgetId`, `targetId`, active `columns`, and committed `layo
 
 Target IDs must be non-empty and unique. Selectors must be non-empty, valid selectors that resolve in the dashboard's owner document. Targets are same-document light-DOM elements; cross-frame and shadow-root targeting are outside the contract. A target does not need to be a GridStack container.
 
-Invalid target configuration throws `DashboardGridConfigurationError`. Dropping outside all configured target bounds produces no external-drop event.
+Invalid target configuration throws `DashboardGridConfigurationError`. Dropping outside all configured target bounds produces no external-drop event. Dropping outside a target or omitting the removal callback does not delete the widget, but the normal move may still commit new coordinates.
 
 This feature is grid-to-HTML release. For palette-to-grid or grid-to-grid operations, use [Palette and Grid Transfer](./08-palette-and-grid-transfer.md).
+
+Playground: `/examples/advanced/external-drop-trash`. Drag a widget into the full-width deletion area and confirm that it disappears from controlled state. **Reset** is at the right of the live-example heading. Target size and button placement belong to the example, not the package contract.

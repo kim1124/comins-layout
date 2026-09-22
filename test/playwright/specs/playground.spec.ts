@@ -73,7 +73,6 @@ const supportedExampleRoutes = [
   "/examples/advanced/responsive/none",
   "/examples/advanced/rtl",
   "/examples/advanced/size-to-content",
-  "/examples/advanced/static",
   "/examples/advanced/title-drag",
   "/examples/advanced/transform",
   "/examples/advanced/external-drop-trash",
@@ -133,8 +132,8 @@ test.describe("Playground example guidance", () => {
 
       await expect(content.locator(".playground-feature-guide"), route).toBeVisible();
       await expect(content.getByRole("heading", { name: "기능 구성", exact: true }), route).toBeVisible();
-      await expect(content.getByRole("heading", { name: "GridStack 예제 컨트롤", exact: true }), route).toBeVisible();
-      await expect(content.getByRole("heading", { name: "GridStack 예제", exact: true }), route).toBeVisible();
+      await expect(content.getByRole("heading", { name: "예제 컨트롤", exact: true }), route).toBeVisible();
+      await expect(content.getByRole("heading", { name: "실행 예제", exact: true }), route).toBeVisible();
       expect(await content.locator(".playground-feature-guide__item").count(), route).toBeGreaterThan(0);
     }
   });
@@ -180,11 +179,17 @@ test.describe("Playground example guidance", () => {
     await expect(page.getByText(/640px.*2컬럼.*960px.*6컬럼/)).toBeVisible();
 
     await page.goto("/examples/advanced/responsive/none");
-    await expect(page.getByText(/layout: "none".*좌표/)).toBeVisible();
+    await expect(page.getByText(/layout: "none".*컬럼 경계와 위젯 겹침은 보정/)).toBeVisible();
+    await expect(page.locator(".playground-feature-guide")).toContainText("none은 반응형을 끄는 설정이 아닙니다.");
 
     await page.goto("/examples/advanced/static");
     await expect(page.getByText(/engineOptions\.staticGrid/)).toBeVisible();
     await expect(page.getByText(/레이아웃 잠금.*movable.*resizable/)).toBeVisible();
+    await expect(page.locator(".playground-feature-guide")).toContainText("삭제 버튼이나 콘텐츠 입력을 막는 읽기 전용 권한은 아닙니다.");
+
+    await page.goto("/examples/advanced/size-to-content");
+    await expect(page.locator(".playground-feature-guide")).toContainText("위젯의 행 수 h를 조정합니다. cellHeight는 유지");
+    await expect(page.locator(".playground-feature-guide")).toContainText("패키지에서 자동 활성화되지는 않습니다.");
 
     await page.goto("/examples/advanced/public-api");
     const guide = page.locator(".playground-feature-guide");
@@ -204,7 +209,7 @@ test.describe("Playground example guidance", () => {
     await page.goto("/examples/widget/events");
     const eventTable = page.getByRole("table", { name: "이벤트 핸들러" });
     await expect(eventTable.getByRole("row", { name: /onBeforeMove/ })).toBeVisible();
-    await expect(eventTable.getByRole("row", { name: /onDblClickTitle/ })).toContainText("onTitleDoubleClick");
+    await expect(eventTable.getByRole("row", { name: /^onTitleDoubleClick / })).toContainText("앱에서 연결");
   });
 });
 
@@ -232,7 +237,7 @@ test.describe("Playground toggle state", () => {
 });
 
 test.describe("Widget Playground", () => {
-  test("renders Basic with exactly ten numbered widgets and no top controls", async ({ page }) => {
+  test("renders Basic with ten numbered widgets and selected-widget actions", async ({ page }) => {
     await page.goto("/examples/widget/basic");
 
     await expect(page.locator(".grid-stack-item")).toHaveCount(10);
@@ -252,7 +257,9 @@ test.describe("Widget Playground", () => {
     await expect(settings.getByRole("row", { name: "H 2" })).toBeVisible();
     await expect(settings.getByRole("row", { name: "이동 가능" })).toBeVisible();
     await expect(settings.getByRole("row", { name: "리사이즈 가능" })).toBeVisible();
-    await expect(page.locator(".playground-example-toolbar")).toHaveCount(0);
+    await expect(page.locator(".playground-example-toolbar")).toHaveCount(1);
+    await expect(page.getByRole("combobox", { name: "대상 위젯" })).toHaveValue("widget-1");
+    await expect(page.getByRole("button", { name: "선택 위젯 최대화", exact: true })).toBeEnabled();
     await expect(page.locator(".example-widget-count, .example-status, [aria-label='현재 위젯 상태 JSON']")).toHaveCount(0);
     await expect(widget(page, 1).locator(".comins-grid-layout-widget__actions button")).toHaveCount(3);
     expect(await widget(page, 1).locator("[data-widget-action]").evaluateAll((actions) =>
@@ -311,7 +318,7 @@ test.describe("Widget Playground", () => {
     const output = page.getByRole("textbox", { name: "위젯 이벤트" });
 
     await first.locator(".comins-grid-layout-widget__title").dblclick();
-    await expect(output).toHaveValue(/onBeforeTitleDoubleClick[\s\S]*onDblClickTitle[\s\S]*onAfterTitleDoubleClick/);
+    await expect(output).toHaveValue(/onBeforeTitleDoubleClick[\s\S]*onTitleDoubleClick[\s\S]*onAfterTitleDoubleClick/);
 
     await dragWidget(page, first, 180, 110);
     await expect(output).toHaveValue(/onBeforeMove[\s\S]*onMove[\s\S]*onAfterMove/);

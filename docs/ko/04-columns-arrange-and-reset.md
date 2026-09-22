@@ -19,9 +19,9 @@
 </>
 ```
 
-- `autoArrangeWidgets`: 위젯을 결정적인 행 우선 순서로 compact합니다.
-- `fitWidgetsToColumns`: 활성 위젯 전체를 현재 컬럼 폭 안으로 조정합니다.
-- `fitWidgetToColumns`: 지정 ID 하나만 같은 방식으로 조정합니다.
+- `autoArrangeWidgets`: 위젯 배열 순서대로 왼쪽부터 배치하고 공간이 부족하면 다음 행으로 넘깁니다. 모든 빈틈을 최적으로 채우는 알고리즘은 아닙니다.
+- `fitWidgetsToColumns`: 시작 `y`가 같은 위젯을 한 그룹으로 보고, 가로 빈 공간이 있으면 너비를 균등하게 재분배합니다. 컬럼 경계와 각 위젯의 크기 제약을 적용합니다.
+- `fitWidgetToColumns`: 지정 위젯이 속한 행의 가로 빈 공간을 해당 위젯의 너비에 더합니다. 전체 맞춤과 달리 다른 위젯에 균등 배분하지 않습니다.
 - `resetLayout()`: hook 최초 상태로 돌아갑니다. snapshot을 전달하면 그 값으로 초기화합니다.
 - 반응형 설정에서는 `onColumnsChange`를 `setColumns`에 연결해야 엔진과 React 상태가 일치합니다.
 

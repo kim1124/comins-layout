@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { version } from "../../package.json";
 import {
   DashboardGrid,
   insertDashboardWidgetAtLayout,
@@ -39,6 +40,7 @@ type ReadmeDemoBridge = {
   setResponsive: (enabled: boolean) => void;
   setRtl: (rtl: boolean | "auto" | undefined) => void;
   setSizeToContent: (enabled: boolean | undefined) => void;
+  updateOverview: (patch: Partial<DashboardWidget<DemoData>>) => void;
   setTrashVisible: (visible: boolean) => void;
   moveWithGridStack: (id: string, x: number, y: number) => DashboardLayoutSnapshot | null;
 };
@@ -106,6 +108,8 @@ export function ReadmeDemoPage() {
       return <ResponsivePersistenceFeatureDemo />;
     case "lazy-rendering":
       return <LazyRenderingFeatureDemo />;
+    case "content-sizing":
+      return <ContentSizingFeatureDemo />;
     default:
       return <LegacyReadmeDemoPage />;
   }
@@ -179,6 +183,7 @@ function LegacyReadmeDemoPage() {
       setResponsive: setResponsiveEnabled,
       setRtl,
       setSizeToContent,
+      updateOverview: (patch) => dashboard.commands.updateWidget("overview", patch),
       setTrashVisible,
       moveWithGridStack: (id, x, y) => {
         const grid = gridRef.current?.getGridStack();
@@ -314,7 +319,7 @@ function FeatureDemoShell({
     <main className="readme-feature-demo">
       <header className="readme-feature-demo__header">
         <div>
-          <p>{eyebrow}</p>
+          <p>{eyebrow} · v{version}</p>
           <h1>{title}</h1>
           <span>{description}</span>
         </div>
@@ -559,7 +564,7 @@ function ResponsivePersistenceFeatureDemo() {
     <FeatureDemoShell
       eyebrow="Feature highlight 03"
       title="Responsive Columns and Persistence"
-      description="Each runtime column count keeps an independent layout that returns when the viewport mode changes."
+      description="Switch columns with the buttons. Each column count restores its own saved layout."
       status={status}
       statusLabel="Persistence status"
     >
@@ -585,6 +590,72 @@ function ResponsivePersistenceFeatureDemo() {
             <div className="readme-demo__metric">
               <span>{widget.data?.label}</span>
               <strong>{widget.data?.value}</strong>
+            </div>
+          )}
+        />
+      </section>
+    </FeatureDemoShell>
+  );
+}
+
+const contentSizingWidgets: DashboardWidget<{ expanded: boolean }>[] = [{
+  id: "content-activity",
+  title: "Activity",
+  layout: { id: "content-activity", x: 0, y: 0, w: 6, h: 4 },
+  data: { expanded: false },
+}];
+
+const activityEntries = [
+  "Dashboard saved",
+  "Weekly report updated",
+  "Sales widget added",
+  "Column layout restored",
+  "Forecast refreshed",
+  "Orders synchronized",
+  "Review completed",
+];
+
+function ContentSizingFeatureDemo() {
+  const dashboard = useDashboardGrid({ initialColumns: 12, initialWidgets: contentSizingWidgets });
+  const [enabled, setEnabled] = useState(false);
+  const activity = dashboard.widgets[0];
+  const expanded = activity?.data?.expanded ?? false;
+
+  return (
+    <FeatureDemoShell
+      eyebrow="Feature highlight 05"
+      title="Content Height and React State"
+      description="Fit the widget to its content, then add or remove details. The measured height returns to React state."
+      status={`${enabled ? "Content fit" : "Fixed height"} · React height: ${activity?.layout.h ?? "-"} rows`}
+      statusLabel="Content sizing status"
+    >
+      <section className="readme-feature-demo__controls" aria-label="Content sizing controls">
+        <button type="button" aria-pressed={enabled} onClick={() => setEnabled(true)}>Fit content</button>
+        <button
+          type="button"
+          disabled={!enabled || expanded}
+          onClick={() => dashboard.commands.updateWidget("content-activity", { data: { expanded: true } })}
+        >Add details</button>
+        <button
+          type="button"
+          disabled={!expanded}
+          onClick={() => dashboard.commands.updateWidget("content-activity", { data: { expanded: false } })}
+        >Show summary</button>
+      </section>
+      <section className="readme-feature-demo__panel">
+        <DashboardGrid
+          columns={dashboard.columns}
+          widgets={dashboard.widgets}
+          showControls={false}
+          engineOptions={{ animate: false, cellHeight: 96, sizeToContent: enabled }}
+          refreshKey={expanded ? 1 : 0}
+          onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
+          renderWidget={(widget) => (
+            <div className="readme-feature-demo__activity">
+              <p>Recent activity</p>
+              <ul>
+                {activityEntries.slice(0, widget.data?.expanded ? 7 : 2).map((entry) => <li key={entry}>{entry}</li>)}
+              </ul>
             </div>
           )}
         />

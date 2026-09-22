@@ -4,6 +4,9 @@ import type { Root } from "react-dom/client";
 import { BrowserRouter, useLocation } from "react-router";
 
 import { DocsShell } from "./docs/DocsShell";
+import { ContentSizingPlayground } from "./playground/ContentSizingPlayground";
+import { ResponsivePlayground } from "./playground/ResponsivePlayground";
+import { LazyRenderPlayground } from "./playground/LazyRenderPlayground";
 import {
   AdvancedFeaturePlayground,
   ExternalDropTrashPlayground,
@@ -102,14 +105,8 @@ const advancedFeatureByPath: Readonly<Record<string, AdvancedFeature>> = {
   "/examples/advanced/cell-height": "cell-height",
   "/examples/advanced/grid-lines": "grid-lines",
   "/examples/advanced/float": "float",
-  "/examples/advanced/lazy-load": "lazy-load",
   "/examples/advanced/mobile-touch": "mobile-touch",
-  "/examples/advanced/responsive/column": "responsive-column",
-  "/examples/advanced/responsive/breakpoints": "responsive-breakpoints",
-  "/examples/advanced/responsive/none": "responsive-none",
   "/examples/advanced/rtl": "rtl",
-  "/examples/advanced/size-to-content": "size-to-content",
-  "/examples/advanced/static": "static",
   "/examples/advanced/title-drag": "title-drag",
   "/examples/advanced/transform": "transform",
 };
@@ -124,6 +121,9 @@ function renderPlaygroundRoute(pathname: string) {
     case "/examples/widget/events": return <WidgetEventsPlayground />;
     case "/examples/layout/basic": return <LayoutBasicPlayground />;
     case "/examples/layout/lock": return <LayoutLockPlayground />;
+    case "/examples/advanced/size-to-content": return <ContentSizingPlayground />;
+    case "/examples/advanced/responsive": return <ResponsivePlayground />;
+    case "/examples/advanced/lazy-load": return <LazyRenderPlayground />;
     case "/examples/layout/persistence": return <LayoutPersistencePlayground />;
     case "/examples/layout/arrange": return <LayoutArrangePlayground />;
     case "/examples/layout/events": return <LayoutEventsPlayground />;

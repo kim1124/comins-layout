@@ -37,7 +37,8 @@ export function PlaygroundFeatureGuide({
       ) : null}
       {code ? (
         <section className="playground-feature-guide__code">
-          <h3>{text("적용 코드", "Example code")}</h3>
+          <h3>{text("관련 API 코드", "Relevant API code")}</h3>
+          <p>{text("핵심 설정을 발췌한 코드입니다. 전체 연결은 시작 가이드와 API 문서를 참고하세요.", "This excerpt highlights the relevant settings. See the getting-started guide and API reference for the complete setup.")}</p>
           <pre><code>{code}</code></pre>
         </section>
       ) : null}
@@ -80,10 +81,12 @@ export function PlaygroundReferenceTable({
 }
 
 export function PlaygroundStage({
+  actions,
   children,
   description,
   kind,
 }: {
+  actions?: ReactNode;
   children: ReactNode;
   description?: string;
   kind: "controls" | "grid";
@@ -91,24 +94,29 @@ export function PlaygroundStage({
   const { text } = usePlaygroundLocale();
   const copy = kind === "controls"
     ? {
-        title: text("GridStack 예제 컨트롤", "GridStack example controls"),
+        title: text("예제 컨트롤", "Example controls"),
         description: description ?? text(
           "설정을 변경하고 결과 상태를 확인하는 컨트롤 영역입니다.",
           "Use these controls to change settings and inspect resulting state.",
         ),
       }
     : {
-        title: text("GridStack 예제", "GridStack example"),
+        title: text("실행 예제", "Live example"),
         description: description ?? text(
-          "설명한 설정과 상호작용을 실제 GridStack 위젯에서 확인합니다.",
-          "Inspect the documented settings and interactions in live GridStack widgets.",
+          "위젯을 조작하며 설명한 설정과 결과를 확인합니다.",
+          "Interact with widgets to observe the documented settings and results.",
         ),
       };
 
   return (
     <section className={`playground-example-stage playground-example-stage--${kind}`}>
       <header className="playground-example-stage__header">
-        <h2>{copy.title}</h2>
+        {actions ? (
+          <div className="playground-example-stage__heading">
+            <h2>{copy.title}</h2>
+            {actions}
+          </div>
+        ) : <h2>{copy.title}</h2>}
         <p>{copy.description}</p>
       </header>
       {children}

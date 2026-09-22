@@ -44,6 +44,11 @@ const sceneDefinitions = [
     output: "comins-grid-layout-lazy-rendering.gif",
     capture: captureLazyRendering,
   },
+  {
+    feature: "content-sizing",
+    output: "comins-grid-layout-content-sizing.gif",
+    capture: captureContentSizing,
+  },
 ];
 let server;
 let browser;
@@ -172,6 +177,16 @@ async function captureLazyRendering(page, frameDirectory, sequence) {
   await captureFrame(page, frameDirectory, sequence, 8);
 }
 
+async function captureContentSizing(page, frameDirectory, sequence) {
+  await page.getByRole("heading", { name: "Content Height and React State" }).waitFor();
+  await captureFrame(page, frameDirectory, sequence, 12);
+  for (const [button, height] of [["Fit content", 2], ["Add details", 4], ["Show summary", 2]]) {
+    await page.getByRole("button", { name: button, exact: true }).click();
+    await page.locator(`[data-widget-id="content-activity"][data-layout-h="${height}"][gs-h="${height}"]`).waitFor();
+    await captureFrame(page, frameDirectory, sequence, 14);
+  }
+}
+
 async function validateGif(path) {
   const metadata = await inspectReadmeGif(path);
   if (metadata.width > 960 || metadata.height > 720) {
@@ -274,9 +289,20 @@ try {
       viewport: { width: 1000, height: 720 },
     });
     const sequence = { current: 0 };
+    const diagnostics = [];
+    page.on("pageerror", () => diagnostics.push("pageerror"));
+    page.on("console", (message) => {
+      if (message.type() === "warning" || message.type() === "error") diagnostics.push(message.type());
+    });
     try {
       await page.goto(`${baseURL}/readme-demo?feature=${scene.feature}`);
+      await page.evaluate(() => document.fonts.ready);
+      await page.waitForFunction(() => {
+        const grids = [...document.querySelectorAll(".readme-feature-demo .grid-stack")];
+        return grids.length > 0 && grids.every((grid) => Boolean(grid.gridstack));
+      });
       await scene.capture(page, frameDirectory, sequence);
+      if (diagnostics.length) throw new Error(`readme-gif: browser diagnostics for ${scene.feature}`);
     } finally {
       await page.close();
     }

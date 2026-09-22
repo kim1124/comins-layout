@@ -1,8 +1,10 @@
 import { Move, MoveDiagonal2, Trash2 } from "lucide-react";
+import { useMemo, type Ref } from "react";
 
 import { DashboardGrid } from "../../../../src";
 import type {
   DashboardGridProps,
+  DashboardGridHandle,
   DashboardWidget,
 } from "../../../../src";
 import { usePlaygroundLocale } from "../locale";
@@ -29,16 +31,19 @@ type ExampleDashboardProps = Pick<
   | "onAfterTitleDoubleClick"
 > & {
   dashboard: DashboardRuntime;
+  gridRef?: Ref<DashboardGridHandle>;
 };
 
 export function ExampleDashboard({
   dashboard,
   engineOptions,
+  gridRef,
   movable = true,
   resizable = true,
   ...callbacks
 }: ExampleDashboardProps) {
   const { locale, text } = usePlaygroundLocale();
+  const stableEngineOptions = useMemo(() => ({ animate: false, ...engineOptions }), [engineOptions]);
   const className = ["playground-grid--numbered", callbacks.className].filter(Boolean).join(" ");
   const renderActions = (widget: DashboardWidget<ExampleWidgetData>) => {
     const resizeLocked = widget.locked === true || widget.resizable === false;
@@ -86,10 +91,11 @@ export function ExampleDashboard({
 
   return (
     <DashboardGrid
+      ref={gridRef}
       {...callbacks}
       className={className}
       columns={dashboard.columns}
-      engineOptions={{ animate: false, ...engineOptions }}
+      engineOptions={stableEngineOptions}
       movable={movable}
       refreshKey={dashboard.refreshVersion}
       renderWidgetActions={renderActions}
@@ -100,7 +106,7 @@ export function ExampleDashboard({
       onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
       renderWidget={(widget) => (
         <div className="playground-numbered-widget-content">
-          <WidgetSettingsTable movable={movable} resizable={resizable} widget={widget} />
+          <WidgetSettingsTable movable={movable && !engineOptions?.staticGrid} resizable={resizable && !engineOptions?.staticGrid} widget={widget} />
         </div>
       )}
     />

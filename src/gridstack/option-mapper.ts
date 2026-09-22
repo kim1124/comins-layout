@@ -106,7 +106,7 @@ export function mapDashboardWidgetOptions<TData>(
     noMove: !(gridMovable && widgetMovable),
     noResize: !(gridResizable && widgetResizable),
     lazyLoad: widget.lazyLoad,
-    sizeToContent: widget.sizeToContent,
+    sizeToContent: widget.minimized || widget.maximized ? false : widget.sizeToContent,
     resizeToContentParent: widget.resizeToContentParent,
   };
 }
