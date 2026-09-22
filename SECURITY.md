@@ -8,12 +8,12 @@ Report potential vulnerabilities privately through this repository's GitHub Secu
 
 Before 1.0.0, only the latest published version receives security fixes.
 
-Source version in preparation: `0.2.3`. The published-version support table below is updated after publication is verified; a source version bump does not change it by itself.
+Latest verified published version: `0.2.3`. The support table follows verified npm publication, not source version changes alone.
 
 | Version | Supported |
 | --- | --- |
-| 0.2.2 | Yes |
-| < 0.2.2 | No |
+| 0.2.3 | Yes |
+| < 0.2.3 | No |
 
 ## Before a Public npm Release
 
