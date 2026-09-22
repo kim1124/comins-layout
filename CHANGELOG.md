@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+No unreleased changes.
+
+## 0.2.3
+
+Patch release: fixes existing behavior and improves examples and documentation without removing public APIs or changing React peer ranges. No consumer migration is required; the previously announced removals remain deferred to `0.3.0`.
+
 - Refresh README, the documentation index, architecture/API references, and matching English/Korean guidance against the current implementation. Distinguish source-only changes from npm publication and explain the shared API/Playground examples.
 - Regenerate all five README animations from the current source, record their capture scope and metadata, and clarify that the responsive-persistence animation uses explicit column switches while the Playground demonstrates automatic width changes.
 - Show a stationary source snapshot and a pointer outline for grid copy drags, preserving normal same-grid moves and cleaning previews on drop, cancellation, and teardown.
@@ -11,8 +17,6 @@
 - Keep content-sized card decoration aligned with the allocated grid area and resize handle without stretching the intrinsic measurement shell.
 - Add actual content growth/shrink controls, combine Static Grid with the layout-lock comparison, and preserve the former Static Grid URL as a redirect.
 - Reuse Playground screens as on-demand API examples, add a feature index and collapsible API details, and expose maximize/minimize/restore controls in Widget Basic.
-
-## 0.2.3
 
 - Apply controlled geometry atomically while retaining widget DOM, defer synchronization across consumer-owned batches, and commit engine packing corrections back to React and saved layouts.
 - Measure intrinsic widget content height, honor per-widget sizing and height limits, and suspend content sizing during maximize/minimize until restore.

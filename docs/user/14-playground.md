@@ -39,7 +39,7 @@ Read the API reference in this order: purpose, live example, minimal code, detai
 
 The internal `/readme-demo` route is a deterministic browser fixture used to regenerate README animations. It is not a consumer example or a supported package route.
 
-The five README animations use compact feature fixtures, not this full interface. Their [capture notes](../assets/README.md) identify the exact scenes and source date. Current guides include the checkout's `Unreleased` changes; updated documentation and GIFs do not imply npm publication.
+The five README animations use compact feature fixtures, not this full interface. Their [capture notes](../assets/README.md) identify the exact scenes and source date. Current guides describe source version `0.2.3`; registry availability is verified separately.
 
 When a guide and an example appear to disagree, treat the current exported TypeScript declarations and focused repository tests as the implementation contract, then report the documentation discrepancy as an issue.
 

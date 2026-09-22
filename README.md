@@ -9,7 +9,7 @@
 
 `comins-grid-layout` is a React dashboard layout module powered by GridStack. It combines serializable React state with widget CRUD, drag, resize, responsive columns, maximize/minimize flows, persistence, and an advanced escape hatch to the underlying GridStack API.
 
-Current source version: **0.2.3**. This checkout also includes the changes listed under [Unreleased](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md#unreleased), including copy-drag previews and clearer interactive documentation. Source documentation and recordings describe this checkout, not a claim that those changes are already published to npm. See the [0.2.3 notes](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md#023) for the versioned changes.
+Current source version: **0.2.3**, including copy-drag previews and clearer interactive documentation. Source documentation and recordings describe this version; the npm badge above reports registry availability independently. See the [0.2.3 notes](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md#023) for the versioned changes and migration guidance.
 
 ## Feature highlights
 

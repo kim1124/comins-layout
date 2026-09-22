@@ -1,6 +1,6 @@
 # README animations
 
-These five GIFs are first-party screen recordings of the local React examples in source version **0.2.3**, including the current **Unreleased** changes, regenerated on **2026-09-22**. They demonstrate actual package interactions with synthetic example data; no external stock images or user data are included. The version badge reads package metadata and does not certify publication of this checkout.
+These five GIFs are first-party screen recordings of the local React examples in source version **0.2.3**, regenerated on **2026-09-22**. They demonstrate actual package interactions with synthetic example data; no external stock images or user data are included. The version badge reads package metadata and does not certify publication of this checkout.
 
 | Asset | Local capture route | Recorded behavior |
 | --- | --- | --- |

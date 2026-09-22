@@ -37,7 +37,7 @@ API reference는 기능 설명 → 직접 실행 → 최소 적용 코드 → �
 
 `/readme-demo`는 README GIF 재생성을 위한 내부 deterministic fixture이며 소비자 예제 또는 지원 package route가 아닙니다.
 
-README GIF 5개는 전체 플레이그라운드 UI가 아닌 기능별 축약 화면입니다. 실제 촬영 장면과 기준 날짜는 [촬영 안내](../assets/README.md)에서 확인합니다. 현재 가이드는 체크아웃의 `Unreleased` 변경을 포함하며, 문서와 GIF 갱신이 npm 배포를 의미하지는 않습니다.
+README GIF 5개는 전체 플레이그라운드 UI가 아닌 기능별 축약 화면입니다. 실제 촬영 장면과 기준 날짜는 [촬영 안내](../assets/README.md)에서 확인합니다. 현재 가이드는 소스 버전 `0.2.3` 기준이며, npm 공개 여부는 레지스트리에서 별도로 확인합니다.
 
 가이드와 예제의 내용이 다르면 현재 export된 TypeScript declaration과 focused test를 구현 계약으로 확인한 뒤 문서 오류를 이슈로 보고합니다.
 
