@@ -39,8 +39,8 @@
     "./dist/styles.css"
   ],
   "dependencies": {
-    "gridstack": "^13.2.0",
-    "lucide-react": "^1.40.0"
+    "gridstack": "^13.3.0",
+    "lucide-react": "^1.47.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
