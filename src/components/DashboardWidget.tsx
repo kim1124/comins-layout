@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { Maximize2, Minimize2, RotateCcw, Trash2 } from "lucide-react";
 import type {
   DashboardWidget as DashboardWidgetModel,
@@ -54,6 +54,15 @@ export function DashboardWidgetShell<TData = unknown>({
   onAfterTitleDoubleClick,
   renderActions,
 }: DashboardWidgetShellProps<TData>) {
+  const actionsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const actions = actionsRef.current;
+    // Keep native taps on controls out of the ancestor drag handle's touch
+    // emulation. A React bubbling handler runs after that native listener.
+    const preserveControlTouch = (event: TouchEvent) => event.stopPropagation();
+    actions?.addEventListener("touchstart", preserveControlTouch, { passive: true });
+    return () => actions?.removeEventListener("touchstart", preserveControlTouch);
+  }, [showControls]);
   const title = widget.title ?? widget.id;
   const handleTitleDoubleClick = () => {
     const interactionEvent: DashboardWidgetInteractionEvent = {
@@ -71,7 +80,7 @@ export function DashboardWidgetShell<TData = unknown>({
       <header className="comins-grid-layout-widget__header">
         <strong className="comins-grid-layout-widget__title" onDoubleClick={handleTitleDoubleClick}>{title}</strong>
         {showControls ? (
-          <div className="comins-grid-layout-widget__actions" onDoubleClick={(event) => event.stopPropagation()}>
+          <div ref={actionsRef} className="comins-grid-layout-widget__actions" onDoubleClick={(event) => event.stopPropagation()}>
             {renderActions ? renderActions(widget) : (
               <>
                 <button type="button" aria-label={`${title} ${labels.maximize}`} onClick={() => onMaximize?.(widget.id)}>

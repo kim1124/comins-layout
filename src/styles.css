@@ -30,6 +30,31 @@
   inset: 8px;
 }
 
+.comins-grid-layout-copy-source {
+  position: absolute;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.comins-grid-layout-copy-drag > .grid-stack-item-content,
+.comins-grid-layout-copy-drag > .ui-resizable-handle {
+  visibility: hidden !important;
+}
+
+.comins-grid-layout-copy-drag::after {
+  background: var(--comins-grid-layout-accent-soft, #e9f7f3);
+  border: 2px dashed var(--comins-grid-layout-accent, #10b981);
+  border-radius: var(--comins-grid-layout-radius, 8px);
+  content: "+";
+  color: var(--comins-grid-layout-accent, #10b981);
+  display: grid;
+  font-size: 28px;
+  inset: 8px;
+  place-items: center;
+  pointer-events: none;
+  position: absolute;
+}
+
 .comins-grid-layout-widget {
   background: var(--comins-grid-layout-surface);
   border: 1px solid var(--comins-grid-layout-border);
@@ -55,6 +80,23 @@
   justify-content: space-between;
   min-height: var(--comins-grid-layout-header-min-height);
   padding: 10px 12px;
+}
+
+/* Paint the allocated grid area; measure only the intrinsic child shell.
+   Stretching the measured shell prevents content-driven shrinkage. */
+.comins-grid-layout > .size-to-content > .grid-stack-item-content {
+  align-items: flex-start;
+  background: var(--comins-grid-layout-surface);
+  border-radius: var(--comins-grid-layout-radius);
+  box-shadow: inset 0 0 0 1px var(--comins-grid-layout-border), var(--comins-grid-layout-shadow);
+}
+
+.comins-grid-layout > .size-to-content > .grid-stack-item-content > .comins-grid-layout-widget {
+  flex: 0 0 auto;
+  height: auto;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .comins-grid-layout-widget__title {

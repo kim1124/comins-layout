@@ -19,6 +19,8 @@
 
 event에는 `widgetId`, `targetId`, 활성 `columns`, 확정 `layout`이 포함됩니다. callback은 move layout commit 이후 실행되므로 `onLayoutCommit`도 연결합니다.
 
-target ID는 비어 있지 않고 서로 달라야 합니다. selector는 dashboard owner document에서 해석 가능한 유효한 selector여야 합니다. 동일 document의 light DOM만 지원하며 iframe과 shadow root 대상은 지원하지 않습니다. 대상 밖에 놓으면 event가 발생하지 않습니다.
+target ID는 비어 있지 않고 서로 달라야 합니다. selector는 dashboard owner document에서 해석 가능한 유효한 selector여야 합니다. 동일 document의 light DOM만 지원하며 iframe과 shadow root 대상은 지원하지 않습니다. 대상 밖에 놓으면 외부 드롭 event가 발생하지 않습니다. 대상 밖에 놓거나 삭제 callback을 연결하지 않으면 위젯은 삭제되지 않지만, 일반 이동에 따른 좌표 변경은 반영될 수 있습니다.
 
 잘못된 설정은 `DashboardGridConfigurationError`를 발생시킵니다. Grid 간 transfer는 [팔레트와 그리드 전송](./08-palette-and-grid-transfer.md)을 사용합니다.
+
+플레이그라운드: `/examples/advanced/external-drop-trash`. 전체 너비의 삭제 영역으로 위젯을 드래그한 뒤 제어 상태에서 제거되는지 확인합니다. **초기화**는 실행 예제 제목 오른쪽에 있습니다. 삭제 영역 크기와 버튼 배치는 예제 UI이며 패키지가 강제하는 규칙은 아닙니다.

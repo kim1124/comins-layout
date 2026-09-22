@@ -6,9 +6,11 @@ import { PlaygroundLocaleProvider, usePlaygroundLocale } from "./locale";
 import { playgroundMenus } from "./routes";
 
 export function PlaygroundShell({ children, routePath }: { children: ReactNode; routePath: string }) {
+  const embedded = new URLSearchParams(window.location.search).get("embed") === "1";
   return (
-    <PlaygroundLocaleProvider>
-      <PlaygroundShellContent routePath={routePath}>{children}</PlaygroundShellContent>
+    <PlaygroundLocaleProvider initialLocale={embedded ? "ko" : undefined} persist={!embedded}>
+      {embedded ? <main className="playground-embed" key={routePath}>{children}</main> :
+        <PlaygroundShellContent routePath={routePath}>{children}</PlaygroundShellContent>}
     </PlaygroundLocaleProvider>
   );
 }
@@ -60,8 +62,11 @@ function PlaygroundShellContent({ children, routePath }: { children: ReactNode; 
     <div className="docs-shell playground-shell">
       <header className="docs-top-nav">
         <NavLink className="docs-top-nav__brand" to="/examples/widget/basic">
-          <strong>comins-grid-layout</strong>
-          <span>{text.docsPlayground}</span>
+          <img src="/comins-symbol.svg" width="32" height="32" alt="" style={{ flexShrink: 0, alignSelf: "center" }} />
+          <div style={{ display: "grid", gap: 2 }}>
+            <strong>comins-grid-layout</strong>
+            <span>{text.docsPlayground}</span>
+          </div>
         </NavLink>
         <div className="docs-top-nav__tools">
           <div

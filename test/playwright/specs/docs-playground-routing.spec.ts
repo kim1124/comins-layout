@@ -41,7 +41,7 @@ async function expectPlaygroundShell(
   await expect(page.getByRole("searchbox", { name: "문서 및 예제 검색" })).toBeVisible();
   await expect(page.locator(".docs-sidebar")).toBeVisible();
   await expect(page.locator(".playground-sidebar__submenu")).toHaveCount(3);
-  await expect(page.locator(".playground-sidebar__submenu-link")).toHaveCount(25);
+  await expect(page.locator(".playground-sidebar__submenu-link")).toHaveCount(22);
   await expect(page.locator(".playground-nav")).toHaveCount(0);
   await expect(page.locator(".grid-stack")).toHaveCount(expectedGridCount);
 
@@ -176,6 +176,8 @@ test.describe("gridstack docs playground routing", () => {
 
   test("documents the gridstack API by feature with props methods and examples", async ({ page }) => {
     await page.goto("/api");
+    await expect(page.locator(".docs-api-details[open]")).toHaveCount(0);
+    for (const summary of await page.locator(".docs-api-details > summary").all()) await summary.click();
 
     await expect(page.getByRole("heading", { name: "1. Dashboard 렌더링" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "2. Widget 추가 / 삭제" })).toBeVisible();
@@ -195,6 +197,11 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.getByRole("heading", { name: "사용 예제" })).toHaveCount(0);
 
     await expect(page.locator("#api-dashboard-rendering").getByRole("heading", { name: "Props" })).toBeVisible();
+    const renderingApi = page.locator("#api-dashboard-rendering");
+    await expect(renderingApi).toContainText("콘텐츠 높이에 맞춰 위젯이 차지하는 행 수 h");
+    await expect(renderingApi).toContainText("기본적으로 활성화되지 않는 선택 기능");
+    await expect(renderingApi).toContainText("삭제 버튼이나 콘텐츠 입력을 막는 읽기 전용 권한은 아니므로");
+    await expect(renderingApi).toContainText("none도 반응형으로 동작하며 픽셀 너비를 유지하는 설정은 아닙니다.");
     await expect(page.locator("#api-widget-crud").getByRole("heading", { name: "Methods" })).toBeVisible();
     await expect(page.locator("#api-layout-save-restore").getByRole("heading", { name: "Events" })).toBeVisible();
     await expect(page.locator("#api-layout-save-restore").locator("dt").filter({ hasText: "serializeState" })).toBeVisible();
@@ -215,13 +222,13 @@ test.describe("gridstack docs playground routing", () => {
     await expect(layoutApi).toContainText("DashboardColumnLayoutSnapshot");
     await expect(layoutApi).toContainText("DashboardLayoutsByColumn");
     await expect(layoutApi).toContainText("layoutsByColumn");
-    await expect(layoutApi).toContainText("serializeState()은 widgets, columns, previousLayouts, layoutsByColumn을 저장합니다.");
-    await expect(layoutApi).toContainText("serializeLayout()은 활성 columns와 widget geometry만 저장합니다.");
-    await expect(layoutApi).toContainText("legacy snapshot은 layoutsByColumn 없이 복원할 수 있습니다.");
-    await expect(layoutApi).toContainText("active top-level widgets와 previousLayouts가 active cache보다 authoritative입니다.");
+    await expect(layoutApi).toContainText("serializeState()는 widgets, columns, previousLayouts, layoutsByColumn을 포함합니다.");
+    await expect(layoutApi).toContainText("serializeLayout()은 현재 columns와 위젯 배치만 포함합니다.");
+    await expect(layoutApi).toContainText("layoutsByColumn이 없는 이전 형식도 복원할 수 있습니다.");
+    await expect(layoutApi).toContainText("현재 컬럼의 캐시보다 최상위 widgets와 previousLayouts가 우선합니다.");
     await expect(layoutApi).toContainText("12 -> 6 -> 12");
-    await expect(page.getByText("getGridStack()은 escape hatch입니다.")).toBeVisible();
-    await expect(page.getByText("controlled example에서는 raw GridStack add/remove/destroy를 호출하지 않습니다.")).toBeVisible();
+    await expect(page.locator("#api-resize-adapter")).toContainText("getGridStack()은 직접 엔진에 접근하는 escape hatch");
+    await expect(page.locator("#api-resize-adapter")).toContainText("위젯 추가·삭제·destroy를 직접 호출하지 않습니다.");
   });
 
   test("unmounts the previous example route before mounting the next owner", async ({ page }) => {

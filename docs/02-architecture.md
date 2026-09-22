@@ -54,7 +54,11 @@ The adapter layer owns:
 
 This layer is the only place that should import from `gridstack`.
 
-## Proposed Source Layout
+Controlled geometry is applied as a complete layout while retaining React-owned widget elements. Synchronization waits for a consumer-owned engine batch to close. After packing or content measurement, a changed final snapshot is committed back through `onLayoutCommit`; duplicate snapshots, active pointer movement, and external transfer previews do not produce intermediate persistence updates.
+
+Content sizing measures the widget shell including its header, uses per-widget overrides and height constraints, and pauses for maximize/minimize until restore. Native touch starts on widget action controls stay outside the ancestor drag handle's touch emulation so browser taps can produce clicks.
+
+## Selected Source Layout
 
 ```text
 src/
@@ -65,6 +69,7 @@ src/
     types.ts
   gridstack/
     adapter.ts
+    copy-drag-preview.ts
     drag-in.ts
     option-mapper.ts
     transfer-registry.ts
@@ -115,6 +120,7 @@ type DashboardLayoutSnapshot = {
 - `useDashboardDragIn` registers palette sources through the adapter-owned GridStack bridge.
 - Incoming `onWidgetDropRequest` is emitted only after GridStack's temporary DOM transfer is rolled back.
 - `insertDashboardWidgetAtLayout` and `transferDashboardWidget` are pure controlled-state helpers. Rejection preserves both source and target state.
+- Copy drags add a non-interactive stationary source snapshot while the original engine item carries the moving outline. The snapshot is not registered with GridStack or React and is removed when interaction ends or the adapter is destroyed. This presentation does not change same-grid moves or cross-grid request/commit ownership.
 
 ## Lazy Rendering Boundary
 
@@ -122,6 +128,7 @@ type DashboardLayoutSnapshot = {
 - Native `DashboardGridEngineOptions.lazyLoad` is ineffective for React-owned content and deprecated in `0.2.1`.
 - The observer root is the nearest `[data-dashboard-lazy-scroll]` ancestor or the viewport.
 - Outer GridStack items and widget shells always remain mounted. Skeleton UI and full virtualization are not implemented.
+- Mounted content continues to receive normal React updates. It is not unmounted on exit or by re-enabling lazy rendering. Playground mount counters, waiting hints, and experiment resets live in the example, not the package API.
 
 ## Memory Strategy
 

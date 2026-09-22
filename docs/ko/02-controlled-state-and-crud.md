@@ -45,3 +45,5 @@ export function EditableDashboard() {
 root export의 `insertDashboardWidgetAtLayout`, `serializeDashboardState`, `transferDashboardWidget`은 입력을 직접 변경하지 않는 순수 helper입니다. 원시 GridStack add/remove는 React 상태를 갱신하지 않으므로 사용하지 않습니다.
 
 Playground: `/examples/widget/manage`.
+
+0.2.3 어댑터는 위젯 DOM을 유지하면서 전체 제어 좌표를 한 번에 적용합니다. 삭제나 Float 변경 후 엔진이 좌표를 보정할 수 있으므로 `onLayoutCommit`을 `applyLayoutSnapshot`에 연결해 React 상태에도 반영합니다. 순수 command 자체는 브라우저 크기를 측정하지 않습니다.

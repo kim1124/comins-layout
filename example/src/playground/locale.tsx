@@ -26,8 +26,8 @@ type PlaygroundLocaleContextValue = {
 
 const PlaygroundLocaleContext = createContext<PlaygroundLocaleContextValue | null>(null);
 
-export function PlaygroundLocaleProvider({ children }: PropsWithChildren) {
-  const [locale, setLocale] = useState<PlaygroundLocale>(readPlaygroundLocale);
+export function PlaygroundLocaleProvider({ children, initialLocale, persist = true }: PropsWithChildren<{ initialLocale?: PlaygroundLocale; persist?: boolean }>) {
+  const [locale, setLocale] = useState<PlaygroundLocale>(() => initialLocale ?? readPlaygroundLocale());
   const value = useMemo<PlaygroundLocaleContextValue>(() => ({
     locale,
     setLocale,
@@ -36,12 +36,13 @@ export function PlaygroundLocaleProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    if (!persist) return;
     try {
       window.localStorage.setItem(PLAYGROUND_LOCALE_KEY, locale);
     } catch {
       // The in-memory locale remains usable when storage is unavailable.
     }
-  }, [locale]);
+  }, [locale, persist]);
 
   return <PlaygroundLocaleContext.Provider value={value}>{children}</PlaygroundLocaleContext.Provider>;
 }

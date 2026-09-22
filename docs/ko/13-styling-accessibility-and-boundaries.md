@@ -31,3 +31,5 @@ Local container에서 `--comins-grid-layout-accent`, `--comins-grid-layout-borde
 - Runtime network 요청, 저장소, telemetry, 인증, fetch, server integration 없음
 
 `widgets`와 직렬화되는 `data`는 application 소유이므로 권한과 민감정보를 렌더링·저장 전에 검증해야 합니다.
+
+위젯 동작 버튼은 touch 시작을 조상 드래그 핸들로 전달하지 않아 기본 탭 클릭을 유지합니다. 좁은 컨테이너에서는 제목과 버튼 공간을 확보하도록 반응형 컬럼을 설정합니다. 콘텐츠 크기 맞춤 모드의 shell은 실제 콘텐츠 높이를 사용하므로 `height: 100%`로 덮어쓰면 위젯 높이 축소가 막힐 수 있습니다.

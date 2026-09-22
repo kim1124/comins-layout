@@ -7,6 +7,7 @@ import {
   findWidgetElementById,
   isDashboardDropCandidateAccepted,
   readDashboardDroppedLayoutAtPointer,
+  readDashboardLayoutSnapshot,
   rollbackDashboardExternalWidget,
   sameDashboardLayoutSnapshot,
   shouldSuppressDashboardExternalChange,
@@ -81,6 +82,19 @@ describe("sameDashboardLayoutSnapshot", () => {
         widgets: [{ ...baseline.widgets[0]!, maxW: 5 }, baseline.widgets[1]!],
       }),
     ).toBe(false);
+  });
+});
+
+describe("readDashboardLayoutSnapshot", () => {
+  it("restores dimensions omitted by GridStack when they equal minimum constraints", () => {
+    const grid = { save: () => [
+      { id: "constrained", x: 0, y: 0, minW: 3, minH: 2 },
+      { id: "default", x: 3, y: 0 },
+    ] } as unknown as GridStack;
+    expect(readDashboardLayoutSnapshot(grid, 6).widgets).toMatchObject([
+      { id: "constrained", w: 3, h: 2, minW: 3, minH: 2 },
+      { id: "default", w: 1, h: 1 },
+    ]);
   });
 });
 

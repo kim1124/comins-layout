@@ -102,3 +102,18 @@ test("README Lazy Rendering scene mounts content once after scroll intersection"
   await expect(page.getByRole("status", { name: "Lazy render status" })).toHaveText("Deferred content mounted once");
   expect(diagnostics).toEqual([]);
 });
+
+test("README Content Sizing scene commits actual content growth and shrinkage", async ({ page }) => {
+  const diagnostics = collectBrowserDiagnostics(page);
+  await page.goto("/readme-demo?feature=content-sizing");
+  await waitForGridEngine(page.getByTestId("dashboard-grid"));
+  const widget = page.getByTestId("dashboard-widget-content-activity");
+  await expect(widget).toHaveAttribute("data-layout-h", "4");
+  for (const [button, height] of [["Fit content", "2"], ["Add details", "4"], ["Show summary", "2"]]) {
+    await page.getByRole("button", { name: button, exact: true }).click();
+    await expect(widget).toHaveAttribute("data-layout-h", height!);
+    await expect(widget).toHaveAttribute("gs-h", height!);
+    await expect(page.getByRole("status", { name: "Content sizing status" })).toContainText(`React height: ${height} rows`);
+  }
+  expect(diagnostics).toEqual([]);
+});

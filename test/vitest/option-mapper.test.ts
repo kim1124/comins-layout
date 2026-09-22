@@ -102,6 +102,13 @@ describe("mapDashboardGridOptions", () => {
     });
   });
 
+  it("suspends content sizing for explicit minimize and maximize actions", () => {
+    const widget = { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 }, sizeToContent: true };
+    expect(mapDashboardWidgetOptions({ ...widget, minimized: true }, {}).sizeToContent).toBe(false);
+    expect(mapDashboardWidgetOptions({ ...widget, maximized: true }, {}).sizeToContent).toBe(false);
+    expect(mapDashboardWidgetOptions(widget, {}).sizeToContent).toBe(true);
+  });
+
   it("maps widget-level movement and resize locks without overriding global locks", () => {
     const baseWidget = { id: "sales", layout: { id: "sales", x: 0, y: 0, w: 3, h: 2 } };
 

@@ -29,6 +29,10 @@ const featureGifs = [
     path: "docs/assets/comins-grid-layout-lazy-rendering.gif",
     marker: "React widget content rendering after lazy-scroll intersection",
   },
+  {
+    path: "docs/assets/comins-grid-layout-content-sizing.gif",
+    marker: "Widget content height growing and shrinking with synchronized React state",
+  },
 ] as const;
 
 describe("consumer README", () => {
@@ -138,7 +142,7 @@ describe("consumer README", () => {
     ]) expect(readme).toContain(text);
   });
 
-  it("keeps four current-feature animations within the GIF contract", async () => {
+  it("keeps current-feature animations within the GIF contract", async () => {
     expect(existsSync(legacyGifPath)).toBe(false);
     expect(readme).not.toContain(legacyGifPath.split("/").at(-1));
 

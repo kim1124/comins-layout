@@ -27,4 +27,6 @@ The pure helper `serializeDashboardState` is available when state is managed out
 
 Storage, schema migration, encryption, authentication, and server synchronization are consumer responsibilities. Parse and validate untrusted persisted JSON before passing it to application state.
 
-Playground: `/examples/layout/persistence`.
+Playground: `/examples/layout/persistence`. Its Save button keeps a snapshot only in page-local memory; leaving or reloading the page discards it. Applications must implement durable storage, as in the example above.
+
+Keep `onLayoutCommit={dashboard.commands.applyLayoutSnapshot}` connected before saving. The adapter commits final packing and content-sizing corrections to React, so the saved state matches the visible layout after removal, arrange, or Float changes. If a consumer opens an engine batch, controlled synchronization waits until that batch closes.

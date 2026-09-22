@@ -1,11 +1,15 @@
 # comins-grid-layout
 
+<img src="https://raw.githubusercontent.com/kim1124/comins-layout/main/example/public/comins-symbol.svg" width="64" height="64" alt="Comins" />
+
 [![npm version](https://img.shields.io/npm/v/comins-grid-layout.svg)](https://www.npmjs.com/package/comins-grid-layout)
 ![TypeScript types](https://img.shields.io/badge/TypeScript-types%20included-3178C6?logo=typescript&logoColor=white)
 [![Verify](https://github.com/kim1124/comins-layout/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/kim1124/comins-layout/actions/workflows/verify.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/kim1124/comins-layout/blob/main/LICENSE)
 
 `comins-grid-layout` is a React dashboard layout module powered by GridStack. It combines serializable React state with widget CRUD, drag, resize, responsive columns, maximize/minimize flows, persistence, and an advanced escape hatch to the underlying GridStack API.
+
+Current source version: **0.2.3**. This checkout also includes the changes listed under [Unreleased](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md#unreleased), including copy-drag previews and clearer interactive documentation. Source documentation and recordings describe this checkout, not a claim that those changes are already published to npm. See the [0.2.3 notes](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md#023) for the versioned changes.
 
 ## Feature highlights
 
@@ -14,6 +18,8 @@ The local example routes below require a source checkout. Follow [Run the demo](
 ### Palette and controlled grid transfer
 
 Palette items copy into a target grid, while controlled dashboard widgets can move or copy between grids through typed, fail-closed drop requests.
+
+In grid copy mode, a stationary snapshot stays at the source and a `+` outline follows the pointer. The animation shows palette insertion and grid movement; select **Copy** in the Playground to compare the copy preview.
 
 Local example: `/examples/advanced/multi-grid/horizontal` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/08-palette-and-grid-transfer.md)
 
@@ -31,7 +37,9 @@ Local example: `/examples/advanced/external-drop-trash` · [Guide](https://githu
 
 Runtime column changes retain an independent serializable layout for every visited column count and restore it when that column count becomes active again.
 
-Local example: `/examples/advanced/responsive/breakpoints` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/06-responsive-layouts.md)
+The combined Playground separates **column calculation** (`columnWidth` or breakpoints) from **layout policy** (`moveScale` or `none`). The animation uses explicit 12/6-column buttons to isolate cache restoration; use the Playground's container-width control to test automatic responsive changes.
+
+Local example: `/examples/advanced/responsive` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/06-responsive-layouts.md)
 
 ![Responsive columns with per-column layout persistence](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-responsive-persistence.gif)
 
@@ -39,9 +47,21 @@ Local example: `/examples/advanced/responsive/breakpoints` · [Guide](https://gi
 
 GridStack item geometry remains mounted while expensive React content waits for its first intersection with the configured scroll boundary.
 
+The Playground displays actual mounted-content counts and per-widget Waiting/Rendered status. Scroll inside the example, compare on/off behavior, and restart the experiment to reset it. Already mounted content stays mounted when it leaves view.
+
 Local example: `/examples/advanced/lazy-load` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/09-lazy-rendering.md)
 
 ![React widget content rendering after lazy-scroll intersection](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-lazy-rendering.gif)
+
+### Content sizing with synchronized React state
+
+Fit widgets to their content, including the header, and commit the resulting height back to React. Content can grow or shrink while widget identity and mounted content remain stable.
+
+Content sizing is off by default. Enable it for content-driven heights; keep it off for fixed-height cards. It changes row count `h`, not `cellHeight`, and turning it off does not restore the earlier height.
+
+Local example: `/examples/advanced/size-to-content` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/11-engine-options.md)
+
+![Widget content height growing and shrinking with synchronized React state](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-content-sizing.gif)
 
 ## Features
 
@@ -50,6 +70,7 @@ Local example: `/examples/advanced/lazy-load` · [Guide](https://github.com/kim1
 - Change the runtime column count from 1 through 12 manually or through responsive GridStack breakpoints.
 - Keep application data in serializable React state while GridStack owns browser interaction.
 - Schedule resize-frame notifications for charts, tables, canvases, and other responsive widget content.
+- Fit widget heights to content with per-widget opt-out and minimum/maximum height constraints.
 - Report typed drops on consumer-owned HTML targets without mutating controlled widget state.
 - Copy palette widgets into a grid and move or copy widgets between controlled grids with typed, fail-closed drop requests.
 - Defer React widget content until it first intersects the configured lazy-scroll boundary while keeping GridStack item geometry mounted.
@@ -260,6 +281,8 @@ Outgoing HTML drops and incoming widget transfer solve different state problems:
 
 Palette candidates always use `copy`. A grid source uses `move` by default or `copy` when its `gridTransferMode` is set. Duplicate IDs, a rejecting predicate, and locked, non-movable, minimized, or maximized grid sources fail without changing either controlled state.
 
+For `gridTransferMode="copy"`, the stationary source preview is a non-interactive visual snapshot from drag start, not another mounted React widget or registered engine node. It is removed on drop or cancellation. Dropping within the same grid still moves the widget; copying applies to another grid. Both modes preserve the widget ID, so copying again into a target that already contains it is rejected rather than generating a new ID.
+
 ```tsx
 import {
   DashboardGrid,
@@ -364,13 +387,17 @@ Setting `acceptExternalWidgets` without handling `onWidgetDropRequest` is intent
 | Initialization-only | `nonce` | Remount the grid to change it; never persist it with layout state |
 | Deprecated in `0.2.1` | `lazyLoad` | Native GridStack content lazy loading does not defer React-owned content; use `lazyRenderWidget` |
 
-Widgets can additionally map `sizeToContent` and `resizeToContentParent` to GridStack. For React content deferral, their `lazyLoad` member acts as a per-widget Comins override when `lazyRenderWidget=true`; forwarding it to GridStack does not defer React-owned content.
+Widgets can additionally map `sizeToContent` and `resizeToContentParent` to GridStack. Content sizing includes the header and respects `minH`/`maxH`; a widget's `sizeToContent: false` opts out of global sizing. Maximize/minimize temporarily suspends sizing until restore. After asynchronous content changes, change `refreshKey` or call `refresh()` to request measurement and commit the resulting geometry.
+
+`editable={false}` locks movement and resizing. `engineOptions.staticGrid=true` also blocks incoming external widget drops. Neither is application-wide read-only mode: consumer-owned inputs, action buttons, and imperative state commands remain independent. Compare both modes at `/examples/layout/lock`.
+
+For React content deferral, the widget's `lazyLoad` member acts as a per-widget Comins override when `lazyRenderWidget=true`; forwarding it to GridStack does not defer React-owned content.
 
 ```tsx
 <DashboardGrid
   columns={dashboard.columns}
   widgets={dashboard.widgets}
-  engineOptions={{ cellHeight: 88, margin: 8, dragHandle: ".widget-title" }}
+  engineOptions={{ cellHeight: 88, margin: 8, dragHandle: ".comins-grid-layout-widget__title" }}
   responsive={{
     columnMax: 12,
     breakpointForWindow: true,
@@ -379,12 +406,17 @@ Widgets can additionally map `sizeToContent` and `resizeToContentParent` to Grid
       { maxWidth: 1200, columns: 6, layout: "moveScale" },
     ],
   }}
+  onColumnsChange={dashboard.commands.setColumns}
   onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
   renderWidget={renderWidget}
 />
 ```
 
 Without `responsive`, `columns` is authoritative. With `responsive`, `columns` is the initial/fallback count and GridStack owns the active count. Runtime-capable engine options are synchronized in place; `rtl` and `sizeToContent` changes safely reinitialize the package-owned adapter while preserving controlled React state. `nonce` is initialization-only: remount the grid to change it, and never persist it in layout state. Invalid public configuration throws `DashboardGridConfigurationError` without including the rejected value.
+
+Breakpoints use the grid container width by default; the example explicitly opts into window width with `breakpointForWindow: true`. The `none` strategy skips proportional transforms but still corrects column bounds and overlaps. `float: true` preserves vertical gaps; `false` compacts widgets upward. Mobile handle visibility accepts `"mobile"` for coarse pointers and explicit `false` to disable persistent visibility.
+
+`columnWidth` calculates a column count from a reference cell width; breakpoints assign counts to width ranges and take precedence when both are configured. Layout policy is a separate choice: `none` does not turn responsiveness off and does not preserve pixel dimensions. Previously visited counts restore their cached layout. In the combined Playground, changing calculation method or policy (or restarting) resets that cache; width-only changes preserve it.
 
 ### React content lazy rendering
 
@@ -395,6 +427,8 @@ Without `responsive`, `columns` is authoritative. With `responsive`, `columns` i
 | `DashboardGridEngineOptions.lazyLoad` | Deprecated native GridStack option retained for `0.2.x` compatibility; it does not delay React-owned widget content |
 
 The observer uses the nearest `[data-dashboard-lazy-scroll]` ancestor as its root, or the viewport when none exists. Widget shells and GridStack items remain mounted, content mounts once on first intersection and is retained afterward, and browsers without `IntersectionObserver` render content eagerly. This is content mount deferral, not full widget virtualization; no skeleton/loading-state API is currently provided.
+
+Normal React state and prop updates still rerender mounted content. Re-enabling lazy rendering does not hide content that has already mounted. The Playground's waiting hints, counters, and restart action are example UI, not package loading-state or data-fetching APIs.
 
 ## useDashboardGrid commands
 
@@ -478,17 +512,20 @@ export function AdvancedGrid() {
 | `getFloat` | `boolean \| null` | Read the active float mode |
 | `isAreaEmpty` | `boolean \| null` | Query whether a layout rectangle is empty without mutating the grid |
 | `willItFit` | `boolean \| null` | Query whether a layout rectangle fits the current constraints |
-| `refresh` | `void` | Recalculate sizing and dynamic handles without reordering widgets |
+| `refresh` | `void` | Remeasure content and dynamic handles; commit resulting geometry after active interaction finishes |
 | `compact` | `DashboardLayoutSnapshot \| null` | Run GridStack `compact()` explicitly, commit once, and return the snapshot |
 | `commitLayout` | `DashboardLayoutSnapshot \| null` | Commit direct engine geometry changes to the controlled callback contract |
 
 - `getGridStack()` is an escape hatch: it returns `null` before initialization and after unmount.
 - GridStack methods that emit `change` are committed automatically; `commitLayout()` is for commands that do not emit it and suppresses identical duplicate commits. For `batchUpdate()`, call `commitLayout()` after `batchUpdate(false)`.
+- Controlled updates wait while a consumer-owned batch is open and apply the latest snapshot after it closes. Keep the batch scoped to a completed operation.
 - A committed interaction calls `onWidgetLayoutChange`, then `onLayoutCommit`, then the deprecated stop alias, and finally `onAfterMove` or `onAfterResize`. Canonical active lifecycle events are animation-frame coalesced.
 - The controlled example does not call raw GridStack add/remove/destroy. Use Comins `addWidget` and `removeWidget` for React content; raw GridStack CRUD only changes engine/DOM state and may be replaced by the next controlled React render.
 - Do not call `destroy()` or remove package listeners on the borrowed instance; `DashboardGrid` owns the engine lifecycle.
 
 ## Persistence
+
+Connect `onLayoutCommit` to `dashboard.commands.applyLayoutSnapshot` so engine packing after removal, Float changes, and content measurement is reflected in React before saving. Controlled snapshots are applied atomically with existing widget DOM retained; only a changed corrected layout produces a commit. Pure state commands do not measure or pack browser geometry on their own.
 
 `DashboardColumnLayoutSnapshot` stores one column count's widget geometry and its maximize/minimize `previousLayouts`. `DashboardLayoutsByColumn` is the partial `1..12` map of those snapshots. `DashboardStateSnapshot<TData>` always writes `layoutsByColumn: DashboardLayoutsByColumn`; `DashboardStateSnapshotInput<TData>` accepts the same optional `layoutsByColumn` member so legacy input remains valid.
 
@@ -528,10 +565,16 @@ Run `npm run dev`, then use the local documentation application to inspect the p
 
 - Getting started: `/docs/getting-started` covers installation, the controlled-state model, and the first dashboard.
 - Widget management: `/examples/widget/manage` covers add, delete all, and reset; the Layout menu covers movement, resize, columns, arrange, maximize, and minimize.
-- Advanced examples: `/examples/advanced/multi-grid/horizontal` covers palette drag-in and Grid-to-Grid transfer; `/examples/advanced/external-drop-trash` covers controlled deletion through an external drop target. The remaining advanced routes cover responsive layouts, lazy rendering, nested composition, and supported GridStack options.
-- API reference: `/api` lists the current public props, commands, types, and advanced handle methods.
+- Advanced examples: `/examples/advanced/multi-grid/horizontal` covers palette drag-in and Grid-to-Grid move/copy; `/examples/advanced/external-drop-trash` uses a full-width deletion target with reset at the right of the live-example heading. `/examples/advanced/responsive` combines column calculation and layout policy; `/examples/advanced/lazy-load` exposes actual content-mount status.
+- API reference: `/api` provides a feature index, entry-level live examples, minimal invocation code, and collapsible details for public props, commands, types, and advanced handle methods. It reuses the same Playground screens; only one embedded example runs at a time, and closing or switching resets its state.
+
+Static Grid is part of the Layout Lock / Unlock comparison. Previous Static Grid and separate responsive URLs remain compatibility redirects; use the canonical routes above for new links.
 
 The `/readme-demo` route is an internal deterministic browser fixture used to capture the animations above. Consumer examples should use the documentation and example routes instead.
+
+The five animations are compact feature demonstrations, not recordings of the full Playground interface. Their exact scenes, source revision boundary, and regeneration procedure are recorded in the [animation notes](https://github.com/kim1124/comins-layout/blob/main/docs/assets/README.md). Remote README images update only after repository publication.
+
+The Mobile Touch example uses 3 columns in containers up to 640px to keep titles and action buttons readable. This is an example configuration, not a package-wide responsive default.
 
 ## Documentation
 
@@ -571,7 +614,7 @@ npm run typecheck          # public and internal TypeScript contracts
 npm run build              # production bundle and declarations
 npm run test:e2e           # Playwright browser suite
 npm run verify             # package baseline gate
-npm run docs:readme-gif    # regenerate all four README animations atomically
+npm run docs:readme-gif    # regenerate all five README animations atomically
 ```
 
 `npm run verify:full` is reserved for publication or an explicit maintainer request because it adds the complete browser and resource gate.

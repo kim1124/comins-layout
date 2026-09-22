@@ -37,3 +37,5 @@ Built-in action buttons are keyboard-operable and use the widget title plus `act
 - `widgets` and serialized `data` are application-owned; validate permissions and sensitive content before rendering or persisting them.
 
 Use `showControls`, `renderWidget`, and `renderWidgetActions` to adapt the shell without bypassing controlled state.
+
+Widget action controls preserve native touch taps instead of forwarding their touch start into the ancestor drag handle. For narrow containers, configure responsive columns that leave room for the title and actions. In content-sizing mode, the shell uses intrinsic height; overriding it with `height: 100%` can prevent content from shrinking the widget.

@@ -5,16 +5,62 @@ import { PanelLeft, Search } from "lucide-react";
 
 import { apiFeatures, docsNavGroups, docsPages, searchDocs } from "./content";
 import type { DocsCodeSample, DocsPage, DocsSearchItem } from "./types";
+import { examplesForApi, liveExamples, type LiveExampleId } from "./live-examples";
 
 function ApiReference() {
+  const location = useLocation();
+  const [active, setActive] = useState<{ owner: string; id: LiveExampleId } | null>(null);
+  const renderExamples = (owner: string, sectionId: string, name?: string) => (
+    <div className="docs-live-examples">
+      <div className="docs-live-examples__buttons" aria-label={name ? `${name} 관련 예제` : "실행 예제 선택"}>
+        {examplesForApi(sectionId, name).map((id) => (
+          <button key={id} type="button" aria-pressed={active?.owner === owner && active.id === id}
+            onClick={() => setActive({ owner, id })}>{liveExamples[id].label} 실행</button>
+        ))}
+      </div>
+      {active?.owner === owner ? (
+        <section className="docs-live-example" aria-label={`${liveExamples[active.id].label} 실행 영역`}>
+          <header>
+            <strong>{liveExamples[active.id].label}</strong>
+            <a href={liveExamples[active.id].path} target="_blank" rel="noreferrer">플레이그라운드에서 열기</a>
+            <button type="button" onClick={() => setActive(null)}>실행 예제 닫기</button>
+          </header>
+          <p>{liveExamples[active.id].instruction}</p>
+          <iframe key={active.id} title={`${liveExamples[active.id].label} 실행 예제`}
+            src={`${liveExamples[active.id].path}?embed=1`} />
+        </section>
+      ) : null}
+    </div>
+  );
   return (
     <div className="docs-reference-list">
+      <nav className="docs-api-index" aria-label="API 기능 목차">
+        <p>기능을 선택하고 실행 예제로 동작을 확인하세요. 적용 코드 다음에 상세 API가 이어집니다.</p>
+        {apiFeatures.map((section) => <a key={section.id} href={`#${section.id}`}>{section.title}</a>)}
+      </nav>
       {apiFeatures.map((section, index) => (
         <section className="docs-reference-list__group" id={section.id} key={section.id}>
           <h2>
             {index + 1}. {section.title}
           </h2>
           <p>{section.summary}</p>
+          <h3>직접 실행하기</h3>
+          <p>예제를 선택하면 이 문서 안에서 실행됩니다. 한 번에 하나만 실행하며, 다른 예제로 전환하면 이전 상태는 초기화됩니다.</p>
+          {renderExamples(section.id, section.id)}
+          <section className="docs-reference-list__subsection" aria-label={`${section.title} 예제 코드`}>
+            <h3>최소 적용 코드</h3>
+            {section.samples.map((sample) => (
+              <div className="docs-reference-list__sample" key={sample.title}>
+                <CodeExample sample={sample} />
+              </div>
+            ))}
+          </section>
+          <details className="docs-api-details" open={location.hash === `#${section.id}`}
+            onToggle={event => {
+              if (!event.currentTarget.open && active?.owner.startsWith(`${section.id}:`)) setActive(null);
+            }}>
+          <summary>상세 API 보기</summary>
+          <p>각 항목의 관련 예제로 이동할 수 있습니다. 타입과 유틸리티의 호출 형태는 코드 및 파라미터 설명을 함께 확인하세요.</p>
           {section.props.length ? (
             <section className="docs-reference-list__subsection" aria-label={`${section.title} Props`}>
               <h3>Props</h3>
@@ -28,6 +74,7 @@ function ApiReference() {
                     <dd>
                       <p>{prop.description}</p>
                       <small>{prop.detail}</small>
+                      {renderExamples(`${section.id}:prop:${prop.name}`, section.id, prop.name)}
                     </dd>
                   </div>
                 ))}
@@ -52,6 +99,7 @@ function ApiReference() {
                       <small>
                         <strong>리턴값:</strong> {method.returns}
                       </small>
+                      {renderExamples(`${section.id}:method:${method.name}`, section.id, method.name)}
                     </dd>
                   </div>
                 ))}
@@ -84,20 +132,14 @@ function ApiReference() {
                       <small>
                         <strong>페이로드:</strong> {event.payload}
                       </small>
+                      {renderExamples(`${section.id}:event:${event.name}`, section.id, event.name)}
                     </dd>
                   </div>
                 ))}
               </dl>
             </section>
           ) : null}
-          <section className="docs-reference-list__subsection" aria-label={`${section.title} 예제 코드`}>
-            <h3>예제 코드</h3>
-            {section.samples.map((sample) => (
-              <div className="docs-reference-list__sample" key={sample.title}>
-                <CodeExample sample={sample} />
-              </div>
-            ))}
-          </section>
+          </details>
         </section>
       ))}
     </div>
@@ -138,9 +180,12 @@ export function DocsShell() {
 function DocsTopNav() {
   return (
     <header className="docs-topnav">
-      <div className="docs-topnav__brand">
-        <p className="docs-topnav__eyebrow">Comins Playground</p>
-        <h1>comins-grid-layout</h1>
+      <div className="docs-topnav__brand" style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <img src="/comins-symbol.svg" width="36" height="36" alt="" style={{ flexShrink: 0 }} />
+        <div>
+          <p className="docs-topnav__eyebrow">Comins Playground</p>
+          <h1>comins-grid-layout</h1>
+        </div>
       </div>
       <GlobalDocsSearch />
     </header>
