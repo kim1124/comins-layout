@@ -1,13 +1,15 @@
-<!-- comins-reference:managed-start contract=v1.8 -->
+<!-- comins-reference:managed-start contract=v1.10 -->
 # Comins Module AGENTS.md
 
 ## Common Policy
 
 - Before changing this repository, read the canonical
-  [Comins Contract v1.8](https://github.com/kim1124/comins-governance/blob/main/COMINS_CONTRACT.md)
-  once per run. For inspection-only work, load it only when a Contract stage
+  [Comins Contract v1.10](https://github.com/kim1124/comins-governance/blob/main/COMINS_CONTRACT.md)
+  or, for explicitly approved local-only adoption, its matching version in the
+  verified Governance checkout, once per run. For inspection-only work, load it only when a Contract stage
   is relevant. Stop if it is unavailable or its heading does not match this
   block's version. Governance is the only common-policy owner.
+- Report an approved local-only revision as unpublished.
 - Load the Contract's license, sensitive-data, or release policy only when its
   corresponding stage is triggered.
 - Keep module API, implementation, performance, browser, and checker commands
@@ -16,6 +18,8 @@
 
 ## Module Guidance
 
+- Path guidance is under `src/core`, `src/components`, `src/gridstack`,
+  `example`, and `test`; read only the instructions applicable to changed paths.
 - This repository owns the standalone `comins-grid-layout` React package and public `DashboardGrid`, `useDashboardGrid`, layout/state helpers, option mapper, types, and `comins-grid-layout/styles.css` surfaces.
 - Support widget CRUD, move, resize, maximize/minimize, arrange, reset, serialization, runtime columns `1`–`12`, interaction toggles, and scheduled content resize signals.
 - Keep React/React DOM as peer dependencies, exclude Next.js-only APIs, isolate GridStack in the package adapter, and preserve serializable state and widget IDs.
