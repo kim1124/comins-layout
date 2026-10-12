@@ -80,6 +80,10 @@ export function useDashboardGrid<TData = unknown>(
     { type: "minimize", id },
     { kind: "widget:update", widgetIds: [id] },
   ),
+  resizeWidget: (id, size) => transition(
+    { type: "resize", id, size },
+    { kind: "widget:update", widgetIds: [id] },
+  ),
   restoreWidget: (id) => transition(
     { type: "restore", id },
     { kind: "widget:update", widgetIds: [id] },

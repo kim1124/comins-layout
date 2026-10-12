@@ -106,8 +106,7 @@ const refreshMethodSample = `dashboard.commands.refreshLayout();`;
 const columnMethodSample = `dashboard.commands.setColumns(4);
 dashboard.commands.fitWidgetsToColumns();`;
 
-const maximizeMethodSample = `dashboard.commands.maximizeWidget("sales");
-dashboard.commands.minimizeWidget("sales");
+const resizeMethodSample = `dashboard.commands.resizeWidget("sales", { w: 5, h: 3 });
 dashboard.commands.restoreWidget("sales");`;
 
 const safeHandleMethodSample = `const columns = gridRef.current?.getColumnCount();
@@ -307,7 +306,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         name: "actionLabels",
         type: "Partial<DashboardWidgetActionLabels>",
         description: "기본 타이틀 버튼의 접근성 이름을 변경합니다.",
-        detail: "maximize, minimize, restore, remove 이름을 앱의 언어에 맞게 지정합니다. 직접 만든 버튼의 이름은 앱이 설정합니다.",
+        detail: "restore, remove 이름을 앱의 언어에 맞게 지정합니다. maximize/minimize 이름은 legacy 타입으로만 유지합니다. 직접 만든 버튼의 이름은 앱이 설정합니다.",
       },
       {
         name: "onRemoveWidget",
@@ -363,7 +362,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         type: "type",
         description: "현재 배치만 저장하거나 위젯 속성과 컬럼별 배치까지 저장하는 타입입니다.",
         detail:
-          "serializeState()는 widgets, columns, previousLayouts, layoutsByColumn을 포함합니다. previousLayouts는 최대화·최소화 전 복원 배치이며 DashboardLayoutsByColumn은 컬럼 수별 DashboardColumnLayoutSnapshot을 보관합니다. serializeLayout()은 현재 columns와 위젯 배치만 포함합니다. 현재 컬럼의 캐시보다 최상위 widgets와 previousLayouts가 우선합니다. layoutsByColumn이 없는 이전 형식도 복원할 수 있습니다. 12 -> 6 -> 12 전환 시 기존 12컬럼 배치를 복원하며, serializeState와 restoreLayout은 이 컬럼별 배치를 보존합니다.",
+          "serializeState()는 widgets, columns, previousLayouts, layoutsByColumn을 포함합니다. previousLayouts는 최초 API 크기 변경 전 복원 배치이며 DashboardLayoutsByColumn은 컬럼 수별 DashboardColumnLayoutSnapshot을 보관합니다. serializeLayout()은 현재 columns와 위젯 배치만 포함합니다. 현재 컬럼의 캐시보다 최상위 widgets와 previousLayouts가 우선합니다. layoutsByColumn이 없는 이전 형식도 복원할 수 있습니다. 12 -> 6 -> 12 전환 시 기존 12컬럼 배치를 복원하며, serializeState와 restoreLayout은 이 컬럼별 배치를 보존합니다.",
       },
     ],
     methods: [
@@ -480,21 +479,27 @@ export const apiFeatures: ApiFeatureSection[] = [
     samples: [{ code: interactionApiSample, language: "tsx", title: "이동 / 리사이즈 / 잠금 예제" }],
   },
   {
-    id: "api-maximize-minimize-restore",
-    title: "Maximize / Minimize / Restore",
-    summary: "위젯을 확장, 축소, 복원하고 header action 또는 double-click과 연결하는 기능입니다.",
+    id: "api-widget-resize",
+    title: "Widget Resize / Restore",
+    summary: "resizeWidget으로 위젯 크기를 지정하고 저장한 위치·크기를 복원합니다. 타이틀 더블 클릭은 같은 행의 빈 공간을 채웁니다.",
     props: [
+      {
+        name: "titleDoubleClickAction",
+        type: '"fill" | "none"',
+        description: "기본값 fill은 제목 더블 클릭으로 같은 행의 빈 컬럼을 채웁니다.",
+        detail: "onLayoutCommit으로 결과를 상태에 연결합니다. 잠금·정적 모드·최대화·최소화 중에는 기본 확장을 실행하지 않습니다. none은 기본 확장을 끄고 기존 이벤트만 전달합니다.",
+      },
       {
         name: "onMaximizeWidget / onMinimizeWidget / onRestoreWidget",
         type: "(id: string) => void",
-        description: "위젯 header action callback입니다.",
-        detail: "DashboardGrid action을 useDashboardGrid command와 연결할 때 사용합니다.",
+        description: "onRestoreWidget은 복원 버튼을 연결합니다. 최대화·최소화 콜백은 legacy 타입으로 유지합니다.",
+        detail: "기본 최대화·최소화 버튼은 제거되었습니다. 새 크기 조절 UI에서는 resizeWidget(id, { w, h })을 직접 호출합니다.",
       },
       {
         name: "onTitleDoubleClick",
         type: "(event: DashboardWidgetInteractionEvent) => void",
         description: "위젯 title-only double-click action callback입니다.",
-        detail: "fitWidgetToColumns와 조합하면 row 빈 공간 확장 interaction을 만들 수 있습니다. onWidgetHeaderDoubleClick은 0.2.1부터 deprecated인 alias입니다.",
+        detail: "기본 row 빈 공간 확장 후 이벤트를 전달합니다. 별도 동작을 연결하려면 titleDoubleClickAction=none을 사용합니다. onWidgetHeaderDoubleClick은 deprecated alias입니다.",
       },
       {
         name: "Move / Resize / Title lifecycle callbacks",
@@ -506,7 +511,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         name: "onBeforeMove / onMove / onAfterMove / onBeforeResize / onResize / onAfterResize / onBeforeTitleDoubleClick / onTitleDoubleClick / onAfterTitleDoubleClick",
         type: "(event: DashboardWidgetInteractionEvent) => void",
         description: "move, layout resize, title-only double-click의 canonical lifecycle입니다.",
-        detail: "before는 시작 알림이며 취소 API가 아닙니다. 이동·리사이즈는 시작 → 진행 → 종료 순서입니다. 타이틀 더블 클릭의 세 콜백은 모두 클릭 시점의 좌표를 받으며 최대화 등 동작은 앱이 연결합니다. onWidgetResizeFrame은 픽셀 크기 알림으로 별도입니다.",
+        detail: "before는 시작 알림이며 취소 API가 아닙니다. 이동·리사이즈는 시작 → 진행 → 종료 순서입니다. 타이틀 더블 클릭의 세 콜백은 모두 클릭 시점의 좌표를 받으며 기본 빈 공간 채우기 결과는 onLayoutCommit으로 전달합니다. titleDoubleClickAction=none이면 이벤트만 전달합니다. onWidgetResizeFrame은 픽셀 크기 알림으로 별도입니다.",
       },
       {
         name: "onWidgetDragStart / onWidgetDragStop / onWidgetResizeStart / onWidgetResizeStop / onWidgetHeaderDoubleClick",
@@ -517,18 +522,18 @@ export const apiFeatures: ApiFeatureSection[] = [
     ],
     methods: [
       {
-        name: "maximizeWidget / minimizeWidget / restoreWidget / fitWidgetToColumns",
-        params: "widget id",
+        name: "resizeWidget / restoreWidget / fitWidgetToColumns / maximizeWidget / minimizeWidget",
+        params: "resizeWidget(id, { w, h }); 나머지는 widget id",
         returns: "void",
-        description: "widget view state를 변경하거나 현재 row의 빈 column 공간을 단일 widget에 채웁니다. 최대화·최소화 중 콘텐츠 크기 맞춤은 중단되고 복원 후 재개됩니다.",
-        sample: { code: maximizeMethodSample, language: "ts", title: "Maximize / Minimize / Restore methods" },
+        description: "resizeWidget은 유한한 W/H를 정수 그리드 단위로 반올림하고 minW/maxW/minH/maxH와 컬럼 범위를 적용합니다. restoreWidget은 최초 API 크기 변경 전 저장한 해당 위젯의 위치·크기를 복원합니다. 직전 작업 취소가 아닙니다. fitWidgetToColumns는 같은 행의 빈 컬럼을 채웁니다. deprecated maximizeWidget은 기존 x=0/y=0/전체 컬럼/최소 H3, minimizeWidget은 기존 W 유지/H1 동작을 유지합니다.",
+        sample: { code: resizeMethodSample, language: "ts", title: "Resize / Restore methods" },
       },
     ],
     events: [
       {
         name: "onMaximizeWidget / onMinimizeWidget / onRestoreWidget",
         payload: "id: string",
-        when: "widget header의 maximize, minimize, restore action이 실행될 때 호출됩니다.",
+        when: "기본 복원 버튼은 onRestoreWidget을 호출합니다. deprecated 최대화·최소화 콜백은 기본 UI에서 호출하지 않습니다.",
         description: "header action을 consumer-owned widget state command와 연결합니다.",
       },
       {
@@ -544,7 +549,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         description: "onWidgetResizeFrame은 content 크기 알림이며 onResize layout event와 별도입니다.",
       },
     ],
-    samples: [{ code: maximizeMethodSample, language: "ts", title: "Maximize / Minimize / Restore 예제" }],
+    samples: [{ code: resizeMethodSample, language: "ts", title: "Resize / Restore 예제" }],
   },
   {
     id: "api-resize-adapter",

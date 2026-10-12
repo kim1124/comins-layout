@@ -287,12 +287,9 @@ export function AdvancedPlayground() {
           widgets={dashboard.widgets}
           onColumnsChange={dashboard.commands.setColumns}
           onLayoutCommit={handleLayoutCommit}
-          onMaximizeWidget={dashboard.commands.maximizeWidget}
-          onMinimizeWidget={dashboard.commands.minimizeWidget}
           onRemoveWidget={dashboard.commands.removeWidget}
           onRestoreWidget={dashboard.commands.restoreWidget}
           onWidgetExternalDrop={handleWidgetExternalDrop}
-          onTitleDoubleClick={(event) => dashboard.commands.fitWidgetToColumns(event.id)}
           renderWidget={(widget) => (
             <div className="dashboard-widget-body">
               <span>{widget.data?.description}</span>

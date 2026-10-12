@@ -25,7 +25,7 @@ test("framework selection changes the actual renderer and source with one iframe
   await expect(preview.getByRole("button", { name: "내용 추가", exact: true })).toBeVisible();
 });
 
-test("all 22 Vue routes mount directly, retain locale on reload, and reject unknown IDs", async ({ page }) => {
+test("all 23 Vue routes mount directly, retain locale on reload, and reject unknown IDs", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => { if (message.type() === "error" || message.type() === "warning") errors.push(message.text()); });
@@ -233,16 +233,11 @@ test("legacy static route opens the combined lock example and both modes block d
   }
 });
 
-test("basic widget example demonstrates maximize minimize and restore through public commands", async ({ page }) => {
-  await page.goto("/examples/widget/basic");
+test("dynamic widget sizing example connects the explicit resize command", async ({ page }) => {
+  await page.goto("/examples/widget/resize/react?locale=ko");
   const first = page.getByTestId("dashboard-widget-widget-1");
-  await page.getByRole("button", { name: "선택 위젯 최대화", exact: true }).click();
-  await expect(first).toHaveAttribute("data-maximized", "true");
-  await expect(first).toHaveAttribute("data-layout-w", "12");
-  await page.getByRole("button", { name: "선택 위젯 복원", exact: true }).click();
+  await page.getByRole("spinbutton", { name: "W", exact: true }).fill("5");
+  await expect(first).toHaveAttribute("data-layout-w", "5");
+  await page.getByRole("button", { name: "크기 복원", exact: true }).click();
   await expect(first).toHaveAttribute("data-layout-w", "3");
-  await page.getByRole("button", { name: "선택 위젯 최소화", exact: true }).click();
-  await expect(first).toHaveAttribute("data-minimized", "true");
-  await page.getByRole("button", { name: "선택 위젯 복원", exact: true }).click();
-  await expect(first).toHaveAttribute("data-layout-h", "2");
 });

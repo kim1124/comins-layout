@@ -18,6 +18,7 @@ export {
   updateDashboardWidgetLayout,
   removeDashboardWidget,
   clearDashboardWidgets,
+  resizeDashboardWidget,
   maximizeDashboardWidget,
   minimizeDashboardWidget,
   restoreDashboardWidget,

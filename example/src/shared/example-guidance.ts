@@ -23,11 +23,16 @@ const guidance: Record<string, ExampleGuidance> = {
         "en": "Title actions toggle movement and resizing for that widget independently."
       },
       {
-        "ko": "상단에서 대상 위젯을 선택해 최대화·최소화·복원을 실행합니다. 최대화는 그리드 전체 너비로 펼치고, 최소화는 높이를 줄이며, 복원은 저장된 원래 배치로 돌아갑니다. 브라우저 전체 화면 전환은 아닙니다.",
-        "en": "Select a target above to maximize, minimize, or restore it. Maximize expands to the grid width, minimize reduces height, and restore returns to the saved layout. This is not browser fullscreen."
+        "ko": "타이틀 더블 클릭은 같은 행의 빈 공간을 채웁니다. 위젯 2·6·10을 삭제한 뒤 Title 1을 더블 클릭해 비교합니다. 잠금 상태에서는 실행하지 않습니다.",
+        "en": "Double-click a title to fill unused columns in its row. Remove widgets 2, 6 and 10, then double-click Title 1 to compare. Locked widgets do not fill gaps."
       }
     ]
   },
+  "widget/resize": { items: [
+    { ko: '대상 위젯의 W/H를 입력하면 resizeWidget으로 즉시 반영합니다. W/H는 픽셀이 아닌 컬럼 수와 행 수이며, W는 1부터 현재 레이아웃의 전체 컬럼 수까지, H는 1~6까지 허용합니다.', en: 'Enter W/H to apply resizeWidget immediately. W/H are column and row counts, not pixels; W supports 1 through the current layout column count, and H supports 1–6.' },
+    { ko: '크기 복원은 최초 API 크기 변경 전 저장한 해당 위젯의 위치·크기를 복원합니다. 직전 작업 취소나 전체 레이아웃 초기화가 아닙니다. 다른 위젯은 충돌 처리로 이동할 수 있습니다.', en: 'Restore size restores the selected widget’s saved position and size before its first API resize. It is not undo or a full layout reset. Collision handling may move other widgets.' },
+    { ko: '타이틀의 이동·리사이즈 잠금은 포인터 조작을 제한합니다. resizeWidget 명령은 잠금과 무관하게 허용 범위 안에서 크기를 변경합니다.', en: 'Title movement and resize locks restrict pointer interaction. The resizeWidget command still applies sizes within the allowed bounds.' },
+  ] },
   "widget/manage": {
     "items": [
       {
@@ -55,8 +60,8 @@ const guidance: Record<string, ExampleGuidance> = {
         "en": "Event layout values use grid units. End events run after any required layout callbacks, without waiting for React rendering or asynchronous work. Before events are notifications, not cancellation APIs."
       },
       {
-        "ko": "타이틀을 더블 클릭하면 onBeforeTitleDoubleClick → onTitleDoubleClick → onAfterTitleDoubleClick을 기록합니다. 이 예제는 이벤트만 기록하며 최대화나 너비 확장을 자동 실행하지 않습니다.",
-        "en": "Double-click the title to log onBeforeTitleDoubleClick → onTitleDoubleClick → onAfterTitleDoubleClick. This example logs events without automatically maximizing or expanding the widget."
+        "ko": "타이틀을 더블 클릭하면 onBeforeTitleDoubleClick → onTitleDoubleClick → onAfterTitleDoubleClick을 기록합니다. 같은 행에 빈 공간이 있으면 기본 너비 확장도 실행합니다. 잠금 상태에서는 이벤트만 기록합니다.",
+        "en": "Double-click the title to log onBeforeTitleDoubleClick → onTitleDoubleClick → onAfterTitleDoubleClick. The default action also fills unused columns in the same row. Locked widgets only log events."
       }
     ],
     "referenceCaption": {
@@ -120,8 +125,8 @@ const guidance: Record<string, ExampleGuidance> = {
       {
         "name": "onTitleDoubleClick",
         "description": {
-          "ko": "타이틀 더블 클릭을 알립니다. 원하는 동작은 앱에서 연결합니다.",
-          "en": "Reports a title double-click. Connect the desired action in your app."
+          "ko": "기본 빈 공간 채우기 후 타이틀 더블 클릭을 알립니다.",
+          "en": "Reports a title double-click after default row-gap filling."
         }
       },
       {
@@ -164,8 +169,8 @@ const guidance: Record<string, ExampleGuidance> = {
         "en": "Choose Static Grid to use engineOptions.staticGrid. Interaction locking controls movable/resizable; static mode also blocks incoming external widget drops."
       },
       {
-        "ko": "삭제 버튼이나 콘텐츠 입력을 막는 읽기 전용 권한은 아닙니다. 두 모드의 드래그·리사이즈 결과는 같으며, 위젯별 설정은 잠금 해제 후 다시 적용됩니다.",
-        "en": "Neither mode is a read-only permission for delete buttons or content inputs. Both block dragging and resizing; widget permissions apply again after unlocking."
+        "ko": "두 모드는 이 화면에서 이동·리사이즈 결과가 같습니다. Static Grid의 추가 차이는 외부 드롭 수신 차단이며, 이 화면에는 드롭 소스가 없습니다. 추가·삭제와 상태 명령은 계속 사용할 수 있습니다. 기본 타이틀 더블 클릭 확장도 잠금 중에는 실행하지 않습니다.",
+        "en": "Both modes block movement and resizing in this screen. Static Grid additionally blocks incoming external drops; this screen has no drop source. Add/remove and state commands remain available. Default title double-click expansion is also blocked while locked."
       }
     ]
   },
@@ -429,8 +434,8 @@ const guidance: Record<string, ExampleGuidance> = {
         "en": "This example starts enabled; the package does not enable it by default. Leave it off for fixed-height cards."
       },
       {
-        "ko": "내용 추가·삭제 후 refreshKey로 재측정하고 onLayoutCommit으로 React 상태를 갱신합니다. 행 단위로 계산하므로 약간의 빈 공간은 남을 수 있습니다.",
-        "en": "Content changes trigger remeasurement through refreshKey and update React state through onLayoutCommit. Row rounding can leave some empty space."
+        "ko": "내용 추가·삭제 후 refreshKey로 재측정하고 onLayoutCommit으로 React 상태를 갱신합니다. 이 예제는 cellHeight=1px을 사용하여 헤더·여백·줄바꿈을 포함한 실제 콘텐츠 높이에 1px 단위로 맞춥니다. 항목 추가·삭제 시 실제 요소 높이만큼 증감하며, 저장되는 h도 1px 단위입니다. 항목 하나를 그리드 한 칸으로 환산하지 않습니다.",
+        "en": "Content changes trigger remeasurement through refreshKey and update React state through onLayoutCommit. This example uses cellHeight=1px to fit the actual content height, including headers, spacing and wrapped text, to the nearest enclosing pixel. Adding or removing an item changes height by its actual element height; saved h values also use 1px units. One item does not mean one grid row."
       },
       {
         "ko": "끄면 내용이 늘어도 현재 높이를 유지하며 내부에서 스크롤합니다. 수동 리사이즈는 별도 설정이며, 켠 상태에서는 재측정 시 콘텐츠 높이가 다시 적용됩니다.",
@@ -489,8 +494,8 @@ const guidance: Record<string, ExampleGuidance> = {
         "en": "Moving between grids removes the source widget; copying keeps it. Copies retain the widget ID, so an existing target ID causes rejection. Locked, non-movable, minimized, and maximized widgets cannot transfer."
       },
       {
-        "ko": "서로 다른 컬럼 수에서도 포인터로 잡은 지점을 대상 셀 크기로 환산합니다. 제한 위젯은 허용 조건에서 거부됩니다. 적용되지 않은 전송은 양쪽 위젯 목록을 유지합니다.",
-        "en": "The grab point is mapped into target cells even when column counts differ. The restricted widget is rejected by the acceptance rule. Unapplied transfers preserve both widget lists."
+        "ko": "A → B 전송 허용/차단을 전환하여 같은 위젯의 이동·복사를 비교합니다. 차단은 드래그와 전송 버튼에 동일하게 적용하며 양쪽 목록을 유지합니다. B → A와 팔레트 추가는 허용합니다. 신규 팔레트 위젯은 6×2로, Grid A에서는 전체 너비, Grid B에서는 절반 너비로 추가됩니다.",
+        "en": "Toggle A → B transfer acceptance to compare moving and copying the same widget. Blocking applies equally to dragging and transfer buttons, preserving both lists. B → A and palette additions remain allowed. New palette widgets use 6×2 cells: full width in Grid A and half width in Grid B."
       },
       {
         "ko": "두 Grid를 가로 또는 세로로 배치해 좌우·상하 전송 동선을 비교합니다.",

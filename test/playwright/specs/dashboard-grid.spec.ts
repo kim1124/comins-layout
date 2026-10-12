@@ -363,11 +363,11 @@ test("supports the Widget playground workflow", async ({ page }) => {
   await addWidgetFromDialog(page);
   await expect(page.getByTestId("dashboard-widget-widget-4")).toBeVisible();
 
-  await page.getByRole("button", { name: "매출 최대화" }).click();
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-maximized", "true");
+  await page.getByRole("button", { name: "API 크기 4×3" }).click();
+  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-w", "4");
 
-  await page.getByRole("button", { name: "매출 최소화" }).click();
-  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-minimized", "true");
+  await page.getByRole("button", { name: "API 크기 2×1" }).click();
+  await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-layout-h", "1");
 
   await page.getByRole("button", { name: "매출 복원" }).click();
   await expect(page.getByTestId("dashboard-widget-sales")).toHaveAttribute("data-maximized", "false");
@@ -399,8 +399,8 @@ test("keeps widget shell aligned with the GridStack content box", async ({ page 
   expect(before.shellHeight).toBe(before.contentHeight);
   expect(before.shellBottom).toBe(before.contentBottom);
 
-  await page.getByRole("button", { name: "매출 최소화" }).click();
-  await expect(sales).toHaveAttribute("data-minimized", "true");
+  await page.getByRole("button", { name: "API 크기 2×1" }).click();
+  await expect(sales).toHaveAttribute("data-layout-h", "1");
 
   const after = await sales.evaluate((item) => {
     const content = item.querySelector(".grid-stack-item-content");

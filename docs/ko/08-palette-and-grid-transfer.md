@@ -62,4 +62,6 @@ Grid source request는 `transferDashboardWidget`에 source/target 상태와 requ
 
 Playground: `/examples/advanced/multi-grid/horizontal`. 페이지의 배치 방향 컨트롤로 전송 계약은 유지한 채 가로/세로 Grid 배치를 비교합니다. 키보드용 전송 버튼도 같은 helper를 사용하지만 대상 Grid의 하단에 배치합니다. 드래그는 놓은 위치를 사용합니다.
 
+React/Vue 예제의 `A → B 전송 허용/차단` 토글은 같은 위젯으로 허용 조건을 비교합니다. 차단 시 A → B 이동·복사는 드래그와 버튼 모두 적용되지 않으며 양쪽 목록을 유지합니다. B → A와 팔레트 추가는 계속 허용합니다. 드래그에는 `acceptExternalWidgets`를 사용하고 버튼도 같은 조건을 검사한 뒤 helper를 호출합니다. 신규 팔레트 위젯은 6×2로 추가되어 6컬럼 Grid A에서는 전체 너비, 12컬럼 Grid B에서는 절반 너비를 차지합니다.
+
 외부 DOM 드롭 대상에서 consumer 제어 상태로 삭제하는 예제는 `/examples/advanced/external-drop-trash`에서 별도로 확인합니다.

@@ -192,7 +192,7 @@ function PlaygroundShellContent({ children, routePath }: { children: ReactNode; 
               </div>
             </div>
           </> : null}
-          <div className="playground-route-content framework-runtime" id={route ? "framework-panel" : undefined} role={route ? "tabpanel" : undefined} aria-labelledby={route ? `framework-tab-${framework}` : undefined}>
+          <div className="playground-route-content framework-runtime" data-example-id={route?.example.id} id={route ? "framework-panel" : undefined} role={route ? "tabpanel" : undefined} aria-labelledby={route ? `framework-tab-${framework}` : undefined}>
             <RouteLifecycleBoundary key={routePath} routePath={routePath}>
               {children}
             </RouteLifecycleBoundary>

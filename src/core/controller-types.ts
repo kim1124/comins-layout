@@ -24,8 +24,11 @@ export type DashboardGridCommands<TData = unknown> = {
   updateWidgetLayout: (id: DashboardWidgetId, patch: Partial<Omit<DashboardWidgetLayout, "id">>) => void;
   removeWidget: (id: DashboardWidgetId) => void;
   clearWidgets: () => void;
+  /** @deprecated Use resizeWidget(id, { w, h }). Retains the legacy full-width behavior. */
   maximizeWidget: (id: DashboardWidgetId) => void;
+  /** @deprecated Use resizeWidget(id, { w, h }). Retains the legacy one-row behavior. */
   minimizeWidget: (id: DashboardWidgetId) => void;
+  resizeWidget: (id: DashboardWidgetId, size: Pick<DashboardWidgetLayout, "w" | "h">) => void;
   restoreWidget: (id: DashboardWidgetId) => void;
   autoArrangeWidgets: () => void;
   fitWidgetsToColumns: () => void;

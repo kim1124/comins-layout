@@ -51,11 +51,11 @@ test.describe("Vue feature parity", () => {
     await expect(grid.locator(":scope > .grid-stack-item")).toHaveCount(3);
     await page.getByRole("button", { name: "Update data", exact: true }).click();
     await expect(widget.locator('[data-test="value"]')).toHaveText("200");
-    await widget.getByRole("button", { name: "Alpha 최대화", exact: true }).click();
-    await expect(widget).toHaveAttribute("data-maximized", "true");
+    await page.getByRole("button", { name: "API size 4×3", exact: true }).click();
+    await expect(widget).toHaveAttribute("data-layout-w", "4");
     await widget.getByRole("button", { name: "Alpha 복원", exact: true }).click();
-    await widget.getByRole("button", { name: "Alpha 최소화", exact: true }).click();
-    await expect(widget).toHaveAttribute("data-minimized", "true");
+    await page.getByRole("button", { name: "API size 3×1", exact: true }).click();
+    await expect(widget).toHaveAttribute("data-layout-h", "1");
     await widget.getByRole("button", { name: "Alpha 복원", exact: true }).click();
     await page.getByRole("button", { name: "Arrange", exact: true }).click();
     await page.getByRole("button", { name: "Fill", exact: true }).click();
@@ -130,8 +130,8 @@ test.describe("Vue feature parity", () => {
   test("native touch controls and gestures @mobile-touch", async ({ page }) => {
     await page.getByRole("combobox", { name: "컬럼 선택", exact: true }).selectOption("4");
     const widget = mainWidget(page);
-    await widget.getByRole("button", { name: "Alpha 최소화", exact: true }).tap();
-    await expect(widget).toHaveAttribute("data-minimized", "true");
+    await page.getByRole("button", { name: "API size 3×1", exact: true }).tap();
+    await expect(widget).toHaveAttribute("data-layout-h", "1");
     await widget.getByRole("button", { name: "Alpha 복원", exact: true }).tap();
     await performTouchGesture(page, widget.locator(".comins-grid-layout-widget__title"), { x: 20, y: 120 });
     await expect(page.locator('[data-test="events"]')).toContainText("afterMove");

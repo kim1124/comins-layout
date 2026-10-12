@@ -12,7 +12,7 @@ export function BrandedDashboard() {
       <DashboardGrid
         className="brand-dashboard__grid"
         widgets={dashboard.widgets}
-        actionLabels={{ maximize: "Expand", minimize: "Collapse", restore: "Restore", remove: "Delete" }}
+        actionLabels={{ restore: "Restore", remove: "Delete" }}
         onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
         renderWidget={(widget) => widget.title}
       />

@@ -40,7 +40,7 @@ Widget-level `sizeToContent` and `resizeToContentParent` override content sizing
 
 Content sizing is off by default. Leave it off for fixed-height dashboards and enable it when cards should grow or shrink with content. If content already fits, enabling it may leave `h` unchanged. Disabling it does not restore the previous `h`.
 
-Content sizing measures the widget shell including its header and respects `minH`/`maxH`. Use `refreshKey` or the handle's `refresh()` after content changes that need a new measurement. Connect `onLayoutCommit` to keep React state and saved data in sync with the measured height. An explicit maximize or minimize temporarily suspends content sizing until restore; a widget's `sizeToContent: false` opts out of global sizing.
+Content sizing measures the widget shell including its header and respects `minH`/`maxH`. Use `refreshKey` or the handle's `refresh()` after content changes that need a new measurement. Connect `onLayoutCommit` to keep React state and saved data in sync with the measured height. An explicit maximize or minimize temporarily suspends content sizing until restore or explicit resize; a widget's `sizeToContent: false` opts out of global sizing.
 
 Static mode is not application-wide read-only mode: consumer-owned input, remove, and maximize actions remain independent. The Playground widget table shows effective movement and resizing availability, including static mode. Per-widget settings are preserved and apply again after the global lock is released.
 
@@ -52,4 +52,6 @@ Invalid supported configuration throws `DashboardGridConfigurationError`. Unsupp
 
 Examples for cell height, float, RTL, size to content, and title drag handles are available under the Advanced menu. Compare static mode and interaction locking on the Layout Lock / Unlock page. Static mode also blocks incoming external widget drops; it does not disable app-owned buttons or imperative commands.
 
-The Size To Content example adds and removes activity items to demonstrate height growth and shrinkage. Row rounding may leave space below content; the painted card and resize handle follow the allocated grid area. Manual resizing is independent, and remeasurement reapplies content-based sizing while enabled.
+The Size To Content example adds and removes activity items to demonstrate height growth and shrinkage. Its 1px row unit fits the actual content height, and the painted card and resize handle follow that height. Manual resizing is independent, and remeasurement reapplies content-based sizing while enabled.
+
+This example uses cellHeight=1px to fit the actual content height, including headers, spacing and wrapped text, to the nearest enclosing pixel. Adding or removing an item changes height by its actual element height; saved h values also use 1px units. One item does not mean one grid row.

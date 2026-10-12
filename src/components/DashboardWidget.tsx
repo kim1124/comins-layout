@@ -13,13 +13,15 @@ export type DashboardWidgetShellProps<TData = unknown> = {
   children: ReactNode;
   showControls?: boolean;
   labels?: DashboardWidgetActionLabels;
+  /** @deprecated Supply a custom action using resizeWidget. */
   onMaximize?: (id: string) => void;
+  /** @deprecated Supply a custom action using resizeWidget. */
   onMinimize?: (id: string) => void;
   onRestore?: (id: string) => void;
   onRemove?: (id: string) => void;
   /**
    * @deprecated This is a title-only legacy alias. Use onTitleDoubleClick.
-   * Planned for removal in 0.3.0.
+   * Removal is deferred to a future release.
    */
   onHeaderDoubleClick?: (id: string) => void;
   onBeforeTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
@@ -33,8 +35,6 @@ export function DashboardWidgetShell<TData = unknown>({
   children,
   showControls = true,
   labels = DEFAULT_ACTION_LABELS,
-  onMaximize,
-  onMinimize,
   onRestore,
   onRemove,
   onHeaderDoubleClick,
@@ -72,12 +72,6 @@ export function DashboardWidgetShell<TData = unknown>({
           <div ref={actionsRef} className="comins-grid-layout-widget__actions" onDoubleClick={(event) => event.stopPropagation()}>
             {renderActions ? renderActions(widget) : (
               <>
-                <button type="button" aria-label={`${title} ${labels.maximize}`} onClick={() => onMaximize?.(widget.id)}>
-                  <WidgetActionIcon action="maximize" />
-                </button>
-                <button type="button" aria-label={`${title} ${labels.minimize}`} onClick={() => onMinimize?.(widget.id)}>
-                  <WidgetActionIcon action="minimize" />
-                </button>
                 <button type="button" aria-label={`${title} ${labels.restore}`} onClick={() => onRestore?.(widget.id)}>
                   <WidgetActionIcon action="restore" />
                 </button>

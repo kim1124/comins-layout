@@ -33,7 +33,7 @@ Open `http://127.0.0.1:6001/docs/getting-started`. The API reference is `http://
 
 Additional Advanced menu routes demonstrate grid lines, float, mobile touch, controlled two-/three-level nested composition, RTL, size to content, title-only drag handles, and transforms. The multi-grid route switches horizontal and vertical presentation in place. The three responsive examples are combined on one page; former URLs remain compatible.
 
-Static Grid is integrated into the lock-mode selector on the Layout Lock / Unlock page. Widget Basic includes target selection and maximize, minimize, and restore actions. Size To Content lets you add or remove content and toggle automatic sizing to compare it with a fixed height.
+Static Grid is integrated into the lock-mode selector on the Layout Lock / Unlock page. Widget Basic supports default title double-click filling. Dynamic Widget Size (`/examples/widget/resize`) provides target selection, W/H inputs, applied size and restore. Size To Content lets you add or remove content and toggle automatic sizing to compare it with a fixed height.
 
 Read the API reference in this order: purpose, live example, minimal code, detailed API. Entry-level launch buttons open the same Playground screens inside the reference. Only one example runs at a time; switching or closing discards its state. Types and utilities include related examples and invocation code.
 
@@ -53,4 +53,6 @@ Open `/examples/widget/basic/react` or `/examples/widget/basic/vue`. Choose a fe
 
 Developers run the Playground locally with `npm run dev`. At widths of 900px or less, use the example selector and scroll the page to the workspace. Narrow widget titles and controls wrap within their headers.
 
-The React and Vue 3 tabs match across all 22 examples in control order, icons, workspace layout, and result presentation; the renderer and API bindings differ. Expand **Feature details · Behavior and API** below the workspace for behavior, constraints, and event or method descriptions. The Vue tab uses component emit and slot names while retaining `onLayoutMutation` as a composable option callback.
+The React and Vue 3 tabs match across all 23 examples in control order, icons, workspace layout, and result presentation; the renderer and API bindings differ. Expand **Feature details · Behavior and API** below the workspace for behavior, constraints, and event or method descriptions. The Vue tab uses component emit and slot names while retaining `onLayoutMutation` as a composable option callback.
+
+Dynamic Widget Size allows W up to the current column count (initially 12); H ranges from 1 to 6. Basic has a 22px gap below the framework tabs. Titles show a grab cursor when movement or resizing is available, and the default cursor when both are disabled or the grid is static.

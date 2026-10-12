@@ -40,13 +40,10 @@ export function DashboardPreview({
         resizable={resizable}
         showControls={showControls}
         widgets={dashboard.widgets}
-        onMaximizeWidget={dashboard.commands.maximizeWidget}
-        onMinimizeWidget={dashboard.commands.minimizeWidget}
         onRemoveWidget={onWidgetRemove ?? dashboard.commands.removeWidget}
         onRestoreWidget={dashboard.commands.restoreWidget}
         onLayoutCommit={onLayoutCommit}
         onWidgetExternalDrop={onWidgetExternalDrop}
-        onTitleDoubleClick={(event) => dashboard.commands.fitWidgetToColumns(event.id)}
         onWidgetLayoutChange={onLayoutCommit ? undefined : dashboard.commands.updateWidgetLayout}
         renderWidget={(widget) => {
           const content = (

@@ -27,6 +27,7 @@
 .playground-shell .framework-tabs button[aria-selected="true"] { border-bottom-color:#176343; background:transparent; color:#176343; font-weight:800; }
 .framework-dot { width:8px; height:8px; border-radius:50%; background:#48bfe3; }.framework-dot--vue { background:#42b883; }
 .playground-shell .framework-runtime { padding:0; }
+.playground-shell .framework-runtime[data-example-id="widget/basic"] { padding-top:22px; }
 .playground-shell .framework-runtime .playground-workspace,
 .playground-shell .framework-vue-preview > div { display:grid; gap:22px; min-width:0; }
 .playground-shell .framework-runtime[role="tabpanel"] .playground-header,

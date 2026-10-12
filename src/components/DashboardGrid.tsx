@@ -21,6 +21,7 @@ import type {
 import type { DashboardGridHandle } from "../gridstack/adapter";
 import { validateDashboardExternalDropTargetSelectors } from "../gridstack/external-drop-target";
 import { createDashboardGridConnection } from "../browser/grid-connection";
+import { titleFillSnapshot } from "../core/widget-presentation";
 import { observeDashboardContent } from "../browser/lazy-content";
 import { isDashboardContentPositioned } from "../gridstack/element-state";
 import { DashboardWidgetShell } from "./DashboardWidget";
@@ -40,6 +41,8 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   className?: string;
   refreshKey?: number;
   showControls?: boolean;
+  /** Default title double-click fills the current row's unused columns. */
+  titleDoubleClickAction?: 'fill' | 'none';
   lazyRenderWidget?: boolean;
   actionLabels?: Partial<DashboardWidgetActionLabels>;
   renderWidget: (widget: DashboardWidgetModel<TData>) => ReactNode;
@@ -67,7 +70,9 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   onBeforeTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
   onTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
   onAfterTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
+  /** @deprecated Supply a custom action using resizeWidget. */
   onMaximizeWidget?: (id: string) => void;
+  /** @deprecated Supply a custom action using resizeWidget. */
   onMinimizeWidget?: (id: string) => void;
   onRestoreWidget?: (id: string) => void;
   onRemoveWidget?: (id: string) => void;
@@ -120,8 +125,6 @@ function DashboardGridInner<TData = unknown>(
     onBeforeTitleDoubleClick,
     onTitleDoubleClick,
     onAfterTitleDoubleClick,
-    onMaximizeWidget,
-    onMinimizeWidget,
     onRestoreWidget,
     onRemoveWidget,
     onWidgetHeaderDoubleClick,
@@ -140,6 +143,14 @@ function DashboardGridInner<TData = unknown>(
   const gridElementRef = useRef<HTMLDivElement>(null);
   const connection = useMemo(() => createDashboardGridConnection<TData>(), []);
   const [activeColumns, setActiveColumns] = useState(() => clampDashboardColumnCount(columns));
+  const handleTitleDoubleClick = (event: DashboardWidgetInteractionEvent) => {
+    const snapshot = titleFillSnapshot(widgets, activeColumns, event.id, props);
+    if (snapshot) {
+      snapshot.widgets.forEach(layout => onWidgetLayoutChange?.(layout.id, layout));
+      onLayoutCommit?.(snapshot);
+    }
+    onTitleDoubleClick?.(event);
+  };
   const handleColumnsChange = useCallback((nextColumns: DashboardColumnCount) => {
     setActiveColumns(nextColumns);
     onColumnsChange?.(nextColumns);
@@ -290,10 +301,12 @@ function DashboardGridInner<TData = unknown>(
           data-layout-w={widget.layout.w}
           data-layout-x={widget.layout.x}
           data-layout-y={widget.layout.y}
-          data-maximized={String(widget.maximized ?? false)}
-          data-minimized={String(widget.minimized ?? false)}
           data-testid={`dashboard-widget-${widget.id}`}
           data-widget-id={widget.id}
+          data-title-interactive={editable && !engineOptions?.staticGrid && !widget.locked
+            && ((movable && widget.movable !== false) || (resizable && widget.resizable !== false))}
+          data-maximized={String(widget.maximized ?? false)}
+          data-minimized={String(widget.minimized ?? false)}
           gs-h={String(widget.layout.h)}
           gs-id={widget.id}
           gs-w={String(widget.layout.w)}
@@ -306,18 +319,15 @@ function DashboardGridInner<TData = unknown>(
               widget={widget}
               labels={{
                 maximize: actionLabels?.maximize ?? "최대화",
-                minimize: actionLabels?.minimize ?? "최소화",
-                restore: actionLabels?.restore ?? "복원",
+                minimize: actionLabels?.minimize ?? "최소화",                restore: actionLabels?.restore ?? "복원",
                 remove: actionLabels?.remove ?? "삭제",
               }}
               showControls={showControls}
-              onMaximize={onMaximizeWidget}
-              onMinimize={onMinimizeWidget}
               onRestore={onRestoreWidget}
               onRemove={onRemoveWidget}
               onHeaderDoubleClick={onWidgetHeaderDoubleClick}
               onBeforeTitleDoubleClick={onBeforeTitleDoubleClick}
-              onTitleDoubleClick={onTitleDoubleClick}
+              onTitleDoubleClick={handleTitleDoubleClick}
               onAfterTitleDoubleClick={onAfterTitleDoubleClick}
               renderActions={renderWidgetActions}
             >

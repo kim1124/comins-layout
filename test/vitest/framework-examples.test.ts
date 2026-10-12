@@ -5,8 +5,8 @@ import { playgroundPaths } from "../../example/src/playground/routes";
 import { getLiveExampleUrl } from "../../example/src/docs/live-examples";
 
 describe("framework example catalog", () => {
-  it("covers all 22 canonical routes with real Vue implementations", () => {
-    expect(exampleCatalog).toHaveLength(22);
+  it("covers all 23 canonical routes with real Vue implementations", () => {
+    expect(exampleCatalog).toHaveLength(23);
     expect(exampleCatalog.map(item => item.path).sort()).toEqual([...playgroundPaths].sort());
     expect(Object.keys(vueExamples).sort()).toEqual(exampleCatalog.map(item => item.id).sort());
     for (const entry of Object.values(vueExamples)) {

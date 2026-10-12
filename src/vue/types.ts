@@ -23,6 +23,8 @@ export type DashboardGridProps<TData = unknown> = {
   gridTransferMode?: DashboardWidgetTransferMode;
   refreshKey?: number;
   showControls?: boolean;
+  /** Default title double-click fills the current row's unused columns. */
+  titleDoubleClickAction?: 'fill' | 'none';
   lazyRenderWidget?: boolean;
   actionLabels?: Partial<DashboardWidgetActionLabels>;
 };
@@ -43,7 +45,9 @@ export type DashboardGridEmits<TData = unknown> = {
   beforeTitleDoubleClick: [event: DashboardWidgetInteractionEvent];
   titleDoubleClick: [event: DashboardWidgetInteractionEvent];
   afterTitleDoubleClick: [event: DashboardWidgetInteractionEvent];
+  /** @deprecated Use a custom action calling resizeWidget. */
   maximizeWidget: [id: string];
+  /** @deprecated Use a custom action calling resizeWidget. */
   minimizeWidget: [id: string];
   restoreWidget: [id: string];
   removeWidget: [id: string];
@@ -55,7 +59,9 @@ export type DashboardWidgetShellProps<TData = unknown> = {
   labels?: DashboardWidgetActionLabels;
 };
 export type DashboardWidgetShellEmits = {
+  /** @deprecated Use a custom action calling resizeWidget. */
   maximize: [id: string];
+  /** @deprecated Use a custom action calling resizeWidget. */
   minimize: [id: string];
   restore: [id: string];
   remove: [id: string];

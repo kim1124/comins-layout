@@ -90,6 +90,47 @@ async function readOperation(page: Page): Promise<TransferOperation> {
   return JSON.parse(operation ?? "{}") as TransferOperation;
 }
 
+for (const framework of ['react', 'vue']) {
+  test(`${framework}: toggles directional acceptance for buttons and pointer transfers @firefox-parity`, async ({ page }) => {
+    await page.goto(`/examples/advanced/multi-grid/horizontal/${framework}`);
+    await waitForTransferPlayground(page);
+    const a = gridPanel(page, 'grid-a'), b = gridPanel(page, 'grid-b');
+    const sales = a.getByTestId('dashboard-widget-a-sales');
+    const layouts = () => page.locator('.transfer-grid-state').allTextContents();
+    await page.getByRole('button', { name: 'A → B 전송 허용', exact: true }).click();
+    await expect(page.getByRole('button', { name: 'A → B 전송 차단', exact: true })).toHaveAttribute('aria-pressed', 'true');
+    const before = await layouts();
+    for (const mode of ['move', 'copy']) {
+      if (mode === 'copy') await page.getByRole('button', { name: '이동 모드', exact: true }).click();
+      await sales.getByRole('button', { name: mode === 'move' ? 'Grid B로 이동' : 'Grid B로 복사', exact: true }).click();
+      await expect(page.getByLabel('전송 작업 상태')).toHaveAttribute('data-reason', 'grid-b-blocked');
+      await dragToTarget(page, sales.locator('.comins-grid-layout-widget__title'), b.locator('.grid-stack'));
+      expect(await layouts()).toEqual(before);
+      await expect(page.locator('.comins-grid-layout-copy-source, .comins-grid-layout-copy-drag')).toHaveCount(0);
+    }
+    // The option only blocks A -> B, not palette additions or B -> A.
+    await page.locator('[data-palette-id="palette-kpi"]').getByRole('button', { name: 'Grid B에 추가' }).click();
+    await expect(b.getByTestId('dashboard-widget-palette-kpi-1')).toHaveAttribute('gs-w', '6');
+    await b.getByTestId('dashboard-widget-b-table').getByRole('button', { name: 'Grid A로 복사' }).click();
+    await expect(a.getByTestId('dashboard-widget-b-table')).toBeVisible();
+    await page.getByRole('button', { name: 'A → B 전송 차단', exact: true }).click();
+    await dragToTarget(page, sales.locator('.comins-grid-layout-widget__title'), b.locator('.grid-stack'));
+    await expect(b.getByTestId('dashboard-widget-a-sales')).toBeVisible();
+    await expect(sales).toBeVisible();
+  });
+  test(`${framework}: palette additions use readable widths in both grids @firefox-parity`, async ({ page }) => {
+    await page.goto(`/examples/advanced/multi-grid/horizontal/${framework}`);
+    await waitForTransferPlayground(page);
+    await expect(page.locator('[data-palette-id="palette-restricted"]')).toHaveCount(0);
+    for (const kind of ['kpi', 'chart', 'table']) for (const grid of ['a', 'b'] as const) {
+      await page.locator(`[data-palette-id="palette-${kind}"]`).getByRole('button', { name: `Grid ${grid.toUpperCase()}에 추가` }).click();
+      const widget = gridPanel(page, `grid-${grid}`).getByTestId(`dashboard-widget-palette-${kind}-${grid === 'a' ? 1 : 2}`);
+      await expect(widget).toHaveAttribute('data-layout-w', '6');
+      await expect(widget).toHaveAttribute('gs-w', '6');
+    }
+  });
+}
+
 test.describe("Transfer Playground", () => {
   test("copy preview does not join forms or change checked inputs", async ({ page }) => {
     await openTransferPlayground(page);
@@ -402,16 +443,16 @@ test.describe("Transfer Playground", () => {
     await expect(page.locator(".comins-grid-layout-copy-source, .comins-grid-layout-copy-drag")).toHaveCount(0);
   });
 
-  test("rejects a restricted palette candidate and disposes route-owned drag sources on navigation", async ({ page }) => {
+  test("disposes route-owned drag sources on navigation", async ({ page }) => {
     const diagnostics = collectBrowserDiagnostics(page);
     await openTransferPlayground(page);
 
     await dragToTarget(
       page,
-      page.getByTestId("palette-drag-palette-restricted"),
+      page.getByTestId("palette-drag-palette-kpi"),
       gridPanel(page, "grid-a").locator(".grid-stack"),
     );
-    await expect(gridPanel(page, "grid-a").getByLabel("Grid A 위젯 수")).toHaveText("2개");
+    await expect(gridPanel(page, "grid-a").getByLabel("Grid A 위젯 수")).toHaveText("3개");
     await expect(gridPanel(page, "grid-b").getByLabel("Grid B 위젯 수")).toHaveText("1개");
 
     await page.getByRole("navigation", { name: "예제 메뉴" }).getByRole("link", { name: "레이아웃", exact: true }).click();

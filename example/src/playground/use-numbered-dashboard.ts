@@ -8,10 +8,11 @@ import { createExampleConditions } from "../shared/example-conditions";
 
 export function useNumberedDashboard(
   onLayoutMutation?: (event: DashboardLayoutMutationEvent<ExampleWidgetData>) => void,
+  exampleId = "widget/basic",
 ) {
   const dashboard = useDashboardGrid<ExampleWidgetData>({
-    initialColumns: createExampleConditions("widget/basic").columns,
-    initialWidgets: createExampleConditions("widget/basic").widgets,
+    initialColumns: createExampleConditions(exampleId).columns,
+    initialWidgets: createExampleConditions(exampleId).widgets,
     onLayoutMutation,
   });
   const nextWidgetNumber = useRef(11);

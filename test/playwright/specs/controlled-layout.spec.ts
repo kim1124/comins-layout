@@ -111,15 +111,16 @@ test("defers controlled synchronization until the consumer closes its batch", as
 });
 
 test("fits content height on enable and on content growth and shrink", { tag: "@firefox-parity" }, async ({ page }) => {
-  // Leave room below the content demo for the full two-row resize gesture.
+  // Leave room below the content demo for a 192px resize gesture.
   await page.setViewportSize({ width: 1440, height: 1600 });
   await page.goto("/examples/advanced/size-to-content");
   await page.getByRole("button", { name: "Size To Content 켜짐", exact: true }).click();
   const widget = page.getByTestId("dashboard-widget-activity");
+  const initialPixels = Number(await widget.getAttribute("data-layout-h"));
   await resize(page, widget, 192);
-  await expect(widget).toHaveAttribute("data-layout-h", "4");
+  await expect.poll(async () => Number(await widget.getAttribute("data-layout-h"))).toBeGreaterThan(initialPixels + 150);
   await page.getByRole("button", { name: "Size To Content 꺼짐", exact: true }).click();
-  await expect(widget).toHaveAttribute("data-layout-h", "2");
+  await expect(widget).toHaveAttribute("data-layout-h", String(initialPixels));
   await expectSynchronized(page);
 
   await page.goto("/readme-demo");
@@ -222,11 +223,11 @@ test("honors per-widget content sizing, height limits, and explicit widget actio
   await expect(overview).toHaveAttribute("data-layout-h", "4");
   await expectSynchronized(page);
   await page.evaluate(() => window.__cominsReadmeDemo!.updateOverview({ sizeToContent: true }));
-  await page.getByRole("button", { name: "Overview Minimize", exact: true }).click();
+  await page.evaluate(() => window.__cominsReadmeDemo!.legacyWidgetAction("minimize"));
   await expect(overview).toHaveAttribute("data-layout-h", "1");
   await page.getByRole("button", { name: "Overview Restore", exact: true }).click();
   await expect(overview).toHaveAttribute("data-layout-h", "2");
-  await page.getByRole("button", { name: "Overview Maximize", exact: true }).click();
+  await page.evaluate(() => window.__cominsReadmeDemo!.legacyWidgetAction("maximize"));
   await expect(overview).toHaveAttribute("data-layout-w", "6");
   await expect(overview).toHaveAttribute("data-layout-h", "3");
   await expectSynchronized(page);

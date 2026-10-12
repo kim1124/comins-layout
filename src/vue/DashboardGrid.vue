@@ -18,6 +18,7 @@ import DashboardWidgetShell from "./DashboardWidgetShell.vue";
 import DashboardWidgetContent from "./DashboardWidgetContent.vue";
 import type { DashboardGridProps, DashboardGridEmits } from "./types";
 import { snapshotDashboardGridInputs } from "./input-snapshot";
+import { titleFillSnapshot } from "../core/widget-presentation";
 
 const props = withDefaults(defineProps<DashboardGridProps<TData>>(), {
   columns: 12, editable: true, movable: true, resizable: true,
@@ -30,11 +31,18 @@ const responsiveColumns = shallowRef(clampDashboardColumnCount(props.columns));
 const columns = computed(() => props.responsive ? responsiveColumns.value : clampDashboardColumnCount(props.columns));
 const labels = computed(() => ({
   maximize: props.actionLabels?.maximize ?? DEFAULT_ACTION_LABELS.maximize,
-  minimize: props.actionLabels?.minimize ?? DEFAULT_ACTION_LABELS.minimize,
-  restore: props.actionLabels?.restore ?? DEFAULT_ACTION_LABELS.restore,
+  minimize: props.actionLabels?.minimize ?? DEFAULT_ACTION_LABELS.minimize,  restore: props.actionLabels?.restore ?? DEFAULT_ACTION_LABELS.restore,
   remove: props.actionLabels?.remove ?? DEFAULT_ACTION_LABELS.remove,
 }));
 const connection = createDashboardGridConnection<TData>();
+function handleTitleDoubleClick(event: DashboardWidgetInteractionEvent) {
+  const snapshot = titleFillSnapshot(props.widgets, columns.value, event.id, props);
+  if (snapshot) {
+    snapshot.widgets.forEach(layout => emit('widgetLayoutChange', layout.id, layout));
+    emit('layoutCommit', snapshot);
+  }
+  emit('titleDoubleClick', event);
+}
 const scheduler = createDashboardResizeScheduler(event => emit("widgetResizeFrame", event));
 let active = false;
 const options = computed<DashboardGridAdapterOptions<TData>>(() => {
@@ -104,15 +112,15 @@ defineExpose<DashboardGridHandle>({
     <article v-for="widget in widgets" :key="widget.id" class="grid-stack-item"
       :data-layout-h="widget.layout.h" :data-layout-w="widget.layout.w"
       :data-layout-x="widget.layout.x" :data-layout-y="widget.layout.y"
-      :data-maximized="String(widget.maximized ?? false)" :data-minimized="String(widget.minimized ?? false)"
-      :data-testid="'dashboard-widget-' + widget.id" :data-widget-id="widget.id"
+      :data-testid="'dashboard-widget-' + widget.id" :data-widget-id="widget.id" :data-maximized="String(widget.maximized ?? false)" :data-minimized="String(widget.minimized ?? false)"
+      :data-title-interactive="editable && !engineOptions?.staticGrid && !widget.locked
+        && ((movable && widget.movable !== false) || (resizable && widget.resizable !== false))"
       :gs-h="widget.layout.h" :gs-w="widget.layout.w" :gs-x="widget.layout.x" :gs-y="widget.layout.y" :gs-id="widget.id">
       <div class="grid-stack-item-content">
         <DashboardWidgetShell :widget="widget" :show-controls="showControls" :labels="labels"
-          @maximize="emit('maximizeWidget', $event)" @minimize="emit('minimizeWidget', $event)"
           @restore="emit('restoreWidget', $event)" @remove="emit('removeWidget', $event)"
           @before-title-double-click="emit('beforeTitleDoubleClick', $event)"
-          @title-double-click="emit('titleDoubleClick', $event)"
+          @title-double-click="handleTitleDoubleClick"
           @after-title-double-click="emit('afterTitleDoubleClick', $event)">
           <template v-if="$slots.actions" #actions><slot name="actions" :widget="widget" /></template>
           <DashboardWidgetContent :enabled="lazyRenderWidget && (widget.lazyLoad ?? true)">

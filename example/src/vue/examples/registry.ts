@@ -14,7 +14,7 @@ const layout = { component: loaders["./LayoutExamples.vue"]!, source: layoutSour
 const advanced = { component: loaders["./AdvancedExamples.vue"]!, source: advancedSource };
 const transfer = { component: loaders["./TransferExample.vue"]!, source: transferSource };
 export const vueExamples = {
-  "widget/basic": widget, "widget/manage": widget, "widget/events": widget,
+  "widget/resize": widget, "widget/basic": widget, "widget/manage": widget, "widget/events": widget,
   "layout/basic": layout, "layout/lock": layout, "layout/persistence": layout, "layout/arrange": layout, "layout/events": layout,
   "advanced/cell-height": advanced, "advanced/grid-lines": advanced, "advanced/float": advanced,
   "advanced/mobile-touch": advanced, "advanced/nested/basic": advanced, "advanced/rtl": advanced,

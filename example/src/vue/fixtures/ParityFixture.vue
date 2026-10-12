@@ -42,6 +42,8 @@ function restore() { commands.restoreLayout(JSON.parse(saved.value) as Dashboard
   <main style="font:14px sans-serif">
     <nav style="display:flex;flex-wrap:wrap;gap:4px">
       <button @click="commands.addWidget(widget('new-' + ++sequence, 'New'))">Add widget</button>
+      <button @click="commands.resizeWidget('a', { w: 4, h: 3 })">API size 4×3</button>
+      <button @click="commands.resizeWidget('a', { w: 3, h: 1 })">API size 3×1</button>
       <button @click="commands.updateWidget('a', { data: { value: 200 } })">Update data</button>
       <button @click="commands.clearWidgets">Clear</button><button @click="commands.resetLayout()">Reset</button>
       <button @click="commands.autoArrangeWidgets">Arrange</button><button @click="commands.fitWidgetsToColumns">Fill</button>
@@ -72,9 +74,7 @@ function restore() { commands.restoreLayout(JSON.parse(saved.value) as Dashboard
           :editable="editable" :movable="movable" :resizable="resizable" grid-id="source" :grid-transfer-mode="transferMode"
           :external-drop-targets="transfer ? [{ id: 'trash', selector: '#parity-trash' }] : undefined"
           @widget-external-drop="commands.removeWidget($event.widgetId)" @widget-drop-request="applyDrop"
-          @columns-change="commands.setColumns" @layout-commit="snapshot => { commands.applyLayoutSnapshot(snapshot); log('layoutCommit'); }"
-          @maximize-widget="commands.maximizeWidget" @minimize-widget="commands.minimizeWidget" @restore-widget="commands.restoreWidget" @remove-widget="commands.removeWidget"
-          @title-double-click="commands.fitWidgetToColumns($event.id)"
+          @columns-change="commands.setColumns" @layout-commit="snapshot => { commands.applyLayoutSnapshot(snapshot); log('layoutCommit'); }" @restore-widget="commands.restoreWidget" @remove-widget="commands.removeWidget"
           @before-move="log('beforeMove')" @move="log('move')" @after-move="log('afterMove')"
           @before-resize="log('beforeResize')" @resize="log('resize')" @after-resize="log('afterResize')">
           <template #default="{ widget: item }">

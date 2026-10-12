@@ -23,7 +23,7 @@ export const liveExamples = {
   rtl: { label: "RTL", path: "/examples/advanced/rtl", instruction: "RTL 설정에 따른 가로 좌표 방향을 비교합니다." },
   title: { label: "제목 드래그 핸들", path: "/examples/advanced/title-drag", instruction: "제목과 본문에서 각각 드래그하여 드래그 시작 영역을 비교합니다." },
   touch: { label: "모바일 터치", path: "/examples/advanced/mobile-touch", instruction: "터치 입력 환경에서 리사이즈 핸들과 드래그 동작을 확인합니다." },
-  actions: { label: "최대화 / 최소화 / 복원", path: "/examples/widget/basic", instruction: "대상 위젯을 선택하고 최대화·최소화·복원 버튼으로 레이아웃 변화를 확인합니다." },
+  actions: { label: "동적 위젯 크기", path: "/examples/widget/resize", instruction: "대상 위젯의 W/H를 직접 입력하고 적용 크기와 크기 복원을 확인합니다." },
   publicApi: { label: "공개 핸들러 / 메서드", path: "/examples/advanced/public-api", instruction: "상태 조회와 정렬 후 커밋을 실행합니다. 타입·어댑터 유틸리티는 아래 적용 코드도 함께 참고하세요." },
   transfer: { label: "그리드 간 이동 / 복사", path: "/examples/advanced/multi-grid/horizontal", instruction: "팔레트의 위젯을 추가하거나 A/B 그리드 사이로 옮기고 이동·복사 결과를 비교합니다." },
   trash: { label: "외부 드롭 / 삭제", path: "/examples/advanced/external-drop-trash", instruction: "위젯을 휴지통 영역으로 끌어 놓고 외부 드롭 처리 결과를 확인합니다." },
@@ -38,7 +38,7 @@ const sectionExamples: Record<string, readonly LiveExampleId[]> = {
   "api-layout-save-restore": ["persistence", "mutations"],
   "api-column-arrange": ["columns", "arrange"],
   "api-interaction-lock": ["lock", "basic"],
-  "api-maximize-minimize-restore": ["actions", "events"],
+  "api-widget-resize": ["actions", "events"],
   "api-resize-adapter": ["publicApi", "cell"],
   "api-transfer-lazy": ["transfer", "trash", "lazy"],
 };

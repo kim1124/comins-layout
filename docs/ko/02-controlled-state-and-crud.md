@@ -38,7 +38,7 @@ export function EditableDashboard() {
 - `addWidget`, `insertWidgetAt`: 기본 좌표 또는 drop 좌표에 위젯을 추가합니다.
 - `updateWidget`, `updateWidgetLayout`: 전체 모델 또는 좌표만 갱신합니다.
 - `removeWidget`, `clearWidgets`: 한 위젯 또는 전체 위젯을 제거합니다.
-- `maximizeWidget`, `minimizeWidget`, `restoreWidget`: 복원 좌표를 유지하면서 표시 상태를 변경합니다.
+- `resizeWidget(id, { w, h })`: 제약 안에서 크기를 변경합니다. `restoreWidget`은 최초 크기 변경 전 저장 좌표를 복원합니다. `maximizeWidget`, `minimizeWidget`은 deprecated 호환 API로 유지합니다.
 - `applyLayoutSnapshot`: GridStack이 확정한 좌표를 React 상태에 반영합니다.
 - `refreshLayout`: `refreshVersion`을 올려 component의 refresh를 요청합니다.
 

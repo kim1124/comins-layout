@@ -24,7 +24,7 @@ Layout event는 좌표 동기화, lifecycle event는 조작 관찰, resize frame
 
 이동은 `onBeforeMove` → `onMove` → `onAfterMove`, 크기 변경은 `onBeforeResize` → `onResize` → `onAfterResize` 순서로 관찰합니다. 진행 중 이벤트는 animation frame 단위로 합쳐집니다. Before callback으로 조작을 취소할 수는 없습니다. After는 필요한 layout callback을 호출한 뒤 실행되며 React의 화면 갱신이나 소비자 비동기 작업 완료를 기다린다는 의미가 아닙니다.
 
-제목 더블클릭은 `onBeforeTitleDoubleClick` → `onTitleDoubleClick` → `onAfterTitleDoubleClick` 순서입니다. 세 이벤트는 동일한 조작 전 layout을 전달합니다. 최대화 등 실제 동작은 소비자가 callback에 연결합니다.
+제목 더블클릭은 `onBeforeTitleDoubleClick` → `onTitleDoubleClick` → `onAfterTitleDoubleClick` 순서입니다. 세 이벤트는 동일한 조작 전 layout을 전달합니다. DashboardGrid는 기본적으로 같은 시작 행의 빈 컬럼을 채우고 onLayoutCommit으로 결과를 전달합니다. 커스텀 동작은 titleDoubleClickAction="none"으로 기본 동작을 끄고 연결합니다.
 
 Hook 옵션인 `onLayoutMutation`은 React commit 후 command에 의한 상태 변경을 관찰하며 mutation kind, 영향 ID, columns, 전체 상태 snapshot을 제공합니다. `DashboardGrid` prop이나 포인터 조작 이벤트가 아닙니다. 좌표가 그대로여도 위젯 잠금·이동 허용 같은 속성 변경은 `widget:update`로 기록됩니다. kind는 `widget:add`, `widget:update`, `widget:remove`, `widgets:clear`, `layout:commit`, `layout:reset`, `layout:restore`, `layout:arrange`, `layout:fill`, `columns:change`입니다.
 
