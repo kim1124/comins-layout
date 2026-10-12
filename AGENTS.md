@@ -18,6 +18,8 @@
 
 ## Module Guidance
 
+- Path guidance is under `src/core`, `src/components`, `src/gridstack`,
+  `example`, and `test`; read only the instructions applicable to changed paths.
 - This repository owns `comins-grid-layout`: root/`/react` compatibility, pure public `/core`, Vue 3.5+ CSR `/vue`, and shared `styles.css`. Vanilla/Svelte renderers are future extensions, not shipped support.
 - Support widget CRUD, move, resize, maximize/minimize, arrange, reset, serialization, runtime columns `1`–`12`, interaction toggles, and scheduled content resize signals.
 - Keep React/React DOM/Vue as optional peer dependencies; each renderer must work without the opposite framework installed. Exclude Next.js/Nuxt-only APIs, isolate GridStack in the package adapter, and preserve serializable state and widget IDs. Core has no DOM/framework/engine imports; Browser owns shared lifecycle without renderer imports.
