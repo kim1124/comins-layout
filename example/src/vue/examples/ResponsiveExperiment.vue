@@ -8,6 +8,8 @@ import NumberedActions from './NumberedActions.vue';
 const props = defineProps<{ locale: 'ko' | 'en'; mode: 'columnWidth' | 'breakpoints'; policy: 'moveScale' | 'none'; width: number; enabled: boolean }>();
 const text = (ko: string, en: string) => props.locale === 'ko' ? ko : en;
 const initial = createExampleConditions('advanced/responsive');
+// Width measurements must not resubmit controlled layouts during a resize.
+const engineOptions = { cellHeight: initial.cellHeight, animate: false };
 const { widgets, columns, commands } = useDashboardGrid({ initialColumns: initial.columns, initialWidgets: initial.widgets });
 const responsive = computed<DashboardResponsiveOptions>(() => ({ ...(props.mode === "columnWidth" ? { columnWidth: 180, columnMax: 12 } : { breakpoints: [{ maxWidth: 640, columns: 2 as const }, { maxWidth: 960, columns: 6 as const }], columnMax: 12 }), layout: props.policy }));
 const container = ref<HTMLDivElement | null>(null), actualWidth = ref(0);
@@ -33,7 +35,7 @@ onBeforeUnmount(() => { cancelAnimationFrame(frame); observer?.disconnect(); });
       <span>{{ text('현재 컬럼', 'Current columns') }}: <output>{{ columns }}</output></span>
     </div>
 <div style="overflow:hidden" :aria-busy="!ready"><div ref="container" class="responsive-demo-container" :style="{ width: (ready ? Math.max(280, Math.min(1440, width)) : 2160) + 'px', maxWidth: ready ? '100%' : undefined, visibility: ready ? 'visible' : 'hidden' }">
-    <DashboardGrid ref="grid"  :widgets="widgets" :columns="columns" :responsive="enabled ? responsive : undefined" :engine-options="{ cellHeight: initial.cellHeight, animate: false }" class="playground-grid--numbered"
+    <DashboardGrid ref="grid"  :widgets="widgets" :columns="columns" :responsive="enabled ? responsive : undefined" :engine-options="engineOptions" class="playground-grid--numbered"
       @layout-commit="commands.applyLayoutSnapshot" @columns-change="commands.setColumns"
       @remove-widget="commands.removeWidget" @maximize-widget="commands.maximizeWidget" @minimize-widget="commands.minimizeWidget" @restore-widget="commands.restoreWidget">
       <template #actions="{ widget }"><NumberedActions :widget="widget" :commands="commands" :locale="locale" /></template>

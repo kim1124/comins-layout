@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { exampleCatalog } from '../../../example/src/shared/example-catalog';
 
 async function presentation(page: Page) {
+  await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => Promise.all(document.getAnimations().filter(animation => animation.effect?.getTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {}))));
   return page.locator('#framework-panel').evaluate(panel => {
     const visible = (element: Element) => element.getBoundingClientRect().height > 0;
@@ -152,3 +153,29 @@ for (const example of exampleCatalog) {
     expect(snapshots[1]).toEqual(snapshots[0]);
   });
 }
+
+// A cold React navigation may render before web fonts arrive, while the later
+// Vue navigation uses the font cache. Compare final font metrics on both sides.
+test('presentation waits for pending web fonts', async ({ page }) => {
+  let releaseFonts!: () => void;
+  const fontsReleased = new Promise<void>(resolve => { releaseFonts = resolve; });
+  await page.route('**/fonts/**/*.woff2', async route => {
+    await fontsReleased;
+    await route.continue();
+  });
+  let releaseTimer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await page.goto('/examples/advanced/cell-height/react?locale=en');
+    await expect(page.locator('#framework-panel .grid-stack')).toBeVisible();
+    expect(await page.evaluate(() => document.fonts.status)).toBe('loading');
+    // Deliberately hold the font response past the ordinary animation/RAF wait.
+    releaseTimer = setTimeout(releaseFonts, 1500);
+    await presentation(page);
+    expect(await page.evaluate(() => document.fonts.status)).toBe('loaded');
+  } finally {
+    if (releaseTimer) clearTimeout(releaseTimer);
+    releaseFonts();
+    await page.unrouteAll({ behavior: 'wait' });
+  }
+});
