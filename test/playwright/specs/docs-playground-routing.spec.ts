@@ -41,7 +41,7 @@ async function expectPlaygroundShell(
   await expect(page.getByRole("searchbox", { name: "문서 및 예제 검색" })).toBeVisible();
   await expect(page.locator(".docs-sidebar")).toBeVisible();
   await expect(page.locator(".playground-sidebar__submenu")).toHaveCount(3);
-  await expect(page.locator(".playground-sidebar__submenu-link")).toHaveCount(22);
+  await expect(page.locator(".playground-sidebar__submenu-link")).toHaveCount(23);
   await expect(page.locator(".playground-nav")).toHaveCount(0);
   await expect(page.locator(".grid-stack")).toHaveCount(expectedGridCount);
 
@@ -184,7 +184,7 @@ test.describe("gridstack docs playground routing", () => {
     await expect(page.getByRole("heading", { name: "3. Layout 저장 / 복원" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "4. Column / 정렬" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "5. 이동 / 리사이즈 / 잠금" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "6. Maximize / Minimize / Restore" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "6. Widget Resize / Restore" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "7. Resize frame / Adapter utility" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "8. Palette / Grid Transfer / Lazy Content" })).toBeVisible();
     await expect(page.locator(".docs-reference-list__group")).toHaveCount(8);

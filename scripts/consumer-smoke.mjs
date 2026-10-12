@@ -49,6 +49,11 @@ async function browserCheck(root) {
     await expect(widget).toBeVisible();
     await expect(page.locator("[data-value]")).toHaveText("42");
     await expect.poll(() => widget.evaluate(element => Boolean(element.gridstackNode))).toBe(true);
+    await page.getByRole("button", { name: "Resize One", exact: true }).click();
+    await expect(widget).toHaveAttribute("data-layout-w", "8");
+    await expect(widget).toHaveAttribute("data-layout-h", "4");
+    await page.getByRole("button", { name: "One 복원", exact: true }).click();
+    await expect(widget).toHaveAttribute("data-layout-w", "6");
     await page.getByRole("button", { name: "One 최대화", exact: true }).click();
     await expect(widget).toHaveAttribute("data-maximized", "true");
     await expect(widget).toHaveAttribute("data-layout-w", "12");
@@ -119,7 +124,7 @@ try {
     }
     const exactVersions = {};
     for (const name of ["comins-grid-layout", "gridstack", "typescript", ...consumer.packages.map(value => value.slice(0, value.lastIndexOf("@")))]) exactVersions[name] = await installed(root, name);
-    report.consumers.push({ name: consumer.name, versions: exactVersions, graphs, types: "pass", negativeTypes: consumer.framework === "vue" ? "pass" : "not-applicable", build: consumer.framework === "core" ? "TypeScript" : "Vite production", runtime: consumer.framework === "core" ? "isolated Node" : "Chromium mount/maximize/restore/minimize/remove", status: "pass" });
+    report.consumers.push({ name: consumer.name, versions: exactVersions, graphs, types: "pass", negativeTypes: consumer.framework === "vue" ? "pass" : "not-applicable", build: consumer.framework === "core" ? "TypeScript" : "Vite production", runtime: consumer.framework === "core" ? "isolated Node" : "Chromium mount/resize/legacy-maximize/restore/legacy-minimize/remove", status: "pass" });
     console.log("Consumer passed:", consumer.name, JSON.stringify(exactVersions));
   }
 } finally {

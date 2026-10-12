@@ -1048,6 +1048,9 @@ test("preserves independent controlled caches when columns change during a resiz
   // Exercise a low initial viewport position before the resize helper makes
   // room for the gesture; leaving the browser would correctly end resizing.
   await sales.evaluate((element) => element.scrollIntoView({ block: "end", behavior: "instant" }));
+  // Keep headroom for the full resize path even when the browser scrolls the
+  // newly restored item into view while its column transition settles.
+  await page.setViewportSize({ width: 1280, height: 1000 });
   const { startX, startY } = await startWidgetResize(page, sales);
   const viewport = page.viewportSize();
   if (!viewport) throw new Error("Resize viewport is unavailable");

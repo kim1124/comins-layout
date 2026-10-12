@@ -2,6 +2,8 @@
 
 ## 0.3.0
 
+- Reset stale resize-hover ownership during controlled column transitions so subsequent widgets retain working resize handles.
+
 - Update development tooling and pinned GitHub Actions, including source-map-js 1.2.2 to address the development dependency advisory. Runtime GridStack and framework peer ranges remain unchanged.
 
 - Replace the always-rejected Playground palette item with an A → B transfer acceptance toggle shared by drag and button flows in React/Vue. Widen new palette widgets to 6×2 cells.

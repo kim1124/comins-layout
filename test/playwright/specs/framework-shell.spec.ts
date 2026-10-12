@@ -74,13 +74,25 @@ test('all 23 examples start with matching engine geometry and primary settings',
     return grid && { columns: grid.getColumn(), cellHeight: grid.getCellHeight(), float: grid.getFloat(),
       widgets: grid.engine.nodes.map(node => ({ id: node.id, x: node.x, y: node.y, w: node.w, h: node.h })).sort((a,b) => String(a.id).localeCompare(String(b.id))) };
   }));
+  const waitForResponsiveColumns = async (id: string) => {
+    if (id !== 'advanced/responsive') return;
+    const container = page.locator('.responsive-demo-container');
+    await expect(container.locator('..')).toHaveAttribute('aria-busy', 'false');
+    await expect.poll(async () => {
+      const box = await container.boundingBox();
+      const grids = await read();
+      return box && grids[0]?.columns === Math.max(1, Math.min(12, Math.round(box.width / 180)));
+    }).toBe(true);
+  };
   for (const example of exampleCatalog) {
     await page.goto(`${example.path}/react`);
     await expect.poll(read).not.toContain(undefined);
     await expect(page.locator('.grid-stack').first()).toBeVisible();
+    await waitForResponsiveColumns(example.id);
     const react = await read();
     await page.goto(`${example.path}/vue`);
     await expect(page.locator('.grid-stack').first()).toBeVisible();
+    await waitForResponsiveColumns(example.id);
     await expect.poll(read, { message: example.id }).toEqual(react);
   }
 });
