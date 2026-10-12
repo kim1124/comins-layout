@@ -75,12 +75,16 @@ async function exercise(page: Page, id: string) {
   const first = page.locator('[data-widget-id="widget-1"]').first();
   switch (id) {
     case 'widget/basic':
-      await page.getByRole('combobox', { name: '대상 위젯', exact: true }).selectOption('widget-2');
-      await button('선택 위젯 최대화').click();
-      await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-maximized', 'true');
-      await button('선택 위젯 복원').click();
       await button('Title 2 삭제').click();
-      await expect(page.getByRole('combobox', { name: '대상 위젯', exact: true })).toHaveValue('widget-1');
+      await expect(page.locator('[data-widget-id="widget-2"]')).toHaveCount(0);
+      break;
+    case 'widget/resize':
+      await page.getByRole('combobox', { name: '대상 위젯', exact: true }).selectOption('widget-2');
+      await page.getByRole('spinbutton', { name: 'W', exact: true }).fill('5');
+      await page.getByRole('spinbutton', { name: 'H', exact: true }).fill('4');
+      await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-layout-w', '5');
+      await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-layout-h', '4');
+      await button('크기 복원').click();
       break;
     case 'widget/manage':
       await button('추가').click(); await button('전체 삭제').click(); await button('초기화').click(); await button('추가').click();

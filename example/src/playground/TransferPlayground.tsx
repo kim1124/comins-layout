@@ -63,6 +63,7 @@ export function TransferPlayground() {
   });
   const [orientation, setOrientation] = useState<"horizontal" | "vertical">("horizontal");
   const [transferMode, setTransferMode] = useState<DashboardWidgetTransferMode>("move");
+  const [blockGridB, setBlockGridB] = useState(false);
   const [operation, setOperation] = useState<TransferOperation>(INITIAL_OPERATION);
   const paletteSequence = useRef<Record<string, number>>({});
   const buttonOperationSequence = useRef(0);
@@ -85,31 +86,23 @@ export function TransferPlayground() {
     {
       id: "palette-kpi",
       label: "KPI",
-      description: text("2×2 핵심 지표", "2×2 key metric"),
-      previewLayout: { w: 2, h: 2 },
-      createWidget: () => createPaletteWidget("palette-kpi", "신규 KPI", "kpi", { w: 2, h: 2 }),
+      description: text("6×2 핵심 지표", "6×2 key metric"),
+      previewLayout: { w: 6, h: 2 },
+      createWidget: () => createPaletteWidget("palette-kpi", "신규 KPI", "kpi", { w: 6, h: 2 }),
     },
     {
       id: "palette-chart",
       label: text("차트", "Chart"),
-      description: text("4×2 추세 시각화", "4×2 trend visualization"),
-      previewLayout: { w: 4, h: 2 },
-      createWidget: () => createPaletteWidget("palette-chart", "신규 차트", "chart", { w: 4, h: 2 }),
+      description: text("6×2 추세 시각화", "6×2 trend visualization"),
+      previewLayout: { w: 6, h: 2 },
+      createWidget: () => createPaletteWidget("palette-chart", "신규 차트", "chart", { w: 6, h: 2 }),
     },
     {
       id: "palette-table",
       label: text("표", "Table"),
-      description: text("4×2 데이터 목록", "4×2 data list"),
-      previewLayout: { w: 4, h: 2 },
-      createWidget: () => createPaletteWidget("palette-table", "신규 표", "table", { w: 4, h: 2 }),
-    },
-    {
-      id: "palette-restricted",
-      label: text("제한 위젯", "Restricted widget"),
-      description: text("predicate 거부 확인", "Verify predicate rejection"),
-      previewLayout: { w: 2, h: 2 },
-      restricted: true,
-      createWidget: () => createPaletteWidget("palette-restricted", "제한 위젯", "restricted", { w: 2, h: 2 }),
+      description: text("6×2 데이터 목록", "6×2 data list"),
+      previewLayout: { w: 6, h: 2 },
+      createWidget: () => createPaletteWidget("palette-table", "신규 표", "table", { w: 6, h: 2 }),
     },
   ];
 
@@ -128,10 +121,15 @@ export function TransferPlayground() {
   };
 
   const acceptCandidate = (candidate: DashboardWidgetDropCandidate<ExampleWidgetData>) => {
-    return candidate.widget.data?.kind !== "restricted";
+    return !(blockGridB && candidate.source.kind === "grid"
+      && candidate.source.gridId === "grid-a" && candidate.targetGridId === "grid-b");
   };
 
   const applyAcceptedRequest = (request: DashboardWidgetDropRequest<ExampleWidgetData>) => {
+    if (!acceptCandidate(request)) {
+      updateRejectedOperation(request, "grid-b-blocked");
+      return;
+    }
     const target = runtimeFor(request.targetGridId as GridId);
     if (request.source.kind === "palette") {
       const insertion = insertDashboardWidgetAtLayout(
@@ -225,6 +223,14 @@ export function TransferPlayground() {
     if (!widget) {
       return;
     }
+    const candidate: DashboardWidgetDropCandidate<ExampleWidgetData> = {
+      source: { kind: "grid", gridId: sourceGridId, widgetId },
+      targetGridId, widget, mode: transferMode,
+    };
+    if (!acceptCandidate(candidate)) {
+      updateRejectedOperation(candidate, "grid-b-blocked");
+      return;
+    }
     const targetLayout = createButtonTargetLayout(widget, target.state);
     const targetSnapshot = {
       columns: target.columns,
@@ -274,7 +280,9 @@ export function TransferPlayground() {
     : operation.status === "cleared"
       ? text("삭제 완료 · Grid A/B", "Cleared · Grid A/B")
       : operation.status === "rejected"
-        ? text(`거부 · ${operation.reason ?? "unknown"}`, `Rejected · ${operation.reason ?? "unknown"}`)
+        ? operation.reason === "grid-b-blocked"
+          ? text("차단됨 · A → B 전송", "Blocked · A → B transfer")
+          : text(`거부 · ${operation.reason ?? "unknown"}`, `Rejected · ${operation.reason ?? "unknown"}`)
         : text(
             `완료 · ${operation.widgetId ?? "-"} → ${operation.target ?? "-"}`,
             `Completed · ${operation.widgetId ?? "-"} → ${operation.target ?? "-"}`,
@@ -300,7 +308,7 @@ export function TransferPlayground() {
           text("복사 모드에서는 원래 위치에 원본 모양을 남기고 + 윤곽선만 움직입니다. 대상 Grid의 배치 예정 영역에 놓으면 복사됩니다. 같은 Grid 안에 놓으면 기존처럼 위치만 바뀌며 복제되지 않습니다.", "Copy mode leaves a visual of the source in place and moves only a + outline. Drop on the target grid's placement preview to copy. Dropping within the same grid still moves the widget; it does not duplicate it."),
           text("팔레트 항목은 복사 방식으로 새 위젯을 만듭니다. acceptExternalWidgets가 허용한 요청을 onWidgetDropRequest에서 받아 앱의 React 상태를 갱신해야 추가됩니다. 요청만 받고 상태를 갱신하지 않으면 추가되지 않습니다.", "Palette items create widgets by copying. After acceptExternalWidgets accepts a candidate, handle onWidgetDropRequest and update the app's React state to add it. Receiving the request alone does not add a widget."),
           text("Grid 간 이동은 원본을 제거하고 복사는 원본을 유지합니다. 복사도 위젯 ID를 유지하므로 대상에 같은 ID가 있으면 거부됩니다. locked·이동 불가·최소화·최대화 위젯도 전송할 수 없습니다.", "Moving between grids removes the source widget; copying keeps it. Copies retain the widget ID, so an existing target ID causes rejection. Locked, non-movable, minimized, and maximized widgets cannot transfer."),
-          text("서로 다른 컬럼 수에서도 포인터로 잡은 지점을 대상 셀 크기로 환산합니다. 제한 위젯은 허용 조건에서 거부됩니다. 적용되지 않은 전송은 양쪽 위젯 목록을 유지합니다.", "The grab point is mapped into target cells even when column counts differ. The restricted widget is rejected by the acceptance rule. Unapplied transfers preserve both widget lists."),
+          text("A → B 전송 허용/차단을 전환하여 같은 위젯의 이동·복사를 비교합니다. 차단은 드래그와 전송 버튼에 동일하게 적용하며 양쪽 목록을 유지합니다. B → A와 팔레트 추가는 허용합니다. 신규 팔레트 위젯은 6×2로, Grid A에서는 전체 너비, Grid B에서는 절반 너비로 추가됩니다.", "Toggle A → B transfer acceptance to compare moving and copying the same widget. Blocking applies equally to dragging and transfer buttons, preserving both lists. B → A and palette additions remain allowed. New palette widgets use 6×2 cells: full width in Grid A and half width in Grid B."),
           text(orientation === "horizontal" ? "두 Grid를 가로로 배치해 좌우 전송 동선을 확인합니다." : "두 Grid를 세로로 배치해 상하 전송 동선을 확인합니다.", orientation === "horizontal" ? "Places both grids horizontally to inspect left-right transfer flow." : "Places both grids vertically to inspect top-bottom transfer flow."),
           text("전송 버튼은 같은 transferDashboardWidget 함수를 사용하는 키보드 조작 대안입니다. 드래그는 놓은 위치를 사용하고, 버튼은 대상 Grid의 마지막 행 아래에 배치합니다.", "Transfer buttons provide a keyboard alternative using the same transferDashboardWidget helper. Dragging uses the drop location; buttons place the widget below the target grid's last row."),
         ]}
@@ -359,6 +367,12 @@ export function TransferPlayground() {
             <span>{operationStatusText}</span>
           </p>
         </section>
+        <div className="transfer-acceptance">
+          <button type="button" {...toggleStateProps(blockGridB)} onClick={() => setBlockGridB(value => !value)}>
+            {blockGridB ? text("A → B 전송 차단", "A → B transfer blocked") : text("A → B 전송 허용", "A → B transfer allowed")}
+          </button>
+          <p>{text("A → B 이동·복사에 적용합니다. B → A와 팔레트 추가는 허용합니다.", "Applies to A → B moves and copies. B → A and palette additions remain allowed.")}</p>
+        </div>
         <WidgetPalette definitions={paletteDefinitions} onAdd={addPaletteWidget} />
       </PlaygroundStage>
 

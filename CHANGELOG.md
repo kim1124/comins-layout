@@ -2,7 +2,20 @@
 
 ## 0.3.0
 
-Minor release: adds framework-independent Core and Vue 3 CSR support while preserving root React imports, deprecated aliases, layout/state serialization, CSS, and React peer ranges. No existing React consumer migration is required. The previously announced 0.3.0 alias and native lazyLoad removals are deferred to a future version. Vue consumers install Vue >=3.5.0 <4.0.0 and import the shared CSS; Nuxt/SSR, Vanilla/Svelte renderers and mixed-framework transfer remain unsupported.
+- Reset stale resize-hover ownership during controlled column transitions so subsequent widgets retain working resize handles.
+
+- Update development tooling and pinned GitHub Actions, including source-map-js 1.2.2 to address the development dependency advisory. Runtime GridStack and framework peer ranges remain unchanged.
+
+- Replace the always-rejected Playground palette item with an A → B transfer acceptance toggle shared by drag and button flows in React/Vue. Widen new palette widgets to 6×2 cells.
+- Use a 1px cell height in the React/Vue Size To Content example so additions and removals follow actual content height, including wrapped text. Keep the package's default cell height unchanged.
+- Add spacing below Basic framework tabs, allow Dynamic Widget Size to fill the current column count, and show grab cursors only on interactive widget titles.
+
+- Add constraint-aware `resizeWidget` / `resizeDashboardWidget` and a matching React/Vue Dynamic Widget Size example. Restore retains the first pre-resize geometry.
+- Keep maximize/minimize APIs as deprecated compatibility commands with their original behavior; remove their default buttons and recommend explicit W/H sizing.
+- Enable title double-click row filling by default in React/Vue, with lock guards and `titleDoubleClickAction="none"` for notification-only/custom consumers. This intentionally changes the former notification-only default.
+- Clarify Playground lock modes, restore semantics, and content height rounding in the bilingual guides.
+
+Minor release: adds framework-independent Core and Vue 3 CSR support while preserving root React imports, deprecated aliases, layout/state serialization, CSS, and React peer ranges. Existing React imports and legacy commands remain available. Consumers relying on default maximize/minimize buttons must provide custom controls, and notification-only title handlers should set `titleDoubleClickAction="none"`. The previously announced 0.3.0 alias and native lazyLoad removals are deferred to a future version. Vue consumers install Vue >=3.5.0 <4.0.0 and import the shared CSS; Nuxt/SSR, Vanilla/Svelte renderers and mixed-framework transfer remain unsupported.
 
 - Adopt Governance Contract v1.10 and managed Sol 6.1 defaults.
 - Keep the Playground as a developer-run local example; reduce narrow-screen menus to a labeled selector, restore page scrolling, and wrap widget titles/actions within their headers.
@@ -12,11 +25,11 @@ Minor release: adds framework-independent Core and Vue 3 CSR support while prese
 - Use matching bidirectional resize/move SVG icons in React/Vue widget controls and add an inset select chevron while preserving native selection and forced-colors fallback.
 
 - Restore controlled source geometry when a Grid rejects a duplicate or restricted drag; wait for drag completion in the React/Vue regression checks so early assertions cannot hide a later commit.
-- Add a public framework-independent `/core` entry and explicit `/react` entry; preserve existing root React imports and behavior.
+- Add a public framework-independent `/core` entry and explicit `/react` entry; preserve existing root React imports and legacy state commands.
 - Add Vue `>=3.5.0 <4.0.0` Composables, generic SFC slots/events, shared browser lifecycle, KeepAlive cleanup, and matching controlled GridStack features. Browser CSR only; no Vanilla/Svelte renderer or Nuxt/SSR support claim.
 - Make framework peers optional, keep renderer dependency graphs isolated, and share copied icon data with complete upstream license notices.
-- Match all 22 React/Vue examples in control order, icons, layout, interaction results, and bilingual framework-specific guidance; preserve native Vue rendering and local-only operation.
-- Add 22 Vue Playground scenarios, API example framework selection, and matching English/Korean Core/Vue guidance. Existing README GIFs remain React recordings.
+- Match all 23 React/Vue examples in control order, icons, layout, interaction results, and bilingual framework-specific guidance; preserve native Vue rendering and local-only operation.
+- Add 23 Vue Playground scenarios, API example framework selection, and matching English/Korean Core/Vue guidance. Existing README GIFs remain React recordings.
 
 ## 0.2.3
 

@@ -21,6 +21,7 @@ export const playgroundMenus: ReadonlyArray<PlaygroundMenu> = [
     submenus: [
       { label: { en: "Basic", ko: "Basic" }, path: "/examples/widget/basic" },
       { label: { en: "Add / Delete All / Reset", ko: "추가 / 전체 삭제 / 초기화" }, path: "/examples/widget/manage" },
+      { label: { en: "Dynamic Widget Size", ko: "동적 위젯 크기" }, path: "/examples/widget/resize" },
       { label: { en: "Events", ko: "이벤트" }, path: "/examples/widget/events" },
     ],
   },

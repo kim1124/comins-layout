@@ -45,7 +45,7 @@ Reuse one ID for both `widget.id` and `widget.layout.id`. Duplicate IDs and inva
 - `insertWidgetAt` inserts a palette or transferred widget against the target layout and target snapshot.
 - `updateWidget` patches metadata, data, flags, or layout; `updateWidgetLayout` patches geometry only.
 - `removeWidget` removes one identity; `clearWidgets` removes every widget.
-- `maximizeWidget`, `minimizeWidget`, and `restoreWidget` update display state while retaining restore geometry.
+- `resizeWidget(id, { w, h })` sets explicit dimensions within constraints; `restoreWidget` restores the first saved pre-resize geometry. `maximizeWidget` and `minimizeWidget` remain deprecated compatibility commands.
 - `applyLayoutSnapshot` writes a completed GridStack layout back to React state.
 - `refreshLayout` increments the hook's `refreshVersion` for the component `refreshKey`.
 - `resetLayout`, `restoreLayout`, `serializeLayout`, and `serializeState` are covered in [Persistence](./05-persistence.md).

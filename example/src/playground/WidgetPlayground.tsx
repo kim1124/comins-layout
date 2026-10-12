@@ -141,6 +141,8 @@ export function WidgetPlayground() {
           onSelectedWidgetIdChange={selectWidget}
         />
         <fieldset className="example-actions example-interaction-actions" disabled={!selectedWidget} aria-label="widget interaction actions">
+          <button type="button" onClick={() => dashboard.commands.resizeWidget("sales", { w: 4, h: 3 })}>API 크기 4×3</button>
+          <button type="button" onClick={() => dashboard.commands.resizeWidget("sales", { w: 2, h: 1 })}>API 크기 2×1</button>
           <button className="example-toggle-button" disabled={!selectedWidget || fullyLocked} type="button" onClick={toggleMoveLock} {...toggleStateProps(moveLocked)}>
             <Move aria-hidden="true" size={14} />
             이동 잠금

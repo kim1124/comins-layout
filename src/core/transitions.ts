@@ -7,6 +7,7 @@ import {
   fitDashboardWidgetToColumns,
   fitDashboardWidgetsToColumns,
   insertDashboardWidgetAtLayout,
+  resizeDashboardWidget,
   maximizeDashboardWidget,
   minimizeDashboardWidget,
   removeDashboardWidget,
@@ -41,6 +42,7 @@ export type DashboardGridAction<TData> =
   | { type: "clear" }
   | { type: "maximize"; id: DashboardWidgetId }
   | { type: "minimize"; id: DashboardWidgetId }
+  | { type: "resize"; id: DashboardWidgetId; size: Pick<DashboardWidgetLayout, "w" | "h"> }
   | { type: "restore"; id: DashboardWidgetId }
   | { type: "arrange" }
   | { type: "columns"; columns: number }
@@ -138,6 +140,8 @@ function dashboardGridReducer<TData>(
       return maximizeDashboardWidget(state, action.id);
     case "minimize":
       return minimizeDashboardWidget(state, action.id);
+    case "resize":
+      return resizeDashboardWidget(state, action.id, action.size);
     case "restore":
       return restoreDashboardWidget(state, action.id);
     case "arrange":

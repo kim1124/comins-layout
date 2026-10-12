@@ -227,6 +227,7 @@ export function clearDashboardWidgets<TData>(state: DashboardLayoutState<TData>)
   };
 }
 
+/** @deprecated Use resizeDashboardWidget(state, id, { w, h }) for explicit dimensions. */
 export function maximizeDashboardWidget<TData>(
   state: DashboardLayoutState<TData>,
   id: DashboardWidgetId,
@@ -254,6 +255,7 @@ export function maximizeDashboardWidget<TData>(
   });
 }
 
+/** @deprecated Use resizeDashboardWidget(state, id, { w, h }) for explicit dimensions. */
 export function minimizeDashboardWidget<TData>(
   state: DashboardLayoutState<TData>,
   id: DashboardWidgetId,
@@ -278,6 +280,30 @@ export function minimizeDashboardWidget<TData>(
           }
         : item,
     ),
+  });
+}
+
+/** Resize in grid units. Restore retains the geometry before the first resize. */
+export function resizeDashboardWidget<TData>(
+  state: DashboardLayoutState<TData>,
+  id: DashboardWidgetId,
+  size: Pick<DashboardWidgetLayout, "w" | "h">,
+): DashboardLayoutState<TData> {
+  const widget = state.widgets.find(item => item.id === id);
+  if (!widget || !Number.isFinite(size.w) || !Number.isFinite(size.h)) return state;
+  const maxW = Math.max(1, Math.min(state.columns, widget.layout.maxW ?? state.columns));
+  const minW = Math.min(maxW, Math.max(1, widget.layout.minW ?? 1));
+  const minH = Math.max(1, widget.layout.minH ?? 1);
+  const maxH = Math.max(minH, widget.layout.maxH ?? Infinity);
+  const w = Math.min(maxW, Math.max(minW, Math.round(size.w)));
+  const h = Math.min(maxH, Math.max(minH, Math.round(size.h)));
+  if (w === widget.layout.w && h === widget.layout.h && !widget.maximized && !widget.minimized) return state;
+  return withActiveColumnSnapshot({
+    ...state,
+    previousLayouts: rememberPreviousLayout(state, widget),
+    widgets: state.widgets.map(item => item.id === id
+      ? { ...item, maximized: false, minimized: false, layout: normalizeLayout({ ...item.layout, w, h }, state.columns) }
+      : item),
   });
 }
 
@@ -470,7 +496,7 @@ export function fitDashboardWidgetToColumns<TData>(
   let cursorX = 0;
   const nextLayouts = new Map<DashboardWidgetId, DashboardWidgetLayout>();
   rowWidgets.forEach((widget) => {
-    const width = widget.id === id ? widget.layout.w + emptyWidth : widget.layout.w;
+    const width = widget.id === id ? Math.min(widget.layout.w + emptyWidth, widget.layout.maxW ?? state.columns) : widget.layout.w;
     nextLayouts.set(widget.id, normalizeLayout({ ...widget.layout, x: cursorX, w: width }, state.columns));
     cursorX += width;
   });

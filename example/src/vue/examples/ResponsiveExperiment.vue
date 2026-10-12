@@ -37,7 +37,7 @@ onBeforeUnmount(() => { cancelAnimationFrame(frame); observer?.disconnect(); });
 <div style="overflow:hidden" :aria-busy="!ready"><div ref="container" class="responsive-demo-container" :style="{ width: (ready ? Math.max(280, Math.min(1440, width)) : 2160) + 'px', maxWidth: ready ? '100%' : undefined, visibility: ready ? 'visible' : 'hidden' }">
     <DashboardGrid ref="grid"  :widgets="widgets" :columns="columns" :responsive="enabled ? responsive : undefined" :engine-options="engineOptions" class="playground-grid--numbered"
       @layout-commit="commands.applyLayoutSnapshot" @columns-change="commands.setColumns"
-      @remove-widget="commands.removeWidget" @maximize-widget="commands.maximizeWidget" @minimize-widget="commands.minimizeWidget" @restore-widget="commands.restoreWidget">
+      @remove-widget="commands.removeWidget" @restore-widget="commands.restoreWidget">
       <template #actions="{ widget }"><NumberedActions :widget="widget" :commands="commands" :locale="locale" /></template>
       <template #default="{ widget }"><NumberedContent :widget="widget" :locale="locale" /></template>
     </DashboardGrid>

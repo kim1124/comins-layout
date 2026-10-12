@@ -10,10 +10,8 @@ const emit = defineEmits<DashboardWidgetShellEmits>();
 defineSlots<{ default?(props: { widget: DashboardWidget<TData> }): unknown; actions?(props: { widget: DashboardWidget<TData> }): unknown }>();
 const labels = computed(() => props.labels ?? DEFAULT_ACTION_LABELS);
 const title = computed(() => props.widget.title ?? props.widget.id);
-const actions = ["maximize", "minimize", "restore", "remove"] as const;
+const actions = ["restore", "remove"] as const;
 const actionHandlers = {
-  maximize: () => emit("maximize", props.widget.id),
-  minimize: () => emit("minimize", props.widget.id),
   restore: () => emit("restore", props.widget.id),
   remove: () => emit("remove", props.widget.id),
 };

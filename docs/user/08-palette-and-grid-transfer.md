@@ -71,4 +71,6 @@ The helper rejects `missing-widget`, `duplicate-id`, `not-transferable`, or `inv
 
 Playground: `/examples/advanced/multi-grid/horizontal`. Use the in-page orientation control to compare horizontal and vertical Grid placement without changing the transfer contract. The keyboard-accessible transfer buttons use the same helper but place the widget at the target grid's bottom; dragging uses the drop position.
 
+The React/Vue examples provide an `A → B transfer allowed/blocked` toggle to compare acceptance using the same widget. Blocking prevents A → B moves and copies through both dragging and buttons, preserving both lists. B → A and palette additions remain allowed. Dragging uses `acceptExternalWidgets`; buttons check the same condition before invoking the helper. New palette widgets use 6×2 cells, filling the six-column Grid A or half of the twelve-column Grid B.
+
 Controlled deletion through an external DOM drop target is demonstrated separately at `/examples/advanced/external-drop-trash`.

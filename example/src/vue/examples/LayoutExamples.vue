@@ -52,8 +52,7 @@ function load() { if (saved.value) commands.restoreLayout(JSON.parse(json.value)
   </VueStage>
   <VueStage kind="grid" :locale="locale"><section class="playground-grid-region" :aria-label="`${title} Grid`">
     <DashboardGrid class="playground-grid--numbered" :widgets="widgets" :columns="columns" :refresh-key="refreshVersion" :movable="mode === 'static' || !locked" :resizable="mode === 'static' || !locked" :engine-options="{ animate: false, staticGrid: mode === 'static' && locked }"
-      @layout-commit="commands.applyLayoutSnapshot" @columns-change="commands.setColumns"
-      @maximize-widget="commands.maximizeWidget" @minimize-widget="commands.minimizeWidget" @restore-widget="commands.restoreWidget" @remove-widget="commands.removeWidget" >
+      @layout-commit="commands.applyLayoutSnapshot" @columns-change="commands.setColumns" @restore-widget="commands.restoreWidget" @remove-widget="commands.removeWidget" >
       <template #actions="{ widget }"><NumberedActions :widget="widget" :commands="commands" :locale="locale" /></template>
       <template #default="{ widget }"><NumberedContent :widget="widget" :locale="locale" :movable="!locked" :resizable="!locked" /></template>
     </DashboardGrid>

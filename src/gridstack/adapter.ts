@@ -561,6 +561,12 @@ export function createDashboardGridAdapter<TData>(
     }
     isSyncingControlledState = true;
     try {
+      if (previousOptions.columns !== nextOptions.columns) {
+        // Moving items between cached column layouts can strand GridStack's
+        // hover owner without a mouseout. Disable through the public API to
+        // clear it; syncGridWidgets restores each widget's resize permission.
+        grid.getGridItems().forEach((item) => grid.resizable(item, false));
+      }
       // Runtime Float must change before batching: GridStack restores the
       // Float value captured when its batch opens.
       applyRuntimeEngineOptions(previousOptions, nextOptions);

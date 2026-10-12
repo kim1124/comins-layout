@@ -27,6 +27,7 @@ import { PlaygroundShell } from "./playground/PlaygroundShell";
 import { TransferPlayground } from "./playground/TransferPlayground";
 import {
   WidgetBasicPlayground,
+  WidgetResizePlayground,
   WidgetEventsPlayground,
   WidgetManagePlayground,
 } from "./playground/WidgetExamples";
@@ -126,6 +127,7 @@ function renderPlaygroundRoute(pathname: string) {
     case "/__test__/widget": return <WidgetTestHarness />;
     case "/__test__/layout": return <LayoutTestHarness />;
     case "/__test__/advanced": return <AdvancedTestHarness />;
+    case "/examples/widget/resize": return <WidgetResizePlayground />;
     case "/examples/widget/basic": return <WidgetBasicPlayground />;
     case "/examples/widget/manage": return <WidgetManagePlayground />;
     case "/examples/widget/events": return <WidgetEventsPlayground />;

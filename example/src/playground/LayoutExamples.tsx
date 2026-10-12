@@ -45,7 +45,7 @@ export function LayoutLockPlayground() {
         text("위젯별 movable/resizable 값은 유지되므로 전체 잠금을 해제하면 기존 위젯 설정이 다시 적용됩니다.", "Per-widget movable/resizable values are preserved and apply again after unlocking."),
         text("잠금은 포인터 이동과 크기 조절에 적용됩니다. 추가·삭제 버튼이나 콘텐츠 입력은 별도로 제어하며, 이 예제에서는 계속 사용할 수 있습니다.", "The lock applies to pointer movement and resizing. Add/remove buttons and content inputs require separate control and remain available in this example."),
         text("잠금 방식에서 Static Grid를 선택하면 engineOptions.staticGrid로 엔진의 정적 모드를 사용합니다. 레이아웃 잠금은 movable/resizable을 제어하고, 정적 모드는 외부 위젯 드롭 수신까지 차단합니다.", "Choose Static Grid to use engineOptions.staticGrid. Interaction locking controls movable/resizable; static mode also blocks incoming external widget drops."),
-        text("삭제 버튼이나 콘텐츠 입력을 막는 읽기 전용 권한은 아닙니다. 두 모드의 드래그·리사이즈 결과는 같으며, 위젯별 설정은 잠금 해제 후 다시 적용됩니다.", "Neither mode is a read-only permission for delete buttons or content inputs. Both block dragging and resizing; widget permissions apply again after unlocking."),
+        text("두 모드는 이 화면에서 이동·리사이즈 결과가 같습니다. Static Grid의 추가 차이는 외부 드롭 수신 차단이며, 이 화면에는 드롭 소스가 없습니다. 추가·삭제와 상태 명령은 계속 사용할 수 있습니다. 기본 타이틀 더블 클릭 확장도 잠금 중에는 실행하지 않습니다.", "Both modes block movement and resizing in this screen. Static Grid additionally blocks incoming external drops; this screen has no drop source. Add/remove and state commands remain available. Default title double-click expansion is also blocked while locked."),
       ]}
       code={mode === "static" ? `<DashboardGrid engineOptions={{ staticGrid: locked }} />` : `<DashboardGrid\n  movable={!locked}\n  resizable={!locked}\n/>`}
       controls={controls}

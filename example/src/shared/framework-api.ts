@@ -42,7 +42,8 @@ export function exampleTextForFramework(value: string, framework: Framework, loc
 }
 
 const exampleApis: Record<string, string[]> = {
-  'widget/basic': ['maximizeWidget', 'minimizeWidget', 'restoreWidget'],
+  'widget/basic': ['titleDoubleClickAction', 'onLayoutCommit'],
+  'widget/resize': ['resizeWidget', 'restoreWidget', 'minW', 'maxW', 'minH', 'maxH'],
   'widget/manage': ['addWidget', 'clearWidgets', 'resetLayout'],
   'widget/events': ['onMove', 'onResize', 'onTitleDoubleClick'],
   'layout/basic': ['columns', 'setColumns', 'onLayoutCommit'],
@@ -58,7 +59,7 @@ const exampleApis: Record<string, string[]> = {
   'advanced/nested/basic': ['DashboardGrid', 'gridId', 'renderWidget'],
   'advanced/responsive': ['responsive', 'onColumnsChange', 'onLayoutCommit'],
   'advanced/rtl': ['engineOptions.rtl'],
-  'advanced/size-to-content': ['engineOptions.sizeToContent', 'refreshKey', 'onLayoutCommit'],
+  'advanced/size-to-content': ['engineOptions.sizeToContent', 'engineOptions.cellHeight', 'refreshKey', 'onLayoutCommit'],
   'advanced/title-drag': ['engineOptions.dragHandle'],
   'advanced/transform': ['className'],
   'advanced/external-drop-trash': ['externalDropTargets', 'onWidgetExternalDrop'],

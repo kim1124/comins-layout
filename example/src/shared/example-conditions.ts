@@ -12,9 +12,13 @@ export function createExampleConditions(id: string) {
       { ...createNumberedWidget(2), layout: { id: 'widget-2', x: 8, y: 0, w: 4, h: 2 } },
     ];
   }
+  if (id === 'widget/resize') {
+    widgets = widgets.map(widget => ({ ...widget, layout: { ...widget.layout, minW: 1, minH: 1, maxH: 6 } }));
+  }
   if (id.endsWith('size-to-content')) {
     columns = 6;
-    widgets = [{ id: 'activity', title: 'Activity', layout: { id: 'activity', x: 0, y: 0, w: 4, h: 2, minH: 1 } }];
+    cellHeight = 1;
+    widgets = [{ id: 'activity', title: 'Activity', layout: { id: 'activity', x: 0, y: 0, w: 4, h: 192, minH: 1 } }];
   }
   if (id.includes('multi-grid')) {
     columns = 6;
@@ -39,6 +43,6 @@ export function createNestedConditions(level: number, remaining: number) {
 export function createPaletteExampleWidget(kind: NonNullable<ReturnType<typeof createNumberedWidget>['data']>['kind'], sequence: number) {
   const selected = kind ?? 'kpi';
   const title = { kpi: '신규 KPI', chart: '신규 차트', table: '신규 표', restricted: '제한 위젯' }[selected];
-  return createWidget(`palette-${selected}-${sequence}`, title, 0, 0, selected === 'chart' || selected === 'table' ? 4 : 2, 2,
+  return createWidget(`palette-${selected}-${sequence}`, title, 0, 0, 6, 2,
     { description: `${title} ${selected}`, kind: selected, value: selected === 'kpi' ? '42' : selected === 'chart' ? '+12.6%' : selected === 'table' ? '320행' : '거부됨' });
 }

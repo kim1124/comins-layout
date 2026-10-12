@@ -1,6 +1,7 @@
 import type { Locale } from './locale';
 const descriptions: Record<string, [string, string]> = {
-  'widget/basic': ['위젯을 이동·리사이즈하고 선택한 위젯을 최대화·최소화·복원합니다.', 'Move and resize widgets, then maximize, minimize or restore the selected widget.'],
+  'widget/basic': ['위젯을 이동·리사이즈·삭제하고 타이틀 더블 클릭으로 빈 공간을 채웁니다.', 'Move, resize and remove widgets; double-click a title to fill row gaps.'],
+  'widget/resize': ['대상 위젯의 W/H를 직접 변경하고 적용된 크기와 제약 조건을 확인합니다.', 'Set the selected widget’s W/H and inspect its applied size and constraints.'],
   'widget/manage': ['위젯을 추가하거나 모두 삭제하고 초기 배치를 복원합니다.', 'Add widgets, clear the dashboard and restore the initial layout.'],
   'widget/events': ['이동·리사이즈·제목 더블 클릭의 이벤트 순서를 확인합니다.', 'Inspect the event sequence for movement, resizing and title double-clicks.'],
   'layout/basic': ['1~12컬럼을 전환하며 컬럼별 배치를 비교합니다.', 'Switch between 1–12 columns and compare column-specific layouts.'],

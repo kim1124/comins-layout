@@ -15,6 +15,7 @@ const source = useDashboardGrid({ initialColumns: initial.columns, initialWidget
 const target = useDashboardGrid({ initialColumns: targetInitial.columns, initialWidgets: targetInitial.widgets });
 type Operation = { status: 'idle' | 'accepted' | 'rejected' | 'cleared'; reason?: string; operationId?: string; source?: string; target?: string; mode?: 'move' | 'copy'; widgetId?: string; targetLayout?: DashboardWidgetLayout };
 const mode = ref<'move' | 'copy'>('move'), orientation = ref<'horizontal' | 'vertical'>('horizontal');
+const blockGridB = ref(false);
 const operation = ref<Operation>({ status: 'idle' });
 const trashStatus = ref<{ kind: 'idle' | 'reset' | 'removed'; widgetId?: string }>({ kind: 'idle' });
 const multi = props.exampleId.includes('multi-grid');
@@ -22,21 +23,23 @@ const panels = [{ dashboard: source, id: 'grid-a', label: 'Grid A', targetId: 'g
 const sequences: Record<string, number> = {};
 let operationSequence = 0;
 const paletteDefinitions = computed(() => [
-  { kind: 'kpi' as const, label: 'KPI', description: text('2×2 핵심 지표', '2×2 key metric'), width: 2 },
-  { kind: 'chart' as const, label: text('차트', 'Chart'), description: text('4×2 추세 시각화', '4×2 trend visualization'), width: 4 },
-  { kind: 'table' as const, label: text('표', 'Table'), description: text('4×2 데이터 목록', '4×2 data list'), width: 4 },
-  { kind: 'restricted' as const, label: text('제한 위젯', 'Restricted widget'), description: text('predicate 거부 확인', 'Verify predicate rejection'), width: 2 },
+  { kind: 'kpi' as const, label: 'KPI', description: text('6×2 핵심 지표', '6×2 key metric'), width: 6 },
+  { kind: 'chart' as const, label: text('차트', 'Chart'), description: text('6×2 추세 시각화', '6×2 trend visualization'), width: 6 },
+  { kind: 'table' as const, label: text('표', 'Table'), description: text('6×2 데이터 목록', '6×2 data list'), width: 6 },
 ]);
 const operationStatusText = computed(() => operation.value.status === 'idle' ? text('전송 대기', 'Ready')
   : operation.value.status === 'cleared' ? text('삭제 완료 · Grid A/B', 'Cleared · Grid A/B')
-  : operation.value.status === 'rejected' ? text(`거부 · ${operation.value.reason ?? 'unknown'}`, `Rejected · ${operation.value.reason ?? 'unknown'}`)
+  : operation.value.status === 'rejected' ? operation.value.reason === 'grid-b-blocked'
+    ? text('차단됨 · A → B 전송', 'Blocked · A → B transfer')
+    : text(`거부 · ${operation.value.reason ?? 'unknown'}`, `Rejected · ${operation.value.reason ?? 'unknown'}`)
   : text(`완료 · ${operation.value.widgetId ?? '-'} → ${operation.value.target ?? '-'}`, `Completed · ${operation.value.widgetId ?? '-'} → ${operation.value.target ?? '-'}`));
 const trashStatusText = computed(() => trashStatus.value.kind === 'removed'
   ? text(`${trashStatus.value.widgetId} 위젯을 제어 상태에서 삭제했습니다.`, `Removed ${trashStatus.value.widgetId} from controlled state.`)
   : trashStatus.value.kind === 'reset' ? text('초기 위젯을 복원했습니다.', 'Restored the initial widgets.')
   : text('위젯을 휴지통 영역으로 드래그해 보세요.', 'Drag a widget to the trash area.'));
 const runtimeFor = (id: string) => id === 'grid-b' ? target : source;
-const acceptCandidate = (candidate: DashboardWidgetDropCandidate<ExampleWidgetData>) => candidate.widget.data?.kind !== 'restricted';
+const acceptCandidate = (candidate: DashboardWidgetDropCandidate<ExampleWidgetData>) => !(blockGridB.value
+  && candidate.source.kind === 'grid' && candidate.source.gridId === 'grid-a' && candidate.targetGridId === 'grid-b');
 const describeSource = (candidate: DashboardWidgetDropCandidate<ExampleWidgetData>) => candidate.source.kind === 'palette' ? candidate.source.sourceId : `${candidate.source.gridId}:${candidate.source.widgetId}`;
 function rejected(candidate: DashboardWidgetDropCandidate<ExampleWidgetData>, reason: string) {
   operation.value = { status: 'rejected', reason, source: describeSource(candidate), target: candidate.targetGridId, mode: candidate.mode, widgetId: candidate.widget.id };
@@ -59,6 +62,7 @@ function addPalette(widget: DashboardWidget<ExampleWidgetData>, gridId: string) 
   operation.value = { status: 'accepted', operationId: `button-palette-${++operationSequence}`, source: describeSource(candidate), target: gridId, mode: 'copy', widgetId: widget.id, targetLayout };
 }
 function drop(request: DashboardWidgetDropRequest<ExampleWidgetData>) {
+  if (!acceptCandidate(request)) { rejected(request, 'grid-b-blocked'); return; }
   const destination = runtimeFor(request.targetGridId);
   if (request.source.kind === 'palette') {
     const result = insertDashboardWidgetAtLayout(destination.state.value, request.widget, request.targetLayout, request.targetSnapshot);
@@ -75,6 +79,8 @@ function drop(request: DashboardWidgetDropRequest<ExampleWidgetData>) {
 function transferWithButton(sourceId: string, targetId: string, widgetId: string) {
   const origin = runtimeFor(sourceId), destination = runtimeFor(targetId), widget = origin.widgets.value.find(item => item.id === widgetId);
   if (!widget) return;
+  const candidate: DashboardWidgetDropCandidate<ExampleWidgetData> = { source: { kind: 'grid', gridId: sourceId, widgetId }, targetGridId: targetId, widget, mode: mode.value };
+  if (!acceptCandidate(candidate)) { rejected(candidate, 'grid-b-blocked'); return; }
   const targetLayout = buttonTarget(widget, destination), targetSnapshot = { columns: destination.columns.value, widgets: [...destination.widgets.value.map(item => item.layout), targetLayout] };
   const result = transferDashboardWidget({ source: origin.state.value, target: destination.state.value, widgetId, targetLayout, targetSnapshot, mode: mode.value });
   if (!result.accepted) { operation.value = { status: 'rejected', reason: result.reason, source: sourceId, target: targetId, mode: mode.value, widgetId }; return; }
@@ -131,9 +137,13 @@ function presentTransferWidget(
         <button :aria-label="text('Grid A/B 위젯 전체 삭제', 'Clear all Grid A/B widgets')" :title="text('Grid A/B 위젯 전체 삭제', 'Clear all Grid A/B widgets')" class="example-action-button example-action-button--danger transfer-controls__clear" :disabled="source.widgets.value.length === 0 && target.widgets.value.length === 0" type="button" @click="clearAll"><VueIcon name="Trash2" :size="14" /></button>
         <p :aria-label="text('전송 작업 상태', 'Transfer operation status')" class="transfer-controls__status" :data-operation="JSON.stringify(operation)" :data-reason="operation.reason" :data-transfer-result="operation.status" role="status"><span>{{ operationStatusText }}</span></p>
       </section>
+      <div class="transfer-acceptance">
+        <button type="button" :aria-pressed="blockGridB" :data-active="String(blockGridB)" @click="blockGridB = !blockGridB">{{ blockGridB ? text('A → B 전송 차단', 'A → B transfer blocked') : text('A → B 전송 허용', 'A → B transfer allowed') }}</button>
+        <p>{{ text('A → B 이동·복사에 적용합니다. B → A와 팔레트 추가는 허용합니다.', 'Applies to A → B moves and copies. B → A and palette additions remain allowed.') }}</p>
+      </div>
       <section class="transfer-palette" :aria-label="text('위젯 팔레트', 'Widget Palette')">
         <div class="transfer-palette__header"><div><p class="example-kicker">{{ text('외부 Drag-in', 'External Drag-in') }}</p><h2>{{ text('위젯 팔레트', 'Widget Palette') }}</h2></div><p>{{ text('handle을 Grid로 드래그하거나 추가 버튼을 사용합니다.', 'Drag the handle into a grid or use an add button.') }}</p></div>
-        <div class="transfer-palette__items"><PaletteWidget v-for="definition in paletteDefinitions" :key="definition.kind" :source-id="`palette-${definition.kind}`" :locale="locale" :restricted="definition.kind === 'restricted'" :label="definition.label" :description="definition.description" :width="definition.width" :create-widget="() => paletteWidget(definition.kind)" @add="addPalette" /></div>
+        <div class="transfer-palette__items"><PaletteWidget v-for="definition in paletteDefinitions" :key="definition.kind" :source-id="`palette-${definition.kind}`" :locale="locale" :label="definition.label" :description="definition.description" :width="definition.width" :create-widget="() => paletteWidget(definition.kind)" @add="addPalette" /></div>
       </section>
     </VueStage>
     <VueStage kind="grid" :locale="locale">

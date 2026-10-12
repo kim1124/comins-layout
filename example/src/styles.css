@@ -1896,15 +1896,10 @@ button.dashboard-widget-body[data-selected="true"] {
 }
 
 .playground-grid--title-handle .comins-grid-layout-widget__title {
-  cursor: grab;
   flex: 1 1 auto;
   padding-block: 4px;
   touch-action: none;
   user-select: none;
-}
-
-.playground-grid--title-handle .comins-grid-layout-widget__title:active {
-  cursor: grabbing;
 }
 
 .playground-shell .playground-route-content button[aria-pressed] {
@@ -2126,7 +2121,20 @@ button.dashboard-widget-body[data-selected="true"] {
 .transfer-palette__items {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.transfer-acceptance {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.transfer-acceptance > p {
+  color: #52645f;
+  font-size: 12px;
+  margin: 0;
 }
 
 .transfer-palette-item {

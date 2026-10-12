@@ -44,7 +44,6 @@ const { widgets, columns, commands, refreshVersion } = useDashboardGrid<{ value:
 <template>
   <DashboardGrid :widgets="widgets" :columns="columns" :refresh-key="refreshVersion"
     @layout-commit="commands.applyLayoutSnapshot" @columns-change="commands.setColumns"
-    @maximize-widget="commands.maximizeWidget" @minimize-widget="commands.minimizeWidget"
     @restore-widget="commands.restoreWidget" @remove-widget="commands.removeWidget">
     <template #default="{ widget }">{{ widget.data?.value }}</template>
   </DashboardGrid>
@@ -85,7 +84,7 @@ Composable 대신 소비자가 직접 관리하는 `ref`/`reactive` 배열·옵�
 
 ## 실행 예제
 
-checkout에서 `npm run dev`를 실행한다. 공통 Playground의 `/examples/widget/basic/react`, `/examples/widget/basic/vue`에서 React/Vue 탭을 선택한다. 메뉴·언어·관련 API·코드 패널을 공유하며 기존 22개 예제의 초기 위젯·배치·컬럼·셀 높이·주요 옵션을 통일한다. 프레임워크/예제 전환은 상태를 초기화하고 이전 엔진을 정리한다. 언어 변경은 현재 상태를 유지한다. URL 공유·새로고침·뒤로 가기가 가능하고 기존 React 주소도 유지한다.
+checkout에서 `npm run dev`를 실행한다. 공통 Playground의 `/examples/widget/basic/react`, `/examples/widget/basic/vue`에서 React/Vue 탭을 선택한다. 메뉴·언어·관련 API·코드 패널을 공유하며 기존 23개 예제의 초기 위젯·배치·컬럼·셀 높이·주요 옵션을 통일한다. 프레임워크/예제 전환은 상태를 초기화하고 이전 엔진을 정리한다. 언어 변경은 현재 상태를 유지한다. URL 공유·새로고침·뒤로 가기가 가능하고 기존 React 주소도 유지한다.
 
 코드 보기는 현재 실행한 TSX/SFC와 보조 파일을 표시한다. 공개 패키지 import로 바꿔 표시한 다중 파일 Vite 예제이며 한 파일만으로 실행된다고 보장하지 않는다. `/api`에서도 React/Vue 선택에 따라 상세 콜백·emit·slot 표기와 실제 코드·실행 예제가 함께 바뀐다. `onLayoutMutation`은 Vue에서도 Composable 옵션 콜백으로 유지한다. Vue 전용 React 호환 alias를 표시하지 않는다.
 

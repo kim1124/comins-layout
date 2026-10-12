@@ -8,14 +8,14 @@ test('React and Vue share aligned intro, tabs, controls and workspace panels', a
     const selectors = ['.framework-intro', '.framework-tabs', '.playground-example-stage--controls', '.playground-example-stage--grid'];
     return Promise.all(selectors.map(selector => page.locator(selector).first().boundingBox()));
   };
-  await page.goto('/examples/widget/basic/react');
+  await page.goto('/examples/widget/resize/react');
   await expect(page.getByRole('tab', { name: 'React', exact: true })).toHaveAttribute('aria-controls', 'framework-panel');
   await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'framework-tab-react');
   const react = await bounds();
   for (const box of react) expect(box).not.toBeNull();
   const expectRightAlignedControls = async () => {
     const panel = (await page.locator('.playground-example-stage--controls').boundingBox())!;
-    const action = (await page.getByRole('button', { name: '선택 위젯 복원', exact: true }).boundingBox())!;
+    const action = (await page.getByRole('status', { name: '적용된 크기', exact: true }).boundingBox())!;
     expect(Math.abs(panel.x + panel.width - 19 - action.x - action.width)).toBeLessThanOrEqual(2);
   };
   await expectRightAlignedControls();
@@ -67,20 +67,32 @@ test('Vue public API and trash keep widget actions hidden like React, with the t
   await expect(page.locator('[data-widget-id]')).toHaveCount(3);
 });
 
-test('all 22 examples start with matching engine geometry and primary settings', async ({ page }) => {
+test('all 23 examples start with matching engine geometry and primary settings', async ({ page }) => {
   test.setTimeout(90_000);
   const read = () => page.locator('.grid-stack').evaluateAll(elements => elements.map(el => {
     const grid = (el as HTMLElement & { gridstack?: GridStack }).gridstack;
     return grid && { columns: grid.getColumn(), cellHeight: grid.getCellHeight(), float: grid.getFloat(),
       widgets: grid.engine.nodes.map(node => ({ id: node.id, x: node.x, y: node.y, w: node.w, h: node.h })).sort((a,b) => String(a.id).localeCompare(String(b.id))) };
   }));
+  const waitForResponsiveColumns = async (id: string) => {
+    if (id !== 'advanced/responsive') return;
+    const container = page.locator('.responsive-demo-container');
+    await expect(container.locator('..')).toHaveAttribute('aria-busy', 'false');
+    await expect.poll(async () => {
+      const box = await container.boundingBox();
+      const grids = await read();
+      return box && grids[0]?.columns === Math.max(1, Math.min(12, Math.round(box.width / 180)));
+    }).toBe(true);
+  };
   for (const example of exampleCatalog) {
     await page.goto(`${example.path}/react`);
     await expect.poll(read).not.toContain(undefined);
     await expect(page.locator('.grid-stack').first()).toBeVisible();
+    await waitForResponsiveColumns(example.id);
     const react = await read();
     await page.goto(`${example.path}/vue`);
     await expect(page.locator('.grid-stack').first()).toBeVisible();
+    await waitForResponsiveColumns(example.id);
     await expect.poll(read, { message: example.id }).toEqual(react);
   }
 });
@@ -98,10 +110,10 @@ test("shared shell switches React/Vue, resets the example, and changes actual co
   await expect(page.locator('[data-widget-id]')).toHaveCount(10);
   await expect(page.getByRole('region', { name: '예제 소스' })).toContainText('comins-grid-layout/vue');
   await expect(page.getByRole('region', { name: '예제 소스' })).toContainText('@layout-commit');
-  await page.getByRole('button', { name: '선택 위젯 최대화', exact: true }).click();
-  await expect(page.locator('[data-widget-id="widget-1"]')).toHaveAttribute('data-maximized', 'true');
+  await page.getByRole('button', { name: 'Title 1 삭제', exact: true }).click();
+  await expect(page.locator('[data-widget-id]')).toHaveCount(9);
   await page.getByRole('tab', { name: 'React', exact: true }).click();
-  await expect(page.locator('[data-widget-id="widget-1"]')).toHaveAttribute('data-maximized', 'false');
+  await expect(page.locator('[data-widget-id]')).toHaveCount(10);
   await page.goBack();
   await expect(page.getByRole('tab', { name: 'Vue 3', exact: true })).toHaveAttribute('aria-selected', 'true');
   await page.reload();

@@ -44,7 +44,6 @@ const { widgets, columns, commands, refreshVersion } = useDashboardGrid<{ value:
 <template>
   <DashboardGrid :widgets="widgets" :columns="columns" :refresh-key="refreshVersion"
     @layout-commit="commands.applyLayoutSnapshot" @columns-change="commands.setColumns"
-    @maximize-widget="commands.maximizeWidget" @minimize-widget="commands.minimizeWidget"
     @restore-widget="commands.restoreWidget" @remove-widget="commands.removeWidget">
     <template #default="{ widget }">{{ widget.data?.value }}</template>
   </DashboardGrid>
@@ -85,7 +84,7 @@ This release scope is browser CSR. SSR, hydration guarantees, Nuxt integration, 
 
 ## Runnable examples
 
-Run `npm run dev` from a checkout. Open `/examples/widget/basic/react` or `/examples/widget/basic/vue` in the shared Playground. React/Vue tabs share navigation, language, related API labels and the source panel. All 22 scenarios use matching initial widgets, geometry, columns, cell heights and primary settings. Switching the framework/example resets state and releases the previous engine. Changing language retains state. Routes support sharing, reload and browser history; legacy React URLs remain available.
+Run `npm run dev` from a checkout. Open `/examples/widget/basic/react` or `/examples/widget/basic/vue` in the shared Playground. React/Vue tabs share navigation, language, related API labels and the source panel. All 23 scenarios use matching initial widgets, geometry, columns, cell heights and primary settings. Switching the framework/example resets state and releases the previous engine. Changing language retains state. Routes support sharing, reload and browser history; legacy React URLs remain available.
 
 View code displays the running TSX/SFC and its supporting files with public package imports. This is a multi-file Vite example, not a single standalone snippet. `/api` changes callback/emit/slot labels, actual source and preview with the selected framework. `onLayoutMutation` remains a Composable option callback in Vue; React-only compatibility aliases are omitted.
 

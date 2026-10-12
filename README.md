@@ -7,7 +7,7 @@
 [![Verify](https://github.com/kim1124/comins-layout/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/kim1124/comins-layout/actions/workflows/verify.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/kim1124/comins-layout/blob/main/LICENSE)
 
-`comins-grid-layout` is a dashboard layout module powered by GridStack. Version 0.3.0 supports React, Vue 3 and a framework-independent Core. It combines serializable state with widget CRUD, drag, resize, responsive columns, maximize/minimize flows, persistence, and an advanced escape hatch to the underlying GridStack API.
+`comins-grid-layout` is a dashboard layout module powered by GridStack. Version 0.3.0 supports React, Vue 3 and a framework-independent Core. It combines serializable state with widget CRUD, drag, resize, responsive columns, explicit size controls, persistence, and an advanced escape hatch to the underlying GridStack API.
 
 These guides describe source version **0.3.0**; the existing React GIFs were recorded with **0.2.3**. The npm badge reports registry availability independently. See the [0.3.0 notes](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md#030) for versioned changes and migration guidance.
 
@@ -15,9 +15,9 @@ These guides describe source version **0.3.0**; the existing React GIFs were rec
 
 ### Core and Vue 3 (0.3.0)
 
-Version 0.3.0 adds framework-independent `comins-grid-layout/core`, explicit `/react`, and a Vue 3.5+ `/vue` renderer while preserving root React imports and GridStack behavior. The earlier npm 0.2.3 release has only the root React entry. Only React and Vue are implemented; Vanilla and Svelte remain future extensions. See the [English guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/15-core-and-vue.md) or [한국어 가이드](https://github.com/kim1124/comins-layout/blob/main/docs/ko/15-core-and-vue.md) for lifecycle and CSR-only boundaries.
+Version 0.3.0 adds framework-independent `comins-grid-layout/core`, explicit `/react`, and a Vue 3.5+ `/vue` renderer while preserving root React imports and legacy state commands. The default widget controls and title double-click behavior change as documented below. The earlier npm 0.2.3 release has only the root React entry. Only React and Vue are implemented; Vanilla and Svelte remain future extensions. See the [English guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/15-core-and-vue.md) or [한국어 가이드](https://github.com/kim1124/comins-layout/blob/main/docs/ko/15-core-and-vue.md) for lifecycle and CSR-only boundaries.
 
-The shared Playground offers React/Vue tabs for all 22 examples, with matching initial layouts/settings and actual framework source files. Open `/examples/widget/basic/react` or `/examples/widget/basic/vue`; switching frameworks resets the example, while changing language preserves its state. API examples and detailed callback/emit/slot names follow the selected framework. Existing GIFs below document React only.
+The shared Playground offers React/Vue tabs for all 23 examples, with matching initial layouts/settings and actual framework source files. Open `/examples/widget/basic/react` or `/examples/widget/basic/vue`; switching frameworks resets the example, while changing language preserves its state. API examples and detailed callback/emit/slot names follow the selected framework. Existing GIFs below document React only.
 
 The Playground follows the Comins Sortable layout: a shared header/sidebar, example intro and API chips, underline framework tabs, right-aligned controls, and separate live workspace/source cards. React and Vue use the same panel spacing and responsive shell; widget-specific controls remain Grid Layout features.
 
@@ -44,7 +44,6 @@ const { widgets, columns, commands, refreshVersion } = useDashboardGrid<{ value:
 <template>
   <DashboardGrid :widgets="widgets" :columns="columns" :refresh-key="refreshVersion"
     @layout-commit="commands.applyLayoutSnapshot" @columns-change="commands.setColumns"
-    @maximize-widget="commands.maximizeWidget" @minimize-widget="commands.minimizeWidget"
     @restore-widget="commands.restoreWidget" @remove-widget="commands.removeWidget">
     <template #default="{ widget }">{{ widget.data?.value }}</template>
   </DashboardGrid>
@@ -99,13 +98,15 @@ Fit widgets to their content, including the header, and commit the resulting hei
 
 Content sizing is off by default. Enable it for content-driven heights; keep it off for fixed-height cards. It changes row count `h`, not `cellHeight`, and turning it off does not restore the earlier height.
 
+The React/Vue Size To Content example uses `engineOptions={{ sizeToContent: true, cellHeight: 1 }}` to follow actual content height within one pixel, including wrapped text. Its saved `h`, `minH`, and `maxH` use 1px units; the package default remains `cellHeight: 96`.
+
 Local example: `/examples/advanced/size-to-content` · [Guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/11-engine-options.md)
 
 ![Widget content height growing and shrinking with synchronized React state](https://raw.githubusercontent.com/kim1124/comins-layout/main/docs/assets/comins-grid-layout-content-sizing.gif)
 
 ## Features
 
-- Create, render, update, remove, clear, maximize, minimize, restore, arrange, and serialize widgets.
+- Create, render, update, remove, clear, resize, restore, arrange, and serialize widgets.
 - Drag and resize with desktop pointer input and mobile touch input.
 - Change the runtime column count from 1 through 12 manually or through responsive GridStack breakpoints.
 - Keep application data in serializable React state while GridStack owns browser interaction.
@@ -188,9 +189,7 @@ export function DashboardPage() {
       columns={dashboard.columns}
       refreshKey={dashboard.refreshVersion}
       widgets={dashboard.widgets}
-      actionLabels={{ maximize: "Maximize", minimize: "Minimize", restore: "Restore", remove: "Remove" }}
-      onMaximizeWidget={dashboard.commands.maximizeWidget}
-      onMinimizeWidget={dashboard.commands.minimizeWidget}
+      actionLabels={{ restore: "Restore", remove: "Remove" }}
       onRemoveWidget={dashboard.commands.removeWidget}
       onRestoreWidget={dashboard.commands.restoreWidget}
       onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
@@ -271,8 +270,8 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 | `onBeforeMove` / `onMove` / `onAfterMove` | `(event) => void` | — | Receives before, animation-frame-coalesced active, and committed move events |
 | `onBeforeResize` / `onResize` / `onAfterResize` | `(event) => void` | — | Receives before, animation-frame-coalesced active, and committed layout-resize events |
 | `onBeforeTitleDoubleClick` / `onTitleDoubleClick` / `onAfterTitleDoubleClick` | `(event) => void` | — | Receives the title-only double-click lifecycle in call order |
-| `onMaximizeWidget` | `(id) => void` | — | Handles maximize action |
-| `onMinimizeWidget` | `(id) => void` | — | Handles minimize action |
+| `onMaximizeWidget` | `(id) => void` | — | Deprecated compatibility callback; no default button |
+| `onMinimizeWidget` | `(id) => void` | — | Deprecated compatibility callback; no default button |
 | `onRestoreWidget` | `(id) => void` | — | Handles restore action |
 | `onRemoveWidget` | `(id) => void` | — | Handles remove action |
 
@@ -433,6 +432,12 @@ Setting `acceptExternalWidgets` without handling `onWidgetDropRequest` is intent
 
 Widgets can additionally map `sizeToContent` and `resizeToContentParent` to GridStack. Content sizing includes the header and respects `minH`/`maxH`; a widget's `sizeToContent: false` opts out of global sizing. Maximize/minimize temporarily suspends sizing until restore. After asynchronous content changes, change `refreshKey` or call `refresh()` to request measurement and commit the resulting geometry.
 
+`titleDoubleClickAction` defaults to `"fill"`: double-clicking the title fills unused columns in its starting row through `onLayoutCommit` (Vue: `layoutCommit`). Keep that event connected to controlled state. Set `titleDoubleClickAction="none"` when providing a custom action. Grid/widget movement or resize locks, static mode, and maximized/minimized views block the default fill action. Explicit state commands remain independent.
+
+`resizeWidget(id, { w, h })` rounds finite dimensions to grid units and clamps them to `minW/maxW/minH/maxH` and the current columns. Unknown IDs and nonfinite dimensions are ignored. It retains the position where possible, clears legacy view flags and saves the geometry before the first API resize for `restoreWidget`. Grid collision handling can reposition neighboring widgets; restore is neither general undo nor whole-grid restoration. When content sizing is enabled it may subsequently recompute height.
+
+`maximizeWidget` and `minimizeWidget` remain deprecated compatibility APIs with their original behavior: maximize sets `(0, 0)`, full column width and height at least 3; minimize retains width and sets height to 1. Neither represents fullscreen or constraint-aware minimum size. Default maximize/minimize buttons have been removed; new integrations should use explicit sizing.
+
 `editable={false}` locks movement and resizing. `engineOptions.staticGrid=true` also blocks incoming external widget drops. Neither is application-wide read-only mode: consumer-owned inputs, action buttons, and imperative state commands remain independent. Compare both modes at `/examples/layout/lock`.
 
 For React content deferral, the widget's `lazyLoad` member acts as a per-widget Comins override when `lazyRenderWidget=true`; forwarding it to GridStack does not defer React-owned content.
@@ -486,9 +491,10 @@ Pass `onLayoutMutation` to `useDashboardGrid` to observe successful controlled m
 | `updateWidgetLayout` | `(id, patch) => void` | Update serializable geometry |
 | `removeWidget` | `(id) => void` | Remove one widget |
 | `clearWidgets` | `() => void` | Remove every widget |
-| `maximizeWidget` | `(id) => void` | Expand a widget and retain its previous layout |
-| `minimizeWidget` | `(id) => void` | Collapse a widget and retain its previous layout |
-| `restoreWidget` | `(id) => void` | Restore the retained layout |
+| `resizeWidget` | `(id, { w, h }) => void` | Set grid-unit dimensions within widget constraints and columns; save first pre-resize geometry |
+| `maximizeWidget` | `(id) => void` | Deprecated: retain original full-width, x=0/y=0, at-least-3-row behavior |
+| `minimizeWidget` | `(id) => void` | Deprecated: retain width and set height to 1 |
+| `restoreWidget` | `(id) => void` | Restore geometry saved before the first API resize or legacy view change; not general undo |
 | `autoArrangeWidgets` | `() => void` | Compact widgets with the package layout rule |
 | `fitWidgetsToColumns` | `() => void` | Fit every widget into the current columns |
 | `fitWidgetToColumns` | `(id) => void` | Fit one widget to the current columns |
@@ -608,7 +614,7 @@ Public CSS classes and custom properties are scoped under `.comins-grid-layout`.
 Run `npm run dev`, then use the local documentation application to inspect the package without changing consumer code:
 
 - Getting started: `/docs/getting-started` covers installation, the controlled-state model, and the first dashboard.
-- Widget management: `/examples/widget/manage` covers add, delete all, and reset; the Layout menu covers movement, resize, columns, arrange, maximize, and minimize.
+- Widget management: `/examples/widget/manage` covers add, delete all, and reset; `/examples/widget/resize` demonstrates explicit W/H and restore with matching React/Vue controls; the Layout menu covers columns, locks, persistence and arrangement.
 - Advanced examples: `/examples/advanced/multi-grid/horizontal` covers palette drag-in and Grid-to-Grid move/copy; `/examples/advanced/external-drop-trash` uses a full-width deletion target with reset at the right of the live-example heading. `/examples/advanced/responsive` combines column calculation and layout policy; `/examples/advanced/lazy-load` exposes actual content-mount status.
 - API reference: `/api` provides a feature index, entry-level live examples, minimal invocation code, and collapsible details for public props, commands, types, and advanced handle methods. It reuses the same Playground screens; only one embedded example runs at a time, and closing or switching resets its state.
 

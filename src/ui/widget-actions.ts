@@ -1,5 +1,7 @@
 export type DashboardWidgetActionLabels = {
+  /** @deprecated No default maximize button is rendered. */
   maximize: string;
+  /** @deprecated No default minimize button is rendered. */
   minimize: string;
   restore: string;
   remove: string;

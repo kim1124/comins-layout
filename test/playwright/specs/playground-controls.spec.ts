@@ -21,7 +21,7 @@ for (const framework of ['react', 'vue']) {
   });
 
   test(`${framework} select leaves room for its arrow and retains selection and keyboard command access @firefox-parity`, async ({ page }) => {
-    await page.goto(`/examples/widget/basic/${framework}`);
+    await page.goto(`/examples/widget/resize/${framework}`);
     const select = page.getByRole('combobox', { name: '대상 위젯', exact: true });
     const styles = await select.evaluate(element => {
       const style = getComputedStyle(element);
@@ -34,11 +34,21 @@ for (const framework of ['react', 'vue']) {
     await expect(select).toHaveValue('widget-2');
     await select.focus();
     await select.press('Tab');
-    const maximize = page.getByRole('button', { name: '선택 위젯 최대화', exact: true });
-    await expect(maximize).toBeFocused();
-    await maximize.press('Enter');
-    await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-maximized', 'true');
-    await expect(page.locator('[data-widget-id="widget-1"]')).toHaveAttribute('data-maximized', 'false');
+    const width = page.getByRole('spinbutton', { name: 'W', exact: true });
+    await expect(width).toBeFocused();
+    await width.fill('5');
+    await width.press('Tab');
+    const height = page.getByRole('spinbutton', { name: 'H', exact: true });
+    await expect(height).toBeFocused();
+    await height.fill('4');
+    await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-layout-w', '5');
+    await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-layout-h', '4');
+    await expect(page.locator('[data-widget-id="widget-1"]')).toHaveAttribute('data-layout-w', '3');
+    await height.press('Tab');
+    const restore = page.getByRole('button', { name: '크기 복원', exact: true });
+    await expect(restore).toBeFocused();
+    await restore.press('Enter');
+    await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-layout-w', '3');
   });
 
   test(`${framework} Playground CRUD, runtime columns and arrange/fill commands work on public routes`, async ({ page }) => {
@@ -110,9 +120,12 @@ test('React/Vue mobile controls fit the viewport and remain operable @mobile-tou
     const widget = page.locator('[data-widget-id="widget-1"]');
     await widget.getByRole('button', { name: 'Title 1 이동 잠금', exact: true }).tap();
     await expect(widget.getByRole('row', { name: '이동 불가', exact: true })).toBeVisible();
+    await page.goto(`/examples/widget/resize/${framework}`);
     await page.getByRole('combobox', { name: '대상 위젯', exact: true }).selectOption('widget-2');
-    await page.getByRole('button', { name: '선택 위젯 최대화', exact: true }).tap();
-    await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-maximized', 'true');
+    await page.getByRole('spinbutton', { name: 'W', exact: true }).fill('5');
+    await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-layout-w', '5');
+    await page.getByRole('button', { name: '크기 복원', exact: true }).tap();
+    await expect(page.locator('[data-widget-id="widget-2"]')).toHaveAttribute('data-layout-w', '3');
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   }
 });

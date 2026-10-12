@@ -9,7 +9,7 @@ import "comins-grid-layout/styles.css";
 <DashboardGrid
   className="brand-dashboard__grid"
   widgets={dashboard.widgets}
-  actionLabels={{ maximize: "확장", minimize: "축소", restore: "복원", remove: "삭제" }}
+  actionLabels={{ restore: "복원", remove: "삭제" }}
   onLayoutCommit={dashboard.commands.applyLayoutSnapshot}
   renderWidget={(widget) => widget.title}
 />

@@ -100,12 +100,24 @@
 }
 
 .comins-grid-layout-widget__title {
+  cursor: default;
   font-size: var(--comins-font-size-base);
   line-height: 1.25;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Direct children keep nested grids' interaction states independent. */
+.comins-grid-layout > [data-title-interactive="true"] > .grid-stack-item-content > .comins-grid-layout-widget
+  > .comins-grid-layout-widget__header > .comins-grid-layout-widget__title {
+  cursor: grab;
+}
+
+.comins-grid-layout > [data-title-interactive="true"].ui-draggable-dragging > .grid-stack-item-content > .comins-grid-layout-widget
+  > .comins-grid-layout-widget__header > .comins-grid-layout-widget__title {
+  cursor: grabbing;
 }
 
 .comins-grid-layout-widget__actions {

@@ -130,7 +130,10 @@ type DashboardGridCommands<TData = unknown> = {
   updateWidgetLayout: (id: string, patch: Partial<Omit<DashboardWidgetLayout, "id">>) => void;
   removeWidget: (id: string) => void;
   clearWidgets: () => void;
+  resizeWidget: (id: string, size: { w: number; h: number }) => void;
+  /** @deprecated Use resizeWidget. */
   maximizeWidget: (id: string) => void;
+  /** @deprecated Use resizeWidget. */
   minimizeWidget: (id: string) => void;
   restoreWidget: (id: string) => void;
   autoArrangeWidgets: () => void;
@@ -236,3 +239,7 @@ dashboard.commands.restoreLayout(saved);
 - Content mounts on first intersection and remains mounted offscreen; normal React updates still rerender it. Re-enabling lazy rendering does not hide already mounted content. Without `IntersectionObserver`, client rendering falls back to eager content.
 - Skeletons, loading state, root-margin/threshold options, and full virtualization are not public features.
 - The Playground's actual mount count, per-widget status, on/off labels, and restart action are example-only observability controls, not additional public props.
+
+### Default title action and view commands (0.3.0)
+
+`titleDoubleClickAction?: "fill" | "none"` defaults to `"fill"` in both React and Vue. The fill result uses the existing layout commit callback/emit. `"none"` retains notification-only behavior. See the English/Korean widget interaction guides for lock, focus, minimum size, and restore contracts.

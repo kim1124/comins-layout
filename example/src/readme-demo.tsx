@@ -20,6 +20,7 @@ type DemoData = { label: string; value: string };
 type ReadmeDemoBridge = {
   addWidgetWithId: (id: string) => void;
   clearWidgets: () => void;
+  legacyWidgetAction: (action: "maximize" | "minimize") => void;
   getColumn: () => number | null;
   getCommitCount: () => number;
   getEngineWidgetIds: () => string[];
@@ -140,6 +141,7 @@ function LegacyReadmeDemoPage() {
         });
       },
       clearWidgets: dashboard.commands.clearWidgets,
+      legacyWidgetAction: action => action === "maximize" ? dashboard.commands.maximizeWidget("overview") : dashboard.commands.minimizeWidget("overview"),
       getColumn: () => gridRef.current?.getGridStack()?.getColumn() ?? null,
       getCommitCount: () => commitCountRef.current,
       getEngineWidgetIds: () => {
@@ -269,8 +271,6 @@ function LegacyReadmeDemoPage() {
             dashboard.commands.removeWidget(event.widgetId);
           }
         }}
-        onMaximizeWidget={dashboard.commands.maximizeWidget}
-        onMinimizeWidget={dashboard.commands.minimizeWidget}
         onRemoveWidget={dashboard.commands.removeWidget}
         onRestoreWidget={dashboard.commands.restoreWidget}
         onBeforeMove={(event) => interactionEventsRef.current.push(`drag-start:${event.id}`)}
