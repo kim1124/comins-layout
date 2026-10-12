@@ -1,6 +1,8 @@
 # comins-grid-layout
 
-<img src="https://raw.githubusercontent.com/kim1124/comins-layout/main/example/public/comins-symbol.svg" width="64" height="64" alt="Comins" />
+<a href="https://comins-website.vercel.app/ko/"><img src="https://raw.githubusercontent.com/kim1124/comins-layout/main/example/public/comins-symbol.svg" width="64" height="64" alt="Comins brand website" /></a>
+
+[Comins Brand](https://comins-website.vercel.app/ko/)
 
 [![npm version](https://img.shields.io/npm/v/comins-grid-layout.svg)](https://www.npmjs.com/package/comins-grid-layout)
 ![TypeScript types](https://img.shields.io/badge/TypeScript-types%20included-3178C6?logo=typescript&logoColor=white)
