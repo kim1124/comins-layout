@@ -10,6 +10,16 @@ npm run verify
 
 ## Browser Checks
 
+The Unreleased multi-framework baseline includes `check:core` (Core and Browser source graphs plus DOM-free TypeScript), React and Vue typechecks, unit/security/license tests, one declaration build and built framework-boundary checks. The public Core facade excludes the private reducer/queue; the Vue declaration graph must never reach the root React barrel.
+
+`npm run test:consumer` builds/packs once and installs that exact tarball in five independent temporary projects: Core only, React 18, React 19, Vue 3.5.0 and the recorded latest supported Vue 3.5 stable. It checks opposite-framework absence, `skipLibCheck: false`, Vue negative generic props/slot/event cases, production build and Chromium actions. Core compiles without DOM libraries and runs without framework/engine modules. The tarball, SHA-256 and exact versions remain in `reports/artifacts/consumer/`. A supplied tarball argument skips rebuilding. `npm run verify:package-artifact` additionally validates the packed files, declaration graphs and copied icon license.
+
+CI uses the tested `scripts/classify-change-scope.mjs`; common Core/Browser and renderer changes select browser, cross-browser and resource jobs. The resource job waits for Chromium/mobile success before using `--no-deps`. Registry consumer installation is a separate required selected job. Remote CI success is not implied by local execution.
+
+The React and Vue 100-widget gates share one probe and unchanged budgets. In a development server the probe observes completion of Vue's three-second DevTools replay buffer before replacing the initial widgets, so already-unmounted setup DOM is not counted in the first measured baseline. No engine or application state is changed by this preparation.
+
+`npm run build:examples` produces both React `index.html` and Vue `vue.html`; run the same `docs-learning.spec.ts` against development and production preview. The browser-only neutral connection probe is an internal test entry, not a supported Vanilla example.
+
 Run only affected Playwright specs and projects when rendered examples, drag/drop, resize, maximize/minimize, responsive behavior, or browser contracts change. For example:
 
 ```bash

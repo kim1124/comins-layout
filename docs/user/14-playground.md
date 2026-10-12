@@ -39,8 +39,18 @@ Read the API reference in this order: purpose, live example, minimal code, detai
 
 The internal `/readme-demo` route is a deterministic browser fixture used to regenerate README animations. It is not a consumer example or a supported package route.
 
-The five README animations use compact feature fixtures, not this full interface. Their [capture notes](../assets/README.md) identify the exact scenes and source date. Current guides describe source version `0.2.3`; registry availability is verified separately.
+The five README animations use compact feature fixtures, not this full interface. Their [capture notes](../assets/README.md) identify the exact scenes and source date. Current guides describe source version `0.3.0`; registry availability is verified separately.
 
 When a guide and an example appear to disagree, treat the current exported TypeScript declarations and focused repository tests as the implementation contract, then report the documentation discrepancy as an issue.
 
 In Mobile Touch, containers up to 640px use 3 columns so each initial widget has room for its title and actions. The toggle switches persistent handle visibility between `"mobile"` and `false`; movement and resizing remain available. Breakpoint examples use container width, and `none` still corrects bounds and overlaps. These are example settings rather than package-wide responsive defaults.
+
+## Shared React/Vue shell (0.3.0)
+
+The shell follows Comins Sortable: shared header/sidebar, example intro and API chips, underline framework tabs, right-aligned controls, and separate live workspace/source cards. Panel spacing and alignment remain the same when switching React/Vue; widget-specific controls follow Grid Layout features.
+
+Open `/examples/widget/basic/react` or `/examples/widget/basic/vue`. Choose a feature in the sidebar and switch its native renderer with React/Vue tabs. Initial geometry, columns, cell height and primary settings match. Switching resets the example; changing language retains state. View code provides the actual TSX/SFC plus supporting files, and API names follow callbacks, emits or slots. Legacy React routes remain available. The published npm 0.2.3 package does not include Vue.
+
+Developers run the Playground locally with `npm run dev`. At widths of 900px or less, use the example selector and scroll the page to the workspace. Narrow widget titles and controls wrap within their headers.
+
+The React and Vue 3 tabs match across all 22 examples in control order, icons, workspace layout, and result presentation; the renderer and API bindings differ. Expand **Feature details · Behavior and API** below the workspace for behavior, constraints, and event or method descriptions. The Vue tab uses component emit and slot names while retaining `onLayoutMutation` as a composable option callback.

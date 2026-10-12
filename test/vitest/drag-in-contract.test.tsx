@@ -9,7 +9,7 @@ import {
   useDashboardDragIn,
   type DashboardWidget,
 } from "../../src";
-import { createDashboardDragInConnection } from "../../src/components/use-dashboard-drag-in";
+import { createDashboardDragInConnection } from "../../src/browser/drag-in-connection";
 import {
   registerDashboardGridDragSource,
   resolveDashboardDropSource,

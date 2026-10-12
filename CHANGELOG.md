@@ -1,8 +1,22 @@
 # comins-grid-layout
 
-## Unreleased
+## 0.3.0
 
-No unreleased changes.
+Minor release: adds framework-independent Core and Vue 3 CSR support while preserving root React imports, deprecated aliases, layout/state serialization, CSS, and React peer ranges. No existing React consumer migration is required. The previously announced 0.3.0 alias and native lazyLoad removals are deferred to a future version. Vue consumers install Vue >=3.5.0 <4.0.0 and import the shared CSS; Nuxt/SSR, Vanilla/Svelte renderers and mixed-framework transfer remain unsupported.
+
+- Adopt Governance Contract v1.10 and managed Sol 6.1 defaults.
+- Keep the Playground as a developer-run local example; reduce narrow-screen menus to a labeled selector, restore page scrolling, and wrap widget titles/actions within their headers.
+
+- Unify the Playground shell with React/Vue tabs, framework-specific source/API names, shareable example routes and matching initial geometry/options. Preserve legacy React URLs; redirect standalone Vue links into the shared shell. Add Vue quick start guidance to README.
+- Align the Playground header, sidebar, framework tabs, right-aligned controls and workspace/source cards with the Comins Sortable visual layout across React and Vue.
+- Use matching bidirectional resize/move SVG icons in React/Vue widget controls and add an inset select chevron while preserving native selection and forced-colors fallback.
+
+- Restore controlled source geometry when a Grid rejects a duplicate or restricted drag; wait for drag completion in the React/Vue regression checks so early assertions cannot hide a later commit.
+- Add a public framework-independent `/core` entry and explicit `/react` entry; preserve existing root React imports and behavior.
+- Add Vue `>=3.5.0 <4.0.0` Composables, generic SFC slots/events, shared browser lifecycle, KeepAlive cleanup, and matching controlled GridStack features. Browser CSR only; no Vanilla/Svelte renderer or Nuxt/SSR support claim.
+- Make framework peers optional, keep renderer dependency graphs isolated, and share copied icon data with complete upstream license notices.
+- Match all 22 React/Vue examples in control order, icons, layout, interaction results, and bilingual framework-specific guidance; preserve native Vue rendering and local-only operation.
+- Add 22 Vue Playground scenarios, API example framework selection, and matching English/Korean Core/Vue guidance. Existing README GIFs remain React recordings.
 
 ## 0.2.3
 

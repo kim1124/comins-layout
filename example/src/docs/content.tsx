@@ -1,4 +1,5 @@
 import type { ApiFeatureSection, DocsPage, DocsSearchItem } from "./types";
+import coreVueGuide from "../../../docs/ko/15-core-and-vue.md?raw";
 
 const installSample = `npm install comins-grid-layout react react-dom`;
 
@@ -511,7 +512,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         name: "onWidgetDragStart / onWidgetDragStop / onWidgetResizeStart / onWidgetResizeStop / onWidgetHeaderDoubleClick",
         type: "deprecated compatibility callbacks",
         description: "0.2.x에서 호출 순서를 유지하는 legacy alias입니다.",
-        detail: "신규 예제에서는 canonical lifecycle만 사용하며 alias 제거는 0.3.0 별도 breaking-change gate에서 검토합니다.",
+        detail: "신규 예제에서는 canonical lifecycle만 사용하며 0.3.0에서는 alias를 유지하고 제거는 후속 버전의 별도 breaking-change gate에서 검토합니다.",
       },
     ],
     methods: [
@@ -628,7 +629,7 @@ export const apiFeatures: ApiFeatureSection[] = [
         name: "DashboardGridEngineOptions.lazyLoad",
         type: "boolean (deprecated)",
         description: "React-owned content를 지연하지 않는 GridStack native option입니다.",
-        detail: "0.2.x compatibility mapping만 유지하며 신규 코드는 lazyRenderWidget을 사용합니다. 0.3.0 제거 대상입니다.",
+        detail: "0.2.x compatibility mapping만 유지하며 신규 코드는 lazyRenderWidget을 사용합니다. 0.3.0에서도 유지하며 제거는 후속 버전으로 이연합니다.",
       },
     ],
     methods: [
@@ -666,6 +667,17 @@ function paragraphs(lines: string[]) {
 }
 
 export const docsPages: DocsPage[] = [
+  {
+    category: "시작하기", label: "Core / Vue 3", path: "/docs/core-and-vue", title: "Core와 Vue 3 (0.3.0)",
+    summary: "공개 Core 분리와 Vue 3.5+ CSR 사용법입니다. 0.3.0 소스 기준이며 공개 여부는 npm 레지스트리에서 확인합니다.",
+    body: paragraphs([
+      "Core는 DOM·React·Vue·GridStack import 없이 상태·직렬화·전송 정책을 제공합니다. 루트 React API는 유지하며 /react는 명시적 진입점입니다. Vanilla·Svelte 렌더러와 Nuxt/SSR는 이번 지원 범위가 아닙니다.",
+      "Vue에서는 layoutCommit과 columnsChange를 상태 명령에 연결하고 액션 emit도 연결해야 조작이 상태에 반영됩니다. renderWidget은 default 슬롯, renderWidgetActions는 actions 슬롯으로 대체합니다. 스크립트의 computed ref는 .value로 읽습니다.",
+      "초기 옵션은 한 번만 읽습니다. 이후 변경은 commands를 사용합니다. KeepAlive 비활성화 시 연결을 해제하며 활성화 시 재연결합니다. 콘텐츠 지연 렌더링은 가상화가 아니며 한 번 렌더링한 콘텐츠를 유지합니다.",
+    ]),
+    examples: [{ title: "프레임워크 독립 상태", description: "브라우저 없이 Core 함수만 사용합니다.", codeSamples: [{ title: "Core", language: "ts", code: coreVueGuide.match(/```ts\n([\s\S]*?)```/)?.[1] ?? "" }] },
+      { title: "Vue controlled Grid", description: "Vue와 GridStack CSS, 패키지 CSS를 설치·연결합니다. 실행 예제는 API의 프레임워크 선택에서 확인합니다.", codeSamples: [{ title: "Vue SFC", language: "vue", code: coreVueGuide.match(/```vue\n([\s\S]*?)```/)?.[1] ?? "" }] }],
+  },
   {
     body: paragraphs(["설치, stylesheet import, 첫 dashboard 렌더링 흐름을 확인합니다."]),
     category: "시작하기",

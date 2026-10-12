@@ -2418,3 +2418,17 @@ button.dashboard-widget-body[data-selected="true"] {
     padding: 24px 18px 40px;
   }
 }
+/* The same navigation and source surfaces surround native React/Vue demos. */
+.framework-toolbar,.framework-tabs,.framework-api { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
+.framework-tabs button[aria-selected="true"] { background:#172033; color:white; }
+.framework-api code { background:#f1f5f9; padding:3px 8px; border-radius:5px; }
+.framework-source { margin-top:24px; min-width:0; }
+.framework-source pre { max-height:560px; overflow:auto; white-space:pre; }
+.framework-source select { max-width:100%; }
+.framework-vue-preview { min-width:0; font:inherit; }
+.framework-vue-preview .vue-controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:16px 0; }
+.framework-vue-preview pre { white-space:pre-wrap; overflow-wrap:anywhere; }
+.framework-vue-preview textarea { display:block; width:100%; box-sizing:border-box; min-height:100px; }
+.framework-vue-preview .vue-transfer-grids { display:flex; gap:16px; }
+.framework-vue-preview .vue-stage-heading { display:flex; align-items:center; justify-content:space-between; }
+@media(max-width:600px) { .framework-vue-preview .vue-transfer-grids { flex-direction:column; } }

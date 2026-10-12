@@ -48,7 +48,7 @@ async function expectPlaygroundShell(
   const [mainBox, sidebarBox, headerBox, gridBox] = await Promise.all([
     page.locator(".playground-main").boundingBox(),
     page.locator(".docs-sidebar").boundingBox(),
-    page.locator(".playground-header").boundingBox(),
+    page.locator(".framework-intro").boundingBox(),
     page.locator(".playground-grid-region .grid-stack").first().boundingBox(),
   ]);
 

@@ -56,6 +56,27 @@ function run(cwd) {
   return spawnSync(process.execPath, [checker], { cwd, encoding: "utf8" });
 }
 
+test("rejects copied icon data without retained source/license records", () => {
+  const cwd = fixture();
+  try {
+    mkdirSync(join(cwd, "src/ui"), { recursive: true });
+    writeFileSync(join(cwd, "src/ui/icons.ts"), "export const dashboardActionIcons = {};\n");
+    constantFailure(run(cwd));
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+});
+
+test("requires the complete upstream icon license including Feather MIT notice", () => {
+  const cwd = fixture();
+  try {
+    mkdirSync(join(cwd, "src/ui"), { recursive: true });
+    mkdirSync(join(cwd, "THIRD_PARTY_LICENSES"), { recursive: true });
+    writeFileSync(join(cwd, "src/ui/icons.ts"), "export const dashboardActionIcons = {};\n");
+    writeFileSync(join(cwd, "THIRD_PARTY_LICENSES/lucide.txt"), "ISC License\n");
+    writeFileSync(join(cwd, "THIRD_PARTY_NOTICES.md"), notice + "\nLucide 1.40.0 maximize-2 minimize-2 rotate-ccw trash-2 copied geometry unchanged\n");
+    constantFailure(run(cwd));
+  } finally { rmSync(cwd, { recursive: true, force: true }); }
+});
+
 function constantFailure(result) {
   assert.equal(result.status, 1);
   assert.equal(result.stdout, "");

@@ -85,7 +85,7 @@ test.describe("Playground localization", () => {
     await page.goto("/examples/widget/manage");
     await page.getByTestId("playground-locale-toggle").getByRole("button", { name: "EN" }).click();
 
-    await expect(page.getByRole("heading", { name: "Add / Clear All / Reset" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Add / Delete All / Reset" })).toBeVisible();
     const widgetToolbar = page.getByRole("region", { name: "Example controls" });
     await expect(widgetToolbar.getByRole("button", { name: "Add" })).toBeVisible();
     await expect(widgetToolbar.getByRole("button", { name: "Reset" })).toBeVisible();
@@ -93,7 +93,7 @@ test.describe("Playground localization", () => {
     await expect(widget(page, 1).getByRole("button", { name: "Title 1 Lock resizing" })).toBeVisible();
 
     await page.goto("/examples/layout/persistence");
-    await expect(page.getByRole("heading", { name: "Save / Load Layout" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Save / Load", exact: true })).toBeVisible();
     const layoutToolbar = page.getByRole("region", { name: "Example controls" });
     await expect(layoutToolbar.getByRole("button", { name: "Save layout" })).toBeVisible();
     await expect(layoutToolbar.getByRole("combobox", { name: "Columns" })).toBeVisible();
@@ -101,7 +101,7 @@ test.describe("Playground localization", () => {
     await page.goto("/examples/advanced/public-api");
     await expect(page.getByRole("heading", { name: "Safe Public Handlers / Methods" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Query state" })).toBeVisible();
-    await expect(page.getByText(/raw CRUD bypasses React controlled state/)).toBeVisible();
+    await expect(page.locator(".playground-feature-guide")).toContainText("raw addWidget/removeWidget/load/destroy bypass controlled state");
 
     await page.goto("/examples/advanced/multi-grid/horizontal");
     await expect(page.getByRole("heading", { name: "Multiple Grid Transfer" })).toBeVisible();
@@ -127,13 +127,13 @@ test.describe("Playground localization", () => {
 test.describe("Playground example guidance", () => {
   test("uses the documented feature, controls, and GridStack example structure on every route", async ({ page }) => {
     for (const route of supportedExampleRoutes) {
-      await page.goto(route);
-      const content = page.locator(".playground-route-content");
+      await page.goto(`${route}?embed=1`);
+      const content = page.locator(".playground-embed");
 
       await expect(content.locator(".playground-feature-guide"), route).toBeVisible();
       await expect(content.getByRole("heading", { name: "기능 구성", exact: true }), route).toBeVisible();
-      await expect(content.getByRole("heading", { name: "예제 컨트롤", exact: true }), route).toBeVisible();
-      await expect(content.getByRole("heading", { name: "실행 예제", exact: true }), route).toBeVisible();
+      await expect(content.getByRole("heading", { name: "제어", exact: true }), route).toBeVisible();
+      await expect(content.getByRole("heading", { name: "실행 화면", exact: true }), route).toBeVisible();
       expect(await content.locator(".playground-feature-guide__item").count(), route).toBeGreaterThan(0);
     }
   });
@@ -146,7 +146,7 @@ test.describe("Playground example guidance", () => {
         errors.push(event.message);
       });
     });
-    await page.goto("/examples/advanced/nested/basic");
+    await page.goto("/examples/advanced/nested/basic?embed=1");
     await expect(page.getByText(/2단계.*독립된 React 제어 상태/)).toBeVisible();
     await expect(page.getByRole("link", { name: "A/B Grid 이동·복사 예제" })).toHaveAttribute(
       "href",
@@ -172,26 +172,26 @@ test.describe("Playground example guidance", () => {
       window as typeof window & { __playgroundWindowErrors: string[] }
     ).__playgroundWindowErrors)).toEqual([]);
 
-    await page.goto("/examples/advanced/responsive/column");
+    await page.goto("/examples/advanced/responsive/column?embed=1");
     await expect(page.getByText(/columnWidth.*컨테이너 너비/)).toBeVisible();
 
-    await page.goto("/examples/advanced/responsive/breakpoints");
+    await page.goto("/examples/advanced/responsive/breakpoints?embed=1");
     await expect(page.getByText(/640px.*2컬럼.*960px.*6컬럼/)).toBeVisible();
 
-    await page.goto("/examples/advanced/responsive/none");
+    await page.goto("/examples/advanced/responsive/none?embed=1");
     await expect(page.getByText(/layout: "none".*컬럼 경계와 위젯 겹침은 보정/)).toBeVisible();
     await expect(page.locator(".playground-feature-guide")).toContainText("none은 반응형을 끄는 설정이 아닙니다.");
 
-    await page.goto("/examples/advanced/static");
+    await page.goto("/examples/advanced/static?embed=1");
     await expect(page.getByText(/engineOptions\.staticGrid/)).toBeVisible();
     await expect(page.getByText(/레이아웃 잠금.*movable.*resizable/)).toBeVisible();
     await expect(page.locator(".playground-feature-guide")).toContainText("삭제 버튼이나 콘텐츠 입력을 막는 읽기 전용 권한은 아닙니다.");
 
-    await page.goto("/examples/advanced/size-to-content");
+    await page.goto("/examples/advanced/size-to-content?embed=1");
     await expect(page.locator(".playground-feature-guide")).toContainText("위젯의 행 수 h를 조정합니다. cellHeight는 유지");
     await expect(page.locator(".playground-feature-guide")).toContainText("패키지에서 자동 활성화되지는 않습니다.");
 
-    await page.goto("/examples/advanced/public-api");
+    await page.goto("/examples/advanced/public-api?embed=1");
     const guide = page.locator(".playground-feature-guide");
     await expect(guide).toContainText("getColumnCount");
     await expect(guide).toContainText("getRowCount");
@@ -206,7 +206,7 @@ test.describe("Playground example guidance", () => {
     await expect(methodTable.getByRole("row", { name: /compact/ })).toBeVisible();
     await expect(methodTable.getByRole("row", { name: /getGridStack/ })).toContainText("escape hatch");
 
-    await page.goto("/examples/widget/events");
+    await page.goto("/examples/widget/events?embed=1");
     const eventTable = page.getByRole("table", { name: "이벤트 핸들러" });
     await expect(eventTable.getByRole("row", { name: /onBeforeMove/ })).toBeVisible();
     await expect(eventTable.getByRole("row", { name: /^onTitleDoubleClick / })).toContainText("앱에서 연결");
@@ -229,9 +229,10 @@ test.describe("Playground toggle state", () => {
         await expect(activeToggle, route).toHaveAttribute("aria-pressed", "true");
       }
 
-      await expect(activeToggle, route).toHaveCSS("background-color", "rgb(223, 248, 238)");
-      await expect(activeToggle, route).toHaveCSS("border-color", "rgb(16, 185, 129)");
-      await expect(activeToggle, route).toHaveCSS("color", "rgb(4, 120, 87)");
+      const inControls = await activeToggle.evaluate(element => Boolean(element.closest('.playground-example-stage--controls')));
+      await expect(activeToggle, route).toHaveCSS("background-color", inControls ? "rgb(223, 244, 233)" : "rgb(223, 248, 238)");
+      await expect(activeToggle, route).toHaveCSS("border-color", inControls ? "rgb(105, 181, 143)" : "rgb(16, 185, 129)");
+      await expect(activeToggle, route).toHaveCSS("color", inControls ? "rgb(21, 93, 64)" : "rgb(4, 120, 87)");
     }
   });
 });
@@ -273,8 +274,9 @@ test.describe("Widget Playground", () => {
     const resizeToggle = first.locator('[data-widget-action="resize-lock"]');
     const moveToggle = first.locator('[data-widget-action="move-lock"]');
 
-    await expect(resizeToggle.locator("svg")).toHaveClass(/lucide-move-diagonal-2/);
-    await expect(moveToggle.locator("svg")).toHaveClass(/lucide-move/);
+    await expect(resizeToggle.locator("svg")).toHaveAttribute("viewBox", "0 0 24 24");
+    expect(await resizeToggle.locator("path").evaluateAll(paths => paths.map(path => path.getAttribute("d")))).toEqual(["M5 19 19 5", "M5 13v6h6", "M13 5h6v6"]);
+    expect(await moveToggle.locator("path").evaluateAll(paths => paths.map(path => path.getAttribute("d")))).toEqual(["M4 12h16", "M8 8l-4 4 4 4", "M16 8l4 4-4 4"]);
 
     for (const toggle of [resizeToggle, moveToggle]) {
       await expect(toggle).toHaveAttribute("aria-pressed", "false");

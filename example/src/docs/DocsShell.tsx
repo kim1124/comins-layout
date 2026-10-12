@@ -5,11 +5,19 @@ import { PanelLeft, Search } from "lucide-react";
 
 import { apiFeatures, docsNavGroups, docsPages, searchDocs } from "./content";
 import type { DocsCodeSample, DocsPage, DocsSearchItem } from "./types";
-import { examplesForApi, liveExamples, type LiveExampleId } from "./live-examples";
+import { examplesForApi, getLiveExampleUrl, liveExamples, type LiveExampleId } from "./live-examples";
+import type { Framework } from "../shared/example-catalog";
+import { getVueExampleSource } from "../vue/examples/registry";
+import { apiForFramework } from "../shared/framework-api";
+import { frameworkExamplePath } from "../shared/framework-navigation";
+import { FrameworkSource } from "../playground/FrameworkSource";
 
 function ApiReference() {
   const location = useLocation();
+  const [framework, setFramework] = useState<Framework>(() => new URLSearchParams(location.search).get('framework') === 'vue' ? 'vue' : 'react');
   const [active, setActive] = useState<{ owner: string; id: LiveExampleId } | null>(null);
+  const canonicalId = (id: LiveExampleId) => liveExamples[id].path.replace(/^\/examples\//, "");
+  const vueSample = (id: LiveExampleId): DocsCodeSample => ({ title: "Vue 실행 예제 소스", language: "vue", code: getVueExampleSource(canonicalId(id)) });
   const renderExamples = (owner: string, sectionId: string, name?: string) => (
     <div className="docs-live-examples">
       <div className="docs-live-examples__buttons" aria-label={name ? `${name} 관련 예제` : "실행 예제 선택"}>
@@ -22,23 +30,26 @@ function ApiReference() {
         <section className="docs-live-example" aria-label={`${liveExamples[active.id].label} 실행 영역`}>
           <header>
             <strong>{liveExamples[active.id].label}</strong>
-            <a href={liveExamples[active.id].path} target="_blank" rel="noreferrer">플레이그라운드에서 열기</a>
+            <a href={`${frameworkExamplePath(canonicalId(active.id), framework)}?locale=ko`} target="_blank" rel="noreferrer">플레이그라운드에서 열기</a>
             <button type="button" onClick={() => setActive(null)}>실행 예제 닫기</button>
           </header>
           <p>{liveExamples[active.id].instruction}</p>
-          <iframe key={active.id} title={`${liveExamples[active.id].label} 실행 예제`}
-            src={`${liveExamples[active.id].path}?embed=1`} />
+          <iframe data-live-example key={`${framework}:${active.id}`} title={`${liveExamples[active.id].label} 실행 예제`}
+            src={getLiveExampleUrl(canonicalId(active.id), framework, "ko")} />
+          <FrameworkSource exampleId={canonicalId(active.id)} framework={framework} locale="ko" />
         </section>
       ) : null}
     </div>
   );
   return (
     <div className="docs-reference-list">
+      <label>예제 프레임워크 <select aria-label="예제 프레임워크" value={framework} onChange={event => setFramework(event.target.value as Framework)}><option value="react">React</option><option value="vue">Vue 3</option></select></label>
+      {framework === "vue" ? <aside><p>Vue 지원은 0.3.0 소스 기준이며 npm 공개 여부는 레지스트리에서 확인합니다. 실행 화면·코드·상세 API는 Vue 기준이며 layoutCommit 등 이벤트는 @layout-commit으로 연결합니다. default/actions 슬롯을 사용하고, onLayoutMutation은 Composable 옵션 콜백을 유지합니다.</p></aside> : null}
       <nav className="docs-api-index" aria-label="API 기능 목차">
         <p>기능을 선택하고 실행 예제로 동작을 확인하세요. 적용 코드 다음에 상세 API가 이어집니다.</p>
         {apiFeatures.map((section) => <a key={section.id} href={`#${section.id}`}>{section.title}</a>)}
       </nav>
-      {apiFeatures.map((section, index) => (
+      {apiFeatures.map(item => apiForFramework(item, framework)).map((section, index) => (
         <section className="docs-reference-list__group" id={section.id} key={section.id}>
           <h2>
             {index + 1}. {section.title}
@@ -49,7 +60,7 @@ function ApiReference() {
           {renderExamples(section.id, section.id)}
           <section className="docs-reference-list__subsection" aria-label={`${section.title} 예제 코드`}>
             <h3>최소 적용 코드</h3>
-            {section.samples.map((sample) => (
+            {(framework === "vue" ? [vueSample(examplesForApi(section.id)[0]!)] : section.samples).map((sample) => (
               <div className="docs-reference-list__sample" key={sample.title}>
                 <CodeExample sample={sample} />
               </div>
@@ -105,7 +116,7 @@ function ApiReference() {
                 ))}
               </dl>
               {section.methods.map((method) =>
-                method.sample ? (
+                method.sample && framework === "react" ? (
                   <div className="docs-reference-list__sample" key={method.sample.title}>
                     <h4>간단한 예제 코드</h4>
                     <CodeExample sample={method.sample} />

@@ -1,4 +1,5 @@
-import type { DashboardResizeScheduler, DashboardWidgetResizeFrameEvent } from "./types";
+import type { DashboardResizeScheduler } from "./types";
+import type { DashboardWidgetResizeFrameEvent } from "../core/types";
 
 export function createDashboardResizeScheduler(
   callback: (event: DashboardWidgetResizeFrameEvent) => void,

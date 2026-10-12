@@ -4,13 +4,14 @@ import { useDashboardGrid } from "../../../src";
 import type { DashboardLayoutMutationEvent } from "../../../src";
 import { createNumberedPlaygroundFixture, createNumberedWidget } from "./fixtures";
 import type { ExampleWidgetData } from "./types";
+import { createExampleConditions } from "../shared/example-conditions";
 
 export function useNumberedDashboard(
   onLayoutMutation?: (event: DashboardLayoutMutationEvent<ExampleWidgetData>) => void,
 ) {
   const dashboard = useDashboardGrid<ExampleWidgetData>({
-    initialColumns: 12,
-    initialWidgets: createNumberedPlaygroundFixture(),
+    initialColumns: createExampleConditions("widget/basic").columns,
+    initialWidgets: createExampleConditions("widget/basic").widgets,
     onLayoutMutation,
   });
   const nextWidgetNumber = useRef(11);

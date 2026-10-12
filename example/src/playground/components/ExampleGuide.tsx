@@ -94,14 +94,14 @@ export function PlaygroundStage({
   const { text } = usePlaygroundLocale();
   const copy = kind === "controls"
     ? {
-        title: text("예제 컨트롤", "Example controls"),
+        title: text("제어", "Controls"),
         description: description ?? text(
-          "설정을 변경하고 결과 상태를 확인하는 컨트롤 영역입니다.",
-          "Use these controls to change settings and inspect resulting state.",
+          "실행 중 옵션을 변경할 수 있습니다.",
+          "Change options while the demo is running.",
         ),
       }
     : {
-        title: text("실행 예제", "Live example"),
+        title: text("실행 화면", "Live workspace"),
         description: description ?? text(
           "위젯을 조작하며 설명한 설정과 결과를 확인합니다.",
           "Interact with widgets to observe the documented settings and results.",

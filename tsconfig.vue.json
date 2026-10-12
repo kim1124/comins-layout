@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "jsx": "preserve", "types": ["vite/client"], "skipLibCheck": false },
+  "exclude": [],
+  "include": ["src/vue/**/*.ts", "src/vue/**/*.vue", "src/vue.ts", "test/typecheck/vue-state.ts", "test/typecheck/**/*.vue", "example/src/vue/**/*.ts", "example/src/vue/**/*.vue"]
+}

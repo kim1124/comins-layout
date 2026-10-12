@@ -33,13 +33,17 @@ import {
 import { WidgetPlayground as WidgetTestHarness } from "./playground/WidgetPlayground";
 import { compatibilityRoutes, playgroundPaths } from "./playground/routes";
 import { ReadmeDemoPage } from "./readme-demo";
+import { resolveFrameworkRoute, frameworkExamplePath } from "./shared/framework-navigation";
+import { VuePreview } from "./playground/VuePreview";
 import "gridstack/dist/gridstack.min.css";
 import "../../src/styles.css";
 import "./styles.css";
+import "./playground/framework-shell.css";
 
 const canonicalPaths = new Set([
   "/api",
   "/docs/getting-started",
+  "/docs/core-and-vue",
   ...playgroundPaths,
   "/readme-demo",
   "/__test__/widget",
@@ -48,6 +52,8 @@ const canonicalPaths = new Set([
 ]);
 
 function resolveInitialPath(pathname: string) {
+  const frameworkRoute = resolveFrameworkRoute(pathname);
+  if (frameworkRoute) return frameworkRoute.explicit ? frameworkExamplePath(frameworkRoute.example.id, frameworkRoute.framework) : frameworkRoute.example.path;
   if (canonicalPaths.has(pathname)) {
     return pathname;
   }
@@ -85,7 +91,10 @@ function ExampleApp() {
     return null;
   }
 
-  const playground = renderPlaygroundRoute(location.pathname);
+  const frameworkRoute = resolveFrameworkRoute(location.pathname);
+  const playground = frameworkRoute?.framework === "vue"
+    ? <VuePreview exampleId={frameworkRoute.example.id} />
+    : renderPlaygroundRoute(frameworkRoute?.example.path ?? location.pathname);
   if (playground) {
     return <PlaygroundShell routePath={location.pathname}>{playground}</PlaygroundShell>;
   }
@@ -93,6 +102,7 @@ function ExampleApp() {
   switch (location.pathname) {
     case "/api":
     case "/docs/getting-started":
+    case "/docs/core-and-vue":
       return <DocsShell />;
     case "/readme-demo":
       return <ReadmeDemoPage />;

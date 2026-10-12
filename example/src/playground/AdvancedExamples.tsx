@@ -19,6 +19,7 @@ import type { LocalizedText } from "./locale";
 import { usePlaygroundLocale } from "./locale";
 import type { ExampleWidgetData } from "./types";
 import { useNumberedDashboard } from "./use-numbered-dashboard";
+import { createExampleConditions, createNestedConditions } from "../shared/example-conditions";
 
 export type AdvancedFeature =
   | "cell-height"
@@ -222,10 +223,7 @@ function NestedPlayground({ depth, onDepthChange }: { depth: 2 | 3; onDepthChang
       ];
   const root = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 12,
-    initialWidgets: [
-      { ...createNumberedWidget(1), layout: { id: "widget-1", x: 0, y: 0, w: 8, h: 6 } },
-      { ...createNumberedWidget(2), layout: { id: "widget-2", x: 8, y: 0, w: 4, h: 2 } },
-    ],
+    initialWidgets: createExampleConditions("advanced/nested/basic").widgets,
   });
   return (
     <section className="playground-workspace" data-advanced-feature="nested">
@@ -291,19 +289,7 @@ function NestedPlayground({ depth, onDepthChange }: { depth: 2 | 3; onDepthChang
 function NestedLevel({ depth, level }: { depth: number; level: number }) {
   const dashboard = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 4,
-    initialWidgets: [
-      {
-        ...createNumberedWidget(level * 10 + 1),
-        data: {
-          description: `Nested level ${level}`,
-          value: `Nested ${level}`,
-          number: level * 10 + 1,
-          kind: "kpi",
-        },
-        layout: { id: `widget-${level * 10 + 1}`, x: 0, y: 0, w: depth > 1 ? 3 : 2, h: depth > 1 ? 4 : 2 },
-      },
-      { ...createNumberedWidget(level * 10 + 2), layout: { id: `widget-${level * 10 + 2}`, x: 3, y: 0, w: 1, h: 2 } },
-    ],
+    initialWidgets: createNestedConditions(level, depth).widgets,
   });
   return (
     <div className="nested-example-level" data-nested-level={level}>
@@ -333,7 +319,7 @@ export function ExternalDropTrashPlayground() {
   const { text } = usePlaygroundLocale();
   const dashboard = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 12,
-    initialWidgets: createNumberedPlaygroundFixture(4),
+    initialWidgets: createExampleConditions("advanced/external-drop-trash").widgets,
   });
   const [status, setStatus] = useState<
     { kind: "idle" | "reset" } | { kind: "removed"; widgetId: string }
@@ -425,7 +411,7 @@ export function PublicApiPlayground() {
   const { text } = usePlaygroundLocale();
   const dashboard = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 12,
-    initialWidgets: createNumberedPlaygroundFixture(4),
+    initialWidgets: createExampleConditions("advanced/public-api").widgets,
   });
   const gridRef = useRef<DashboardGridHandle>(null);
   const [result, setResult] = useState<string | null>(null);

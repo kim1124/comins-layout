@@ -219,8 +219,3 @@ export type DashboardWidgetExternalDropEvent = {
   columns: DashboardColumnCount;
   layout: DashboardWidgetLayout;
 };
-
-export type DashboardResizeScheduler = {
-  schedule: (event: DashboardWidgetResizeFrameEvent) => void;
-  cancel: () => void;
-};

@@ -1,6 +1,6 @@
-# Current Component API Reference (`0.2.3`)
+# Current Component API Reference (`0.3.0`)
 
-This reference follows source version `0.2.3`. For an interactive reading path, run the example server and open `/api`: choose a feature, run its shared Playground example, inspect minimal code, then expand detailed signatures. Registry availability is independent of this source reference.
+This reference follows source version `0.3.0`. For an interactive reading path, run the example server and open `/api`: choose a feature, run its shared Playground example, inspect minimal code, then expand detailed signatures. Registry availability is independent of this source reference.
 
 ## DashboardGrid
 

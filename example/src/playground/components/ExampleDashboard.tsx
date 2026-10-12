@@ -1,4 +1,4 @@
-import { Move, MoveDiagonal2, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useMemo, type Ref } from "react";
 
 import { DashboardGrid } from "../../../../src";
@@ -10,6 +10,7 @@ import type {
 import { usePlaygroundLocale } from "../locale";
 import type { DashboardRuntime, ExampleWidgetData } from "../types";
 import { WidgetSettingsTable } from "./WidgetSettingsTable";
+import { widgetControlIcons } from "../../shared/widget-control-icons";
 
 type ExampleDashboardProps = Pick<
   DashboardGridProps<ExampleWidgetData>,
@@ -61,7 +62,9 @@ export function ExampleDashboard({
           type="button"
           onClick={() => dashboard.commands.updateWidget(widget.id, { resizable: resizeLocked })}
         >
-          <MoveDiagonal2 aria-hidden="true" size={15} />
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {widgetControlIcons.resize.map(d => <path key={d} d={d} />)}
+          </svg>
         </button>
         <button
           aria-label={locale === "ko"
@@ -73,7 +76,9 @@ export function ExampleDashboard({
           type="button"
           onClick={() => dashboard.commands.updateWidget(widget.id, { movable: moveLocked })}
         >
-          <Move aria-hidden="true" size={15} />
+          <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            {widgetControlIcons.move.map(d => <path key={d} d={d} />)}
+          </svg>
         </button>
         <button
           aria-label={text(`${title} 삭제`, `Remove ${title}`)}

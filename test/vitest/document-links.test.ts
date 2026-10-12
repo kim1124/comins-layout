@@ -3,6 +3,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { docsPages } from "../../example/src/docs/content";
+import { resolveFrameworkRoute } from "../../example/src/shared/framework-navigation";
 import {
   compatibilityRoutes,
   playgroundPaths,
@@ -198,12 +199,13 @@ describe("active documentation links", () => {
         .map((match) => match[1])
         .filter((route): route is string => Boolean(route));
       for (const route of documentedRoutes) {
-        expect(implementedRoutes.has(route), `${source} -> ${route}`).toBe(true);
+        const frameworkRoute = resolveFrameworkRoute(route);
+        expect(implementedRoutes.has(route) || Boolean(frameworkRoute && implementedRoutes.has(frameworkRoute.example.path)), `${source} -> ${route}`).toBe(true);
       }
     }
   });
 
-  it("keeps 0.2 patch documentation on the 0.2.x compatibility contract", () => {
+  it("keeps 0.2 compatibility in 0.3.0 and defers announced removals", () => {
     const readme = read("README.md");
     const english = [
       read("docs/user/03-widget-interactions-and-actions.md"),
@@ -216,6 +218,9 @@ describe("active documentation links", () => {
       read("docs/ko/11-engine-options.md"),
     ].join("\n");
 
+    expect(readme).toContain("removal is deferred to a future version");
+    expect(english).toContain("removal deferred to a future version");
+    expect(korean).toContain("제거는 후속 버전으로 이연");
     expect(readme).toContain("`0.2.x`");
     expect(english).toContain("`0.2.x`");
     expect(korean).toContain("`0.2.x`");
