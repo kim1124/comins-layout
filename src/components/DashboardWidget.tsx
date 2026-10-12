@@ -1,5 +1,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { Maximize2, Minimize2, RotateCcw, Trash2 } from "lucide-react";
+import { WidgetActionIcon } from "./WidgetActionIcon";
+import { DEFAULT_ACTION_LABELS } from "../ui/widget-actions";
+import type { DashboardWidgetActionLabels } from "../ui/widget-actions";
+export type { DashboardWidgetActionLabels } from "../ui/widget-actions";
 import type {
   DashboardWidget as DashboardWidgetModel,
   DashboardWidgetInteractionEvent,
@@ -23,20 +26,6 @@ export type DashboardWidgetShellProps<TData = unknown> = {
   onTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
   onAfterTitleDoubleClick?: (event: DashboardWidgetInteractionEvent) => void;
   renderActions?: (widget: DashboardWidgetModel<TData>) => ReactNode;
-};
-
-export type DashboardWidgetActionLabels = {
-  maximize: string;
-  minimize: string;
-  restore: string;
-  remove: string;
-};
-
-const DEFAULT_ACTION_LABELS: DashboardWidgetActionLabels = {
-  maximize: "최대화",
-  minimize: "최소화",
-  restore: "복원",
-  remove: "삭제",
 };
 
 export function DashboardWidgetShell<TData = unknown>({
@@ -84,13 +73,13 @@ export function DashboardWidgetShell<TData = unknown>({
             {renderActions ? renderActions(widget) : (
               <>
                 <button type="button" aria-label={`${title} ${labels.maximize}`} onClick={() => onMaximize?.(widget.id)}>
-                  <Maximize2 aria-hidden="true" size={16} strokeWidth={2} />
+                  <WidgetActionIcon action="maximize" />
                 </button>
                 <button type="button" aria-label={`${title} ${labels.minimize}`} onClick={() => onMinimize?.(widget.id)}>
-                  <Minimize2 aria-hidden="true" size={16} strokeWidth={2} />
+                  <WidgetActionIcon action="minimize" />
                 </button>
                 <button type="button" aria-label={`${title} ${labels.restore}`} onClick={() => onRestore?.(widget.id)}>
-                  <RotateCcw aria-hidden="true" size={16} strokeWidth={2} />
+                  <WidgetActionIcon action="restore" />
                 </button>
                 <button
                   type="button"
@@ -98,7 +87,7 @@ export function DashboardWidgetShell<TData = unknown>({
                   className="comins-grid-layout-widget__action--danger"
                   onClick={() => onRemove?.(widget.id)}
                 >
-                  <Trash2 aria-hidden="true" size={16} strokeWidth={2} />
+                  <WidgetActionIcon action="remove" />
                 </button>
               </>
             )}

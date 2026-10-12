@@ -15,7 +15,7 @@ The adapter layer is the only runtime source boundary that may talk directly to 
 - Prefer package-owned serializable layout types at the boundary.
 - DO NOT: recreate GridStack instances for routine layout refreshes.
 - MUST: drag and resize hot paths imperative and narrowly scoped.
-- Batch or defer React-facing persistence until interaction completion when possible.
+- Batch or defer renderer-facing persistence until interaction completion when possible. React and Vue own their DOM and controlled state; the adapter only registers and updates geometry.
 - Clean up GridStack instances and event listeners on unmount.
 
 ## Verification

@@ -1,0 +1,26 @@
+import type { Locale } from './locale';
+const descriptions: Record<string, [string, string]> = {
+  'widget/basic': ['위젯을 이동·리사이즈하고 선택한 위젯을 최대화·최소화·복원합니다.', 'Move and resize widgets, then maximize, minimize or restore the selected widget.'],
+  'widget/manage': ['위젯을 추가하거나 모두 삭제하고 초기 배치를 복원합니다.', 'Add widgets, clear the dashboard and restore the initial layout.'],
+  'widget/events': ['이동·리사이즈·제목 더블 클릭의 이벤트 순서를 확인합니다.', 'Inspect the event sequence for movement, resizing and title double-clicks.'],
+  'layout/basic': ['1~12컬럼을 전환하며 컬럼별 배치를 비교합니다.', 'Switch between 1–12 columns and compare column-specific layouts.'],
+  'layout/lock': ['이동·리사이즈 잠금과 엔진 정적 모드를 비교합니다.', 'Compare interaction locking with the engine’s static mode.'],
+  'layout/persistence': ['전체 상태를 JSON으로 저장하고 변경한 배치를 복원합니다.', 'Save complete state as JSON and restore a changed layout.'],
+  'layout/arrange': ['자동 정렬과 행의 빈 공간을 채우는 너비 확장을 비교합니다.', 'Compare automatic arrangement with expanding widgets to fill row gaps.'],
+  'layout/events': ['상태 명령으로 변경된 레이아웃 이벤트를 확인합니다.', 'Inspect layout events produced by state commands.'],
+  'advanced/cell-height': ['셀 높이를 바꿔 같은 행 수의 픽셀 높이를 비교합니다.', 'Change cell height and compare pixel heights for the same row count.'],
+  'advanced/grid-lines': ['예제 전용 보조선으로 컬럼과 행 단위를 확인합니다.', 'Use visual guides to inspect column and row units.'],
+  'advanced/float': ['위젯 위쪽의 빈 공간을 유지하거나 압축하는 차이를 비교합니다.', 'Compare preserving gaps above widgets with packing them upward.'],
+  'advanced/lazy-load': ['내부 스크롤로 콘텐츠의 최초 렌더링 시점과 개수를 확인합니다.', 'Scroll to inspect when content first mounts and the rendered count.'],
+  'advanced/mobile-touch': ['터치 조작과 리사이즈 핸들의 표시 방식을 비교합니다.', 'Compare touch interaction and resize-handle visibility.'],
+  'advanced/nested/basic': ['2·3단계 Grid의 독립 상태와 중첩 조작을 확인합니다.', 'Explore independent state and interaction in two- and three-level grids.'],
+  'advanced/responsive': ['컬럼 결정 방식과 배치 정책을 따로 선택해 너비 변화를 비교합니다.', 'Compare width changes with separate column calculation and layout policies.'],
+  'advanced/rtl': ['오른쪽 기준 배치에서 이동·리사이즈 결과를 확인합니다.', 'Explore movement and resizing in a right-to-left layout.'],
+  'advanced/size-to-content': ['내용을 추가·삭제하며 자동 높이와 고정 높이를 비교합니다.', 'Add and remove content to compare automatic and fixed heights.'],
+  'advanced/title-drag': ['제목과 본문에서 드래그 시작 영역의 차이를 확인합니다.', 'Compare drag activation from the title and body.'],
+  'advanced/transform': ['CSS 변환이 적용된 영역에서 포인터와 위젯 배치를 확인합니다.', 'Inspect pointer interaction inside a CSS-transformed container.'],
+  'advanced/external-drop-trash': ['위젯을 외부 삭제 영역에 놓고 제어 상태 갱신을 확인합니다.', 'Drop widgets onto an external deletion area and inspect state updates.'],
+  'advanced/multi-grid/horizontal': ['팔레트 추가와 두 Grid 사이의 이동·복사를 비교합니다.', 'Compare palette insertion and moving or copying between two grids.'],
+  'advanced/public-api': ['엔진 상태를 조회하고 배치 정리·커밋·재측정을 실행합니다.', 'Query engine state, compact layouts, commit and remeasure content.'],
+};
+export function exampleDescription(id: string, locale: Locale) { return descriptions[id]?.[locale === 'ko' ? 0 : 1] ?? ''; }

@@ -1,3 +1,11 @@
+import { resolveExample, type Framework } from "../shared/example-catalog";
+import type { Locale } from "../shared/locale";
+export function getLiveExampleUrl(exampleId: string, framework: Framework, locale: Locale): string {
+  const example = resolveExample(exampleId);
+  if (!example) throw new Error("Unsupported example ID");
+  const query = new URLSearchParams(framework === "vue" ? { example: example.id, embed: "1", locale } : { embed: "1", locale });
+  return `${framework === "vue" ? "/vue.html" : example.path}?${query}`;
+}
 // The API reference runs the canonical Playground routes, not a second implementation.
 export const liveExamples = {
   basic: { label: "위젯 기본", path: "/examples/widget/basic", instruction: "위젯을 이동·리사이즈하고 설정 표의 좌표와 크기를 확인합니다." },

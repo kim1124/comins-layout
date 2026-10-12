@@ -2,7 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import type { ForwardedRef, ReactElement, ReactNode, RefAttributes } from "react";
 import { clampDashboardColumnCount } from "../core/columns";
 import { validateDashboardGridConfiguration } from "../core/configuration";
-import { createDashboardResizeScheduler } from "../core/resize-scheduler";
+import { createDashboardResizeScheduler } from "../browser/resize-scheduler";
 import type {
   DashboardColumnCount,
   DashboardExternalDropTarget,
@@ -18,8 +18,11 @@ import type {
   DashboardWidgetResizeFrameEvent,
   DashboardWidgetTransferMode,
 } from "../core/types";
-import type { DashboardGridAdapter, DashboardGridHandle } from "../gridstack/adapter";
+import type { DashboardGridHandle } from "../gridstack/adapter";
 import { validateDashboardExternalDropTargetSelectors } from "../gridstack/external-drop-target";
+import { createDashboardGridConnection } from "../browser/grid-connection";
+import { observeDashboardContent } from "../browser/lazy-content";
+import { isDashboardContentPositioned } from "../gridstack/element-state";
 import { DashboardWidgetShell } from "./DashboardWidget";
 import type { DashboardWidgetActionLabels } from "./DashboardWidget";
 
@@ -135,7 +138,7 @@ function DashboardGridInner<TData = unknown>(
     validateDashboardExternalDropTargetSelectors(document, externalDropTargets);
   }
   const gridElementRef = useRef<HTMLDivElement>(null);
-  const adapterRef = useRef<DashboardGridAdapter<TData> | undefined>(undefined);
+  const connection = useMemo(() => createDashboardGridConnection<TData>(), []);
   const [activeColumns, setActiveColumns] = useState(() => clampDashboardColumnCount(columns));
   const handleColumnsChange = useCallback((nextColumns: DashboardColumnCount) => {
     setActiveColumns(nextColumns);
@@ -151,15 +154,15 @@ function DashboardGridInner<TData = unknown>(
   useImperativeHandle(
     ref,
     () => ({
-      getGridStack: () => adapterRef.current?.grid ?? null,
-      getColumnCount: () => adapterRef.current?.grid.getColumn() ?? null,
-      getRowCount: () => adapterRef.current?.grid.getRow() ?? null,
-      getFloat: () => adapterRef.current?.grid.getFloat() ?? null,
-      isAreaEmpty: (layout) => adapterRef.current?.grid.isAreaEmpty(layout.x, layout.y, layout.w, layout.h) ?? null,
-      willItFit: (layout) => adapterRef.current?.grid.willItFit(layout) ?? null,
-      refresh: () => adapterRef.current?.refresh(),
-      compact: (layout, doSort) => adapterRef.current?.compact(layout, doSort) ?? null,
-      commitLayout: () => adapterRef.current?.commit() ?? null,
+      getGridStack: () => connection.getAdapter()?.grid ?? null,
+      getColumnCount: () => connection.getAdapter()?.grid.getColumn() ?? null,
+      getRowCount: () => connection.getAdapter()?.grid.getRow() ?? null,
+      getFloat: () => connection.getAdapter()?.grid.getFloat() ?? null,
+      isAreaEmpty: (layout) => connection.getAdapter()?.grid.isAreaEmpty(layout.x, layout.y, layout.w, layout.h) ?? null,
+      willItFit: (layout) => connection.getAdapter()?.grid.willItFit(layout) ?? null,
+      refresh: () => connection.getAdapter()?.refresh(),
+      compact: (layout, doSort) => connection.getAdapter()?.compact(layout, doSort) ?? null,
+      commitLayout: () => connection.getAdapter()?.commit() ?? null,
     }),
     [],
   );
@@ -244,7 +247,6 @@ function DashboardGridInner<TData = unknown>(
       widgets,
     ],
   );
-  const adapterOptionsRef = useRef(adapterOptions);
   const adapterReinitializeKey = useMemo(
     () => JSON.stringify([engineOptions?.rtl ?? null, engineOptions?.sizeToContent ?? null]),
     [engineOptions?.rtl, engineOptions?.sizeToContent],
@@ -256,46 +258,20 @@ function DashboardGridInner<TData = unknown>(
       return;
     }
 
-    let mounted = true;
-    let adapter: DashboardGridAdapter<TData> | undefined;
-
-    void import("../gridstack/adapter")
-      .then(({ createDashboardGridAdapter }) => {
-        if (!mounted || !gridElement.isConnected) {
-          return;
-        }
-        const nextAdapter = createDashboardGridAdapter(gridElement, adapterOptionsRef.current);
-        if (!nextAdapter) {
-          console.error("Failed to initialize comins-grid-layout adapter.");
-          return;
-        }
-        adapter = nextAdapter;
-        adapterRef.current = nextAdapter;
-      })
-      .catch(() => {
-        if (mounted) {
-          console.error("Failed to initialize comins-grid-layout adapter.");
-        }
-      });
-
+    connection.connect(gridElement, adapterOptions);
     return () => {
-      mounted = false;
       resizeScheduler.cancel();
-      if (adapterRef.current === adapter) {
-        adapterRef.current = undefined;
-      }
-      adapter?.destroy();
+      connection.disconnect();
     };
-  }, [adapterReinitializeKey]);
+  }, [adapterReinitializeKey, connection, resizeScheduler]);
 
   useEffect(() => {
-    adapterOptionsRef.current = adapterOptions;
-    adapterRef.current?.sync(adapterOptions);
-  }, [adapterOptions]);
+    connection.sync(adapterOptions);
+  }, [adapterOptions, connection]);
 
   useEffect(() => {
     if (refreshKey !== undefined) {
-      adapterRef.current?.refresh();
+      connection.getAdapter()?.refresh();
     }
   }, [refreshKey]);
 
@@ -378,45 +354,13 @@ function DashboardWidgetContent<TData>({
   const [visible, setVisible] = useState(!enabled);
 
   useEffect(() => {
-    if (!enabled) {
-      setVisible(true);
-      return;
-    }
     const element = contentRef.current;
-    if (!element || typeof IntersectionObserver === "undefined") {
-      setVisible(true);
-      return;
-    }
-    const grid = element.closest<HTMLElement>(".grid-stack");
-    const item = element.closest<HTMLElement>(".grid-stack-item") as (HTMLElement & { gridstackNode?: unknown }) | null;
-    let frame: number | undefined;
-    let observer: IntersectionObserver | undefined;
-    let cancelled = false;
-    const observePositionedItem = () => {
-      if (cancelled) {
-        return;
-      }
-      const initializedGrid = grid as (HTMLElement & { gridstack?: unknown }) | null;
-      if (!initializedGrid?.gridstack || !item?.gridstackNode) {
-        frame = window.requestAnimationFrame(observePositionedItem);
-        return;
-      }
-      observer = new IntersectionObserver((entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setVisible(true);
-          observer?.disconnect();
-        }
-      }, { root: element.closest("[data-dashboard-lazy-scroll]") });
-      observer.observe(element);
-    };
-    observePositionedItem();
-    return () => {
-      cancelled = true;
-      if (frame !== undefined) {
-        window.cancelAnimationFrame(frame);
-      }
-      observer?.disconnect();
-    };
+    if (!element) return;
+    return observeDashboardContent(element, {
+      enabled,
+      isPositioned: () => isDashboardContentPositioned(element),
+      onVisible: () => setVisible(true),
+    });
   }, [enabled]);
 
   return (

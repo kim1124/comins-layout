@@ -1,4 +1,6 @@
 dist/
+dist-examples/
+/*.tgz
 node_modules/
 test/playwright/html-report/
 test/playwright/results/

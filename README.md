@@ -7,11 +7,51 @@
 [![Verify](https://github.com/kim1124/comins-layout/actions/workflows/verify.yml/badge.svg?branch=main)](https://github.com/kim1124/comins-layout/actions/workflows/verify.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/kim1124/comins-layout/blob/main/LICENSE)
 
-`comins-grid-layout` is a React dashboard layout module powered by GridStack. It combines serializable React state with widget CRUD, drag, resize, responsive columns, maximize/minimize flows, persistence, and an advanced escape hatch to the underlying GridStack API.
+`comins-grid-layout` is a dashboard layout module powered by GridStack. Version 0.3.0 supports React, Vue 3 and a framework-independent Core. It combines serializable state with widget CRUD, drag, resize, responsive columns, maximize/minimize flows, persistence, and an advanced escape hatch to the underlying GridStack API.
 
-Current source version: **0.2.3**, including copy-drag previews and clearer interactive documentation. Source documentation and recordings describe this version; the npm badge above reports registry availability independently. See the [0.2.3 notes](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md#023) for the versioned changes and migration guidance.
+These guides describe source version **0.3.0**; the existing React GIFs were recorded with **0.2.3**. The npm badge reports registry availability independently. See the [0.3.0 notes](https://github.com/kim1124/comins-layout/blob/main/CHANGELOG.md#030) for versioned changes and migration guidance.
 
 ## Feature highlights
+
+### Core and Vue 3 (0.3.0)
+
+Version 0.3.0 adds framework-independent `comins-grid-layout/core`, explicit `/react`, and a Vue 3.5+ `/vue` renderer while preserving root React imports and GridStack behavior. The earlier npm 0.2.3 release has only the root React entry. Only React and Vue are implemented; Vanilla and Svelte remain future extensions. See the [English guide](https://github.com/kim1124/comins-layout/blob/main/docs/user/15-core-and-vue.md) or [한국어 가이드](https://github.com/kim1124/comins-layout/blob/main/docs/ko/15-core-and-vue.md) for lifecycle and CSR-only boundaries.
+
+The shared Playground offers React/Vue tabs for all 22 examples, with matching initial layouts/settings and actual framework source files. Open `/examples/widget/basic/react` or `/examples/widget/basic/vue`; switching frameworks resets the example, while changing language preserves its state. API examples and detailed callback/emit/slot names follow the selected framework. Existing GIFs below document React only.
+
+The Playground follows the Comins Sortable layout: a shared header/sidebar, example intro and API chips, underline framework tabs, right-aligned controls, and separate live workspace/source cards. React and Vue use the same panel spacing and responsive shell; widget-specific controls remain Grid Layout features.
+
+### Vue quick start
+
+Install `comins-grid-layout@0.3.0` and Vue `>=3.5.0 <4.0.0`. For an unpublished candidate, use a local build until registry availability is confirmed. Import both stylesheets once in the browser application.
+
+```bash
+# Replace the tarball path with your locally built candidate.
+npm install ./comins-grid-layout-candidate.tgz vue@^3.5
+```
+
+```vue
+<script setup lang="ts">
+import { DashboardGrid, useDashboardGrid } from 'comins-grid-layout/vue';
+import 'gridstack/dist/gridstack.min.css';
+import 'comins-grid-layout/styles.css';
+
+const { widgets, columns, commands, refreshVersion } = useDashboardGrid<{ value: number }>({
+  initialWidgets: [{ id: 'sales', title: 'Sales', layout: { id: 'sales', x: 0, y: 0, w: 3, h: 2 }, data: { value: 100 } }],
+});
+</script>
+
+<template>
+  <DashboardGrid :widgets="widgets" :columns="columns" :refresh-key="refreshVersion"
+    @layout-commit="commands.applyLayoutSnapshot" @columns-change="commands.setColumns"
+    @maximize-widget="commands.maximizeWidget" @minimize-widget="commands.minimizeWidget"
+    @restore-widget="commands.restoreWidget" @remove-widget="commands.removeWidget">
+    <template #default="{ widget }">{{ widget.data?.value }}</template>
+  </DashboardGrid>
+</template>
+```
+
+Connect the emitted layout/action events to state commands to retain interaction results. `default` renders widget content; `actions` replaces header controls. See the bilingual guide for complete event and scope cleanup contracts.
 
 The local example routes below require a source checkout. Follow [Run the demo](#run-the-demo) before opening them.
 
@@ -82,6 +122,8 @@ Local example: `/examples/advanced/size-to-content` · [Guide](https://github.co
 | Surface | Supported contract |
 | --- | --- |
 | React / React DOM | `>=18.0.0 <20.0.0` peer dependencies |
+| Vue 3 | `>=3.5.0 <4.0.0`, browser CSR; optional peer |
+| Core | Pure serializable state helpers/types; no DOM or framework required |
 | TypeScript | Declarations and declaration maps included; verified with TypeScript 6 |
 | Desktop browsers | Desktop Chrome is automated with Playwright Chromium. Chromium compatibility includes Edge-class engines, but branded Edge is not directly certified |
 | Firefox | Representative engine-sensitive scenarios tagged `@firefox-parity`; not the complete Playwright suite |
@@ -109,7 +151,9 @@ npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:6001/docs/getting-started`. The same server exposes every example route referenced below.
+Open `http://127.0.0.1:6001/examples/widget/basic/react`. The React/Vue tabs retain the selected example and switch its native renderer. The same server exposes `/api`, `/docs/core-and-vue`, and the older React example URLs referenced below.
+
+The introductory guide remains available at `http://127.0.0.1:6001/docs/getting-started`.
 
 Import both stylesheets once in the client bundle:
 
@@ -236,7 +280,7 @@ Widget IDs are preserved across CRUD, movement, resize, serialization, restore, 
 
 ### Deprecated compatibility props
 
-These aliases remain callable throughout `0.2.x` with their existing order and are planned for removal in `0.3.0`. New code should use the canonical lifecycle props above.
+These deprecated aliases retain their `0.2.x` behavior and existing order in `0.3.0`. The previously announced removal is deferred to a future version. New code should use the canonical lifecycle props above.
 
 | Deprecated prop | Replacement | Preserved `0.2.x` behavior |
 | --- | --- | --- |

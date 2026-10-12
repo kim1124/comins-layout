@@ -1,10 +1,14 @@
 # comins-grid-layout Docs
 
-이 디렉터리는 `comins-grid-layout` 0.2.3 기준 사용자 가이드, 패키지 설계, public API, 검증 기준을 관리한다.
+이 디렉터리는 `comins-grid-layout` 0.3.0 기준 사용자 가이드, 패키지 설계, public API, 검증 기준을 관리한다.
 
-변경 범위와 마이그레이션 안내는 `CHANGELOG.md`의 **0.2.3** 항목을 따른다. 문서와 GIF의 버전은 소스 기준이며, npm 공개 여부는 레지스트리에서 별도로 확인한다.
+변경 범위와 마이그레이션 안내는 `CHANGELOG.md`의 **0.3.0** 항목을 따른다. 문서와 GIF의 버전은 소스 기준이며, npm 공개 여부는 레지스트리에서 별도로 확인한다.
 
 ## 사용자 가이드
+
+**0.3.0** `/core`·`/react`·`/vue` 범위는 [국문 Core/Vue 가이드](ko/15-core-and-vue.md)와 [영문 가이드](user/15-core-and-vue.md)에 별도로 기록한다. npm 공개 여부는 레지스트리에서 별도로 확인한다. `/api`의 프레임워크 선택은 checkout의 React/Vue 실행 예제를 전환한다.
+
+공통 Playground는 `/examples/widget/basic/react`, `/examples/widget/basic/vue`로 진입한다. 예제 메뉴·언어·코드 패널을 공유하고 React/Vue 탭은 초기화된 독립 renderer로 전환한다. 같은 예제는 초기 위젯·배치·컬럼·셀 높이·주요 옵션을 통일한다. API 상세 표도 선택한 프레임워크의 콜백 또는 emit/slot 표기를 사용한다. 기존 React 예제 링크는 유지한다.
 
 - `docs/user`: 영문 primary 가이드. 현재 공개 API, 실행 예제, 상태 소유권, 실패·미지원 경계를 설명한다.
 - `docs/ko`: 영문과 동일한 파일 구조의 국문 가이드다.
@@ -27,7 +31,7 @@
 
 - `01-requirements.md`: 사용자 요구사항을 패키지 관점으로 정리한 문서
 - `02-architecture.md`: React 어댑터, GridStack 엔진, transfer, lazy content 경계와 상태 모델 구조
-- `03-component-api-draft.md`: 파일명은 유지하지만 내용은 `0.2.3` current 컴포넌트·훅 API reference
+- `03-component-api-draft.md`: 파일명은 유지하지만 내용은 `0.3.0` current 컴포넌트·훅 API reference
 - `assets/README.md`: README GIF의 촬영 소스, 버전, 재생성 및 검증 방법
 - `04-verification-strategy.md`: Vitest, Playwright, 빌드 검증 기준
 - `05-open-questions.md`: resolved product decisions, explicit unsupported behavior, and provider-side boundaries

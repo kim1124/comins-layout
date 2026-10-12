@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type DocsCodeLanguage = "bash" | "css" | "ts" | "tsx";
+export type DocsCodeLanguage = "bash" | "css" | "ts" | "tsx" | "vue";
 
 export type DocsCodeSample = {
   code: string;

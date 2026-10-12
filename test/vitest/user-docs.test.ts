@@ -25,6 +25,7 @@ const userDocs = [
   "12-advanced-gridstack-access.md",
   "13-styling-accessibility-and-boundaries.md",
   "14-playground.md",
+  "15-core-and-vue.md",
 ] as const;
 
 const canonicalRoutes = [

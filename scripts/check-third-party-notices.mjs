@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
 
 const FAILURE = "third-party-notice-check: failed\n";
 const RELATIONSHIPS = new Set(["external runtime dependency", "peer dependency"]);
@@ -69,7 +70,19 @@ try {
     throw new Error("dependencies missing");
   }
 
-  const rows = parseNoticeTable(readFileSync(join(root, "THIRD_PARTY_NOTICES.md"), "utf8"));
+  const notice = readFileSync(join(root, "THIRD_PARTY_NOTICES.md"), "utf8");
+  const rows = parseNoticeTable(notice);
+  if (existsSync(join(root, "src/ui/icons.ts"))) {
+    const copiedLicense = readFileSync(join(root, "THIRD_PARTY_LICENSES/lucide.txt"));
+    const expectedHash = "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57";
+    if (createHash("sha256").update(copiedLicense).digest("hex") !== expectedHash) {
+      throw new Error("copied icon license incomplete");
+    }
+    for (const record of ["lucide-react 1.40.0", "maximize-2", "minimize-2", "rotate-ccw", "trash-2", "ISC", "MIT", "unchanged", "THIRD_PARTY_LICENSES/lucide.txt"]) {
+      if (!notice.includes(record)) throw new Error("copied icon source record incomplete");
+    }
+    if (!packageJson.files?.includes("THIRD_PARTY_LICENSES")) throw new Error("copied icon license not distributed");
+  }
   if (rows.length !== expected.size || new Set(rows.map((row) => row.name)).size !== rows.length) {
     throw new Error("notice dependency set mismatch");
   }

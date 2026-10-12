@@ -13,10 +13,8 @@ import type { PlaygroundLocale } from "./routes";
 
 const PLAYGROUND_LOCALE_KEY = "comins-grid-layout-playground-locale";
 
-export type LocalizedText = Readonly<{
-  en: string;
-  ko: string;
-}>;
+export type { LocalizedText } from "../shared/locale";
+export { resolveLocalizedText } from "../shared/locale";
 
 type PlaygroundLocaleContextValue = {
   locale: PlaygroundLocale;
@@ -53,10 +51,6 @@ export function usePlaygroundLocale(): PlaygroundLocaleContextValue {
     throw new Error("playground-localization: missing PlaygroundLocaleProvider");
   }
   return context;
-}
-
-export function resolveLocalizedText(copy: LocalizedText, locale: PlaygroundLocale): string {
-  return copy[locale];
 }
 
 function readPlaygroundLocale(): PlaygroundLocale {

@@ -1,4 +1,4 @@
-import type { DashboardWidget } from "../../../src";
+import type { DashboardWidget } from "../../../src/core";
 
 import type { ExampleWidgetData } from "./types";
 

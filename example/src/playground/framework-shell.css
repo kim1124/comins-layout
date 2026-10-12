@@ -1,0 +1,118 @@
+/* Comins Playground visual conventions: Sortable layout, MIT, Copyright 2026 MS.
+   Scoped to this example shell; package styles and embedded docs are independent. */
+.playground-shell { height:auto; overflow:visible; min-height:100vh; background:#f4f7f5; color:#19201f; }
+.playground-shell .docs-top-nav { height:72px; min-height:72px; padding:0 32px; background:rgba(255,255,255,.94); border-bottom:1px solid #dce5e0; }
+.playground-shell .docs-top-nav__brand img { width:40px; height:40px; }
+.playground-shell .docs-top-nav__brand strong { font-size:16px; }
+.playground-shell .docs-top-nav__brand span { color:#728079; font-size:11px; text-transform:uppercase; }
+.playground-shell .docs-shell__body { display:grid; grid-template-columns:248px minmax(0,1fr); min-height:calc(100vh - 72px); }
+.playground-shell .docs-sidebar { width:auto; background:#fbfcfb; border-right:1px solid #dce5e0; padding:28px 18px; }
+.playground-shell .docs-sidebar__group h2 { color:#87938d; font-size:11px; letter-spacing:.12em; margin:0 10px 12px; text-transform:uppercase; }
+.playground-shell .docs-sidebar__link { border-radius:10px; padding:12px; font-size:13px; }
+.playground-shell .playground-sidebar__submenu-link { padding:10px 12px 10px 24px; }
+.playground-shell .docs-sidebar__link[aria-current="page"] { background:#e4f4ec; color:#12583e; font-weight:750; }
+.playground-shell .playground-main { display:block; min-width:0; padding:36px clamp(20px,4vw,56px) 64px; }
+.playground-shell .framework-intro { display:flex; align-items:end; justify-content:space-between; gap:24px; margin:0; padding:0; }
+.playground-shell .framework-route { color:#42826a; font:12px ui-monospace,monospace; }
+.playground-shell .framework-intro h1 { margin:8px 0; font-size:clamp(30px,4vw,46px); letter-spacing:-.04em; line-height:1.2; }
+.playground-shell .framework-intro p { margin:0; color:#66736d; font-size:14px; line-height:1.6; }
+.playground-shell .framework-intro-actions { display:flex; flex-shrink:0; align-items:center; gap:10px; }
+.playground-shell .framework-intro-actions button { background:#fff; border:1px solid #cfdad5; border-radius:10px; font-family:inherit; font-weight:700; font-size:13px; padding:11px 16px; white-space:nowrap; }
+.playground-shell .framework-intro-actions a { color:#345248; font-size:13px; }
+.playground-shell .framework-api { display:flex; gap:6px; margin:16px 0 0; }
+.playground-shell .framework-api code { background:#e8eeeb; border-radius:6px; color:#345248; font-size:11px; padding:5px 8px; }
+.playground-shell .framework-toolbar { display:block; margin:34px 0 0; }
+.playground-shell .framework-tabs { display:flex; gap:6px; margin:0; border-bottom:1px solid #d7e0dc; }
+.playground-shell .framework-tabs button { display:flex; align-items:center; gap:8px; min-width:100px; padding:13px 16px; border:0; border-radius:0; border-bottom:2px solid transparent; background:transparent; font:inherit; font-size:14px; color:inherit; }
+.playground-shell .framework-tabs button[aria-selected="true"] { border-bottom-color:#176343; background:transparent; color:#176343; font-weight:800; }
+.framework-dot { width:8px; height:8px; border-radius:50%; background:#48bfe3; }.framework-dot--vue { background:#42b883; }
+.playground-shell .framework-runtime { padding:0; }
+.playground-shell .framework-runtime .playground-workspace,
+.playground-shell .framework-vue-preview > div { display:grid; gap:22px; min-width:0; }
+.playground-shell .framework-runtime[role="tabpanel"] .playground-header,
+.playground-shell .framework-runtime .playground-feature-guide,
+.playground-shell .framework-vue-preview > div > p:first-child { display:none; }
+.playground-shell .framework-vue-preview > div > pre { display:none; }
+.playground-shell .playground-example-stage { margin:0; padding:0; min-width:0; background:#fff; border:1px solid #dce5e0; border-radius:16px; box-shadow:0 12px 35px rgba(28,60,48,.055); overflow:hidden; }
+.playground-shell .playground-example-stage--controls { margin-top:22px; padding:15px 18px; display:grid; grid-template-columns:minmax(190px,max-content) minmax(0,1fr); align-items:center; gap:18px; border-radius:14px; box-shadow:none; }
+.playground-shell .playground-example-stage--controls > header { margin:0; padding:0; border:0; }
+.playground-shell .playground-example-stage--controls > :not(header) { min-width:0; grid-column:2; }
+.playground-shell .playground-example-stage--controls > .transfer-palette { grid-column:1 / -1; }
+.playground-shell .playground-example-stage--controls > header h2 { color:#87938d; font-size:11px; font-weight:800; letter-spacing:.12em; margin:0; text-transform:uppercase; }
+.playground-shell .playground-example-stage--controls > header p { margin:4px 0 0; color:#7b8882; font-size:12px; line-height:1.6; }
+.playground-shell .playground-example-stage--controls .vue-controls,
+.playground-shell .playground-example-stage--controls .playground-example-toolbar,
+.playground-shell .playground-example-stage--controls .example-actions { margin:0; padding:0; border:0; background:transparent; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; min-height:34px; }
+.playground-shell .playground-example-stage--controls .playground-example-toolbar__actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.playground-shell .playground-example-stage--controls button { background:#f5f8f6; border:1px solid #d6e0db; border-radius:8px; padding:8px 11px; min-height:34px; font-size:12px; line-height:1.4; color:inherit; }
+.playground-shell .playground-example-stage--controls button[aria-pressed="true"] { background:#dff4e9; border-color:#69b58f; color:#155d40; }
+.playground-shell .playground-example-stage--controls label { display:flex; align-items:center; gap:8px; font-size:12px; margin:0; }
+.playground-shell .playground-example-stage--controls .playground-event-log { display:grid; gap:6px; }
+.playground-shell .playground-example-stage--controls select,
+.playground-shell .playground-example-stage--controls input[type="number"] { min-height:34px; font:inherit; font-size:12px; padding:7px 8px; border:1px solid #d6e0db; border-radius:8px; background:white; max-width:170px; }
+.playground-shell select,
+.playground-shell .playground-example-stage--controls select {
+  appearance:none;
+  padding-right:36px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m2 4 4 4 4-4' fill='none' stroke='%2366736d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position:right 12px center;
+  background-repeat:no-repeat;
+  background-size:12px 12px;
+}
+@media(forced-colors:active) {
+  .playground-shell select,
+  .playground-shell .playground-example-stage--controls select { appearance:auto; background-image:none; }
+}
+.playground-shell .playground-example-stage--grid > header { margin:0; min-height:43px; padding:0 16px; border-bottom:1px solid #e4ebe7; display:flex; justify-content:space-between; align-items:center; }
+.playground-shell .playground-example-stage--grid { display:block; }
+.playground-shell .playground-example-stage--grid > header h2 { margin:0; color:#728079; font-size:11px; letter-spacing:.08em; font-weight:800; text-transform:uppercase; }
+.playground-shell .playground-example-stage--grid > header p { display:none; }
+.playground-shell .playground-example-stage__heading { width:100%; display:flex; justify-content:space-between; align-items:center; }
+.playground-shell .playground-example-stage--grid > :not(header) { margin:24px; width:auto; }
+.playground-shell .playground-example-stage--grid > .grid-stack { margin:24px; width:calc(100% - 48px); }
+.playground-shell .framework-source { border:1px solid #dce5e0; border-radius:16px; background:white; margin-top:20px; overflow:hidden; }
+.framework-panel-heading { display:flex; align-items:center; justify-content:space-between; min-height:43px; padding:0 16px; border-bottom:1px solid #e4ebe7; color:#728079; font-size:11px; font-weight:800; }
+.playground-shell .framework-source > p,.playground-shell .framework-source > label { margin:16px 20px; color:#66736d; font-size:12px; }
+.playground-shell .framework-source pre { margin:0; padding:18px; background:#17231f; color:#c9f5df; font-size:12px; line-height:1.65; }
+.playground-example-select { display:none; }
+@media(max-width:900px) {
+  .playground-shell .docs-shell__body { display:block; }
+  .playground-shell .playground-main { overflow:visible; }
+  .playground-shell .playground-example-select { display:flex; align-items:center; gap:12px; font-size:13px; }
+  .playground-shell .playground-example-select select { min-width:0; flex:1; padding:9px 36px 9px 12px; border:1px solid #d6e0db; border-radius:8px; background-color:white; font:inherit; }
+  .playground-shell .docs-sidebar__group { display:none; }
+  .playground-shell .playground-grid--numbered .comins-grid-layout-widget__header { flex-wrap:wrap; }
+  .playground-shell .playground-grid--numbered .comins-grid-layout-widget__title { flex-basis:100%; }
+  .playground-shell .playground-grid--numbered .comins-grid-layout-widget__actions { flex-wrap:wrap; max-width:100%; justify-content:flex-start; }
+  .playground-shell .docs-sidebar { max-height:none; border-right:0; border-bottom:1px solid #dce5e0; padding:14px 20px; }
+  .playground-shell .docs-sidebar__links { display:flex; overflow:auto; gap:12px; }
+  .playground-shell .playground-sidebar__menu { min-width:180px; }
+  .playground-shell .docs-sidebar__group h2 { display:none; }
+}
+@media(max-width:560px) {
+  .playground-shell .docs-top-nav { height:auto; min-height:64px; padding:10px 16px; }
+  .playground-shell .playground-main { padding:26px 16px 48px; }
+  .playground-shell .framework-intro { align-items:stretch; flex-direction:column; gap:16px; }
+  .playground-shell .playground-example-stage--controls { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .playground-shell .playground-example-stage--controls > :not(header) { grid-column:1; }
+  .playground-shell .transfer-controls button { padding:6px 7px; min-height:30px; }
+  .playground-shell .transfer-controls { gap:5px; }
+  .playground-shell .transfer-controls__group { gap:4px; }
+  .playground-shell .transfer-controls__status { min-width:0; flex-basis:40px; }
+  .playground-shell .playground-example-stage--grid > :not(header) { margin:14px; }
+  .playground-shell .playground-example-stage--grid > .grid-stack { width:calc(100% - 28px); }
+}
+
+/* Shared explanatory content stays outside each native framework runtime. */
+.playground-shell .framework-guidance { margin-top:22px; border:1px solid #dce5e0; border-radius:14px; background:#fff; overflow:hidden; }
+.playground-shell .framework-guidance > summary { padding:16px 20px; color:#345248; font-size:13px; font-weight:700; cursor:pointer; }
+.playground-shell .framework-guidance[open] > summary { border-bottom:1px solid #e4ebe7; }
+.playground-shell .framework-guidance__body { padding:6px 20px 20px; color:#53665c; font-size:13px; line-height:1.8; overflow-wrap:anywhere; }
+.playground-shell .framework-guidance__body > ul { padding-left:20px; margin:12px 0 0; }
+.playground-shell .framework-guidance__body li + li { margin-top:8px; }
+.playground-shell .framework-guidance__reference { margin-top:18px; overflow-x:auto; }
+.playground-shell .framework-guidance table { border-collapse:collapse; width:100%; text-align:left; }
+.playground-shell .framework-guidance caption { text-align:left; color:#345248; font-weight:700; padding-bottom:8px; }
+.playground-shell .framework-guidance th,.playground-shell .framework-guidance td { border:1px solid #dce5e0; padding:9px 12px; vertical-align:top; }
+.playground-shell .framework-guidance thead { background:#f5f8f6; }
+.playground-shell .framework-guidance th[scope="row"] { font-weight:500; }

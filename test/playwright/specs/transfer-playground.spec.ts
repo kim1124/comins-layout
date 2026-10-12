@@ -42,13 +42,19 @@ async function waitForTransferPlayground(page: Page) {
 
 async function dragToTarget(page: Page, source: Locator, target: Locator) {
   await source.scrollIntoViewIfNeeded();
-  await target.scrollIntoViewIfNeeded();
-  const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
-  if (!sourceBox || !targetBox) {
+  const sourceBox = await source.boundingBox();
+  if (!sourceBox) {
     throw new Error("Transfer drag geometry is unavailable");
   }
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
   await page.mouse.down();
+  // Activate the drag while the source is visible before scrolling to a lower grid.
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2 + 12, sourceBox.y + sourceBox.height / 2, { steps: 3 });
+  await target.scrollIntoViewIfNeeded();
+  const targetBox = await target.boundingBox();
+  if (!targetBox) {
+    throw new Error("Transfer target geometry is unavailable");
+  }
   await page.mouse.move(
     targetBox.x + targetBox.width / 2,
     targetBox.y + Math.min(targetBox.height / 2, 32),
@@ -364,7 +370,14 @@ test.describe("Transfer Playground", () => {
     }
     await dragToTarget(page, title, target);
     await expect(gridPanel(page, "grid-b").getByTestId("dashboard-widget-a-chart")).toBeVisible();
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    const readLayouts = () => page.locator('.grid-stack-item[data-widget-id]').evaluateAll(items => items.map(item =>
+      ["data-widget-id", "data-layout-x", "data-layout-y", "data-layout-w", "data-layout-h"].map(name => item.getAttribute(name)),
+    ));
+    const beforeRejectedDrop = await readLayouts();
     await dragToTarget(page, title, target);
+    await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+    expect(await readLayouts()).toEqual(beforeRejectedDrop);
     await expect(page.locator(".comins-grid-layout-copy-source, .comins-grid-layout-copy-drag")).toHaveCount(0);
     await expect(gridPanel(page, "grid-a").getByLabel("Grid A 위젯 수")).toHaveText("2개");
     await expect(gridPanel(page, "grid-b").getByLabel("Grid B 위젯 수")).toHaveText("2개");

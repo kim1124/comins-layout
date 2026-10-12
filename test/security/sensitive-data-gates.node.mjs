@@ -50,14 +50,14 @@ function constantFailure(result) {
   assert.equal(result.stderr, failure);
 }
 
-test('references the canonical Contract v1.8 without copying common policy', () => {
+test('references the canonical Contract v1.10 without copying common policy', () => {
   const agents = read('AGENTS.md');
   const security = read('SECURITY.md');
   const packageJson = JSON.parse(read('package.json'));
   const packageLock = JSON.parse(read('package-lock.json'));
   const changelog = read('CHANGELOG.md');
 
-  assert.match(agents, /managed-start contract=v1\.8/);
+  assert.match(agents, /managed-start contract=v1\.10/);
   assert.match(agents, /comins-governance\/blob\/main\/COMINS_CONTRACT\.md/);
   assert.match(agents, /Governance is the only\s+common-policy owner/i);
   assert.match(agents, /module owns their CI implementation/i);
@@ -69,9 +69,9 @@ test('references the canonical Contract v1.8 without copying common policy', () 
     security,
     /Before 1\.0\.0, only the latest published version receives security fixes\./,
   );
-  assert.equal(packageJson.version, '0.2.3');
-  assert.equal(packageLock.version, '0.2.3');
-  assert.equal(packageLock.packages[''].version, '0.2.3');
+  assert.equal(packageJson.version, '0.3.0');
+  assert.equal(packageLock.version, packageJson.version);
+  assert.equal(packageLock.packages[''].version, packageJson.version);
   assert.match(security, /Latest verified published version: `0\.2\.3`/);
   assert.match(security, /\| 0\.2\.3 \| Yes \|/);
   assert.match(security, /\| < 0\.2\.3 \| No \|/);
@@ -154,7 +154,8 @@ test('pins shared Gitleaks, hooks, scripts, and workflows', () => {
   assert.match(verify, /name: 100-widget resource/);
   assert.match(verify, /npm run verify\n/);
   assert.doesNotMatch(verify, /npm run verify:full/);
-  assert.match(verify, /needs: \[changes, security, fast, browser_chromium, browser_firefox, resource\]/);
+  assert.match(verify, /needs: \[changes, security, fast, browser_chromium, browser_firefox, resource, consumers\]/);
+  assert.match(verify, /CONSUMER_RESULT: \${{ needs\.consumers\.result }}/);
   assert.match(verify, /required-verification: failed/);
   assert.match(publish, /verify-package-artifact\.mjs/);
   assert.match(publish, /tar -xzf "\$package_file"/);

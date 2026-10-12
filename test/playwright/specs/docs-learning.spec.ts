@@ -1,5 +1,61 @@
 import { expect, test } from "@playwright/test";
 import { liveExamples } from "../../../example/src/docs/live-examples";
+import { exampleCatalog } from "../../../example/src/shared/example-catalog";
+
+test("framework selection changes the actual renderer and source with one iframe", async ({ page }) => {
+  await page.goto("/docs/core-and-vue");
+  await expect(page.getByRole("heading", { name: "Core와 Vue 3 (0.3.0)", exact: true })).toBeVisible();
+  await page.reload();
+  await expect(page).toHaveURL(/\/docs\/core-and-vue$/);
+  await page.goto("/api");
+  const rendering = page.locator("#api-dashboard-rendering");
+  await rendering.getByRole("button", { name: "Size To Content 실행", exact: true }).first().click();
+  await page.getByLabel("예제 프레임워크").selectOption("vue");
+  await expect(page.locator("iframe[data-live-example]")).toHaveCount(1);
+  const preview = page.frameLocator("iframe[data-live-example]");
+  await expect(preview.locator('[data-framework="vue"]')).toBeVisible();
+  await expect(preview.locator(".grid-stack-item")).toHaveCount(1);
+  await preview.getByRole("button", { name: "내용 추가", exact: true }).click();
+  await expect(preview.getByRole("status")).toContainText("항목 3개");
+  await expect(rendering.locator(".docs-live-example .docs-code")).toContainText('comins-grid-layout/vue');
+  await expect(rendering.locator(".docs-live-example .docs-code")).toContainText('@layout-commit');
+  await page.getByLabel("예제 프레임워크").selectOption("react");
+  await expect(page.locator("iframe[data-live-example]")).toHaveCount(1);
+  await expect(preview.locator('[data-framework="vue"]')).toHaveCount(0);
+  await expect(preview.getByRole("button", { name: "내용 추가", exact: true })).toBeVisible();
+});
+
+test("all 22 Vue routes mount directly, retain locale on reload, and reject unknown IDs", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", message => { if (message.type() === "error" || message.type() === "warning") errors.push(message.text()); });
+  for (const example of exampleCatalog) {
+    await page.goto(`/vue.html?example=${encodeURIComponent(example.id)}&embed=1&locale=en`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(example.label.en + " · Vue 3");
+    await expect(page.locator(".grid-stack").first()).toBeVisible();
+    await expect(page.getByRole("navigation")).toHaveCount(0);
+    await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  }
+  await page.reload();
+  await expect(page.locator(".grid-stack").first()).toBeVisible();
+  expect(errors).toEqual([]);
+  await page.goto("/vue.html?example=../src/main.tsx&locale=en");
+  await expect(page.getByRole("alert")).toContainText("Unsupported Vue example");
+  await expect(page.locator(".grid-stack")).toHaveCount(0);
+});
+
+test("Vue lazy content counts real mounts and restarts", async ({ page }) => {
+  await page.goto("/vue.html?example=advanced/lazy-load&embed=1");
+  const rendered = page.locator('[data-lazy-rendered="true"]');
+  await expect.poll(() => rendered.count()).toBeGreaterThan(0);
+  const initial = await rendered.count();
+  expect(initial).toBeLessThan(10);
+  await expect(page.getByLabel("콘텐츠 렌더링 수")).toHaveText(`${initial} / 10`);
+  for (let id = 1; id <= 10; id++) await page.locator(`[data-widget-id="widget-${id}"]`).scrollIntoViewIfNeeded();
+  await expect(page.getByLabel("콘텐츠 렌더링 수")).toHaveText("10 / 10");
+  await page.getByRole("button", { name: "다시 실험" }).click();
+  await expect(page.getByLabel("콘텐츠 렌더링 수")).toHaveText(`${initial} / 10`);
+});
 
 test("combined examples fit narrow screens and preserve old responsive links", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 900 });
@@ -71,7 +127,8 @@ test("trash drop target spans its container and reset sits at the live example h
     await expect(reset).toBeVisible();
     const headerBox = await header.boundingBox();
     const resetBox = await reset.boundingBox();
-    expect(Math.abs(resetBox!.x + resetBox!.width - (headerBox!.x + headerBox!.width))).toBeLessThanOrEqual(2);
+    const rightInset = await header.evaluate(element => parseFloat(getComputedStyle(element).paddingRight));
+    expect(Math.abs(resetBox!.x + resetBox!.width - (headerBox!.x + headerBox!.width - rightInset))).toBeLessThanOrEqual(2);
     await reset.click();
     await expect(page.locator(".grid-stack-item")).toHaveCount(4);
   }

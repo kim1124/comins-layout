@@ -230,7 +230,7 @@ test("uses container breakpoints and restores bounded none layouts", async ({ pa
   await page.goto("/examples/advanced/responsive/breakpoints");
   const grid = page.getByTestId("dashboard-grid");
   await page.getByLabel("컬럼 결정 방식").selectOption("breakpoints");
-  await expect(page.getByText(/컨테이너 너비 640px/)).toBeVisible();
+  await expect(page.locator(".playground-feature-guide")).toContainText("컨테이너 너비 640px");
   expect((await grid.boundingBox())!.width).toBeLessThan(640);
   await expect(grid).toHaveAttribute("data-columns", "2");
   await page.setViewportSize({ width: 1100, height: 900 });

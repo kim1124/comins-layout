@@ -4,14 +4,15 @@ import { PlaygroundHeader, toggleStateProps } from "./components/DashboardPrevie
 import { PlaygroundFeatureGuide, PlaygroundStage } from "./components/ExampleGuide";
 import { ExampleToolbar } from "./components/ExampleToolbar";
 import { usePlaygroundLocale } from "./locale";
+import { createExampleConditions } from "../shared/example-conditions";
 
 export function ContentSizingPlayground() {
   const { text } = usePlaygroundLocale();
   const [enabled, setEnabled] = useState(true);
   const [count, setCount] = useState(2);
   const dashboard = useDashboardGrid({
-    initialColumns: 6,
-    initialWidgets: [{ id: "activity", title: "Activity", layout: { id: "activity", x: 0, y: 0, w: 4, h: 2, minH: 1 } }],
+    initialColumns: createExampleConditions("advanced/size-to-content").columns,
+    initialWidgets: createExampleConditions("advanced/size-to-content").widgets,
   });
   const height = dashboard.widgets[0]?.layout.h;
   return (

@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { basename, isAbsolute } from 'node:path';
+import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { basename, isAbsolute, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { verifyFrameworkBoundary } from './verify-framework-boundary.mjs';
 
 const FAILURE = 'package-artifact-check: failed\n';
 const REQUIRED_PATHS = ['LICENSE', 'THIRD_PARTY_NOTICES.md'];
@@ -43,6 +45,11 @@ try {
   if (!roots.every((root) => paths.some((path) => path === root || path.startsWith(`${root}/`)))) {
     throw new Error('missing allow-list root');
   }
+  const unpacked = mkdtempSync(join(tmpdir(), 'comins-artifact-boundary-'));
+  try {
+    execFileSync('tar', ['-xzf', resolve(filename), '-C', unpacked]);
+    verifyFrameworkBoundary(join(unpacked, 'package'));
+  } finally { rmSync(unpacked, { recursive: true, force: true }); }
   process.stdout.write(`${filename}\n`);
 } catch {
   process.stderr.write(FAILURE);

@@ -15,8 +15,9 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2022",
-    "types": ["vitest/globals", "node"]
+    "types": ["vitest/globals", "node", "vite/client"]
   },
+  "exclude": ["src/vue.ts", "example/src/vue", "test/consumer"],
   "include": [
     "src",
     "example",

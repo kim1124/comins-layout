@@ -266,6 +266,9 @@ export function createDashboardGridAdapter<TData>(
   options: DashboardGridAdapterOptions<TData>,
 ): DashboardGridAdapter<TData> | undefined {
   let currentOptions = options;
+  // A rejected GridStack droppable never emits `dropped`. Keep only per-drag
+  // target metadata so its release cannot commit a clamped source-grid move.
+  const rejectedTransferTargets = new Set<HTMLElement>();
   let pendingAcceptedExternalSource: Element | undefined;
   const resolveAcceptedDropSource = (
     sourceElement: Element | null | undefined,
@@ -286,6 +289,8 @@ export function createDashboardGridAdapter<TData>(
   };
   const acceptExternalWidget = (sourceElement: Element) => {
     const accepted = Boolean(resolveAcceptedDropSource(sourceElement));
+    resolveDashboardDropSource<TData>(sourceElement, currentOptions.gridId?.trim() ?? "")
+      ?.onTargetAcceptance?.(element, accepted);
     if (accepted) {
       pendingAcceptedExternalSource = sourceElement;
     }
@@ -526,6 +531,10 @@ export function createDashboardGridAdapter<TData>(
         widget,
         mode: currentOptions.gridTransferMode ?? "move",
         restoreSource: (transferredItem) => restoreTransferredGridItem(transferredItem, widget.id),
+        onTargetAcceptance: (target, accepted) => {
+          if (accepted) rejectedTransferTargets.delete(target);
+          else rejectedTransferTargets.add(target);
+        },
       });
       registeredTransferSources.set(widget.id, { element: item, dispose });
     });
@@ -803,6 +812,17 @@ export function createDashboardGridAdapter<TData>(
     finishInteractionFrame = undefined;
     detachInteractionGuards();
     const stoppedKind = activeInteractionKind;
+    const rejectedTransfer = stoppedKind === "drag" && lastPointer && [...rejectedTransferTargets].some(target => {
+      if (!target.isConnected) return false;
+      const bounds = target.getBoundingClientRect();
+      return lastPointer!.clientX >= bounds.left && lastPointer!.clientX <= bounds.right
+        && lastPointer!.clientY >= bounds.top && lastPointer!.clientY <= bounds.bottom;
+    });
+    rejectedTransferTargets.clear();
+    if (rejectedTransfer) {
+      pendingCommit = false;
+      runSync(appliedOptions, currentOptions);
+    }
     flushInteractionAction();
     const stoppedInteraction = readInteractionEvent(activeInteractionItem);
     const externalTarget = pendingExternalDropTarget;
@@ -853,6 +873,7 @@ export function createDashboardGridAdapter<TData>(
     item?: GridItemHTMLElement,
   ) => {
     isInteracting = true;
+    rejectedTransferTargets.clear();
     lastPointer = undefined;
     pendingExternalDropTarget = undefined;
     touchPointerActive = false;
@@ -1059,6 +1080,7 @@ export function createDashboardGridAdapter<TData>(
     commit: commitLayout,
     destroy() {
       destroyed = true;
+      rejectedTransferTargets.clear();
       clearCopyPreview();
       detachInteractionGuards();
       columnsObserver?.disconnect();

@@ -122,7 +122,7 @@ describe("consumer README", () => {
       "transferDashboardWidget",
       "IntersectionObserver",
       "does not delay React-owned widget content",
-      "planned for removal in `0.3.0`",
+      "removal is deferred to a future version",
       "branded Edge is not directly certified",
       "no skeleton/loading-state API is currently provided",
     ]) expect(readme).toContain(text);

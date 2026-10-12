@@ -30,12 +30,14 @@ export type DashboardGridDragSourceOptions<TData> = {
   widget: DashboardWidget<TData>;
   mode: DashboardWidgetTransferMode;
   restoreSource: (element: HTMLElement) => void;
+  onTargetAcceptance?: (target: HTMLElement, accepted: boolean) => void;
 };
 
 export type DashboardResolvedDropSource<TData = unknown> = {
   candidate: DashboardWidgetDropCandidate<TData>;
   sourceElement: HTMLElement;
   restoreSource?: (element: HTMLElement) => void;
+  onTargetAcceptance?: (target: HTMLElement, accepted: boolean) => void;
 };
 
 type DashboardPaletteDragEntry<TData = unknown> = {
@@ -219,6 +221,7 @@ export function resolveDashboardDropSource<TData>(
     },
     sourceElement: element as HTMLElement,
     restoreSource: gridSource.restoreSource,
+    onTargetAcceptance: gridSource.onTargetAcceptance,
   };
 }
 

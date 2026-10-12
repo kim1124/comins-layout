@@ -1,15 +1,20 @@
 {
   "name": "comins-grid-layout",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite --config vite.example.config.ts",
+    "build:examples": "vite build --config vite.example.config.ts",
+    "preview:examples": "vite preview --config vite.example.config.ts --host 127.0.0.1",
     "docs:readme-gif": "node scripts/capture-readme-demo.mjs",
-    "build": "vite build && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
+    "build": "vite build && npm run build:types:vue && cp src/styles.css dist/styles.css",
     "check:licenses": "node scripts/check-third-party-notices.mjs",
     "check:npm-identity": "node scripts/check-npm-registry-identity.mjs",
     "check:security": "node scripts/check-public-identities.mjs",
     "typecheck": "tsc --noEmit",
+    "typecheck:vue": "vue-tsc --noEmit -p tsconfig.vue.json",
+    "build:types:vue": "vue-tsc -p tsconfig.vue.build.json",
+    "check:core": "node scripts/check-core-boundary.mjs && tsc -p tsconfig.core-consumer.json",
     "lint": "tsc --noEmit",
     "setup:hooks": "git config core.hooksPath .githooks",
     "test": "vitest",
@@ -17,7 +22,7 @@
     "test:run": "vitest run",
     "test:security": "node --test test/security/*.node.mjs",
     "test:e2e": "env -u NO_COLOR playwright test --config=playwright.config.ts",
-    "verify": "npm run test:security && npm run check:licenses && npm run lint && npm run test:run && npm run build",
+    "verify": "npm run test:security && npm run check:licenses && npm run check:core && npm run lint && npm run typecheck:vue && npm run test:run && npm run build && node scripts/verify-framework-boundary.mjs .",
     "verify:e2e": "npm run test:e2e",
     "verify:full": "npm run verify && npm run verify:e2e",
     "verify:package-artifact": "node scripts/verify-package-artifact.mjs"
@@ -27,20 +32,32 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "import": "./dist/vue.js"
+    }
   },
   "files": [
     "dist",
     "README.md",
     "CHANGELOG.md",
-    "THIRD_PARTY_NOTICES.md"
+    "THIRD_PARTY_NOTICES.md",
+    "THIRD_PARTY_LICENSES"
   ],
   "sideEffects": [
     "./dist/styles.css"
   ],
   "dependencies": {
-    "gridstack": "^13.2.0",
-    "lucide-react": "^1.40.0"
+    "gridstack": "^13.2.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -48,17 +65,33 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-vue": "6.0.10",
+    "lucide-react": "^1.40.0",
     "prism-react-renderer": "^2.4.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "^8.3.1",
     "typescript": "^6.0.3",
     "vite": "^8.2.2",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "vue": "3.5.43",
+    "vue-tsc": "3.3.13"
   },
   "peerDependencies": {
+    "vue": ">=3.5.0 <4.0.0",
     "react": ">=18.0.0 <20.0.0",
     "react-dom": ">=18.0.0 <20.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
   },
   "license": "MIT",
   "repository": {

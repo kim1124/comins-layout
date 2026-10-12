@@ -26,6 +26,7 @@ import type { LocalizedText } from "./locale";
 import { usePlaygroundLocale } from "./locale";
 import type { PlaygroundLocale } from "./routes";
 import type { ExampleWidgetData } from "./types";
+import { createExampleConditions, createTransferTargetConditions, createPaletteExampleWidget } from "../shared/example-conditions";
 
 type GridId = "grid-a" | "grid-b";
 type TransferRuntime = UseDashboardGridResult<ExampleWidgetData>;
@@ -53,17 +54,12 @@ const gridLabels: Record<GridId, string> = {
 export function TransferPlayground() {
   const { text } = usePlaygroundLocale();
   const gridA = useDashboardGrid<ExampleWidgetData>({
-    initialColumns: 6,
-    initialWidgets: [
-      createTransferWidget("a-sales", "매출 KPI", 0, 0, 2, 2, "kpi", "1.28억"),
-      createTransferWidget("a-chart", "추세 차트", 2, 0, 4, 2, "chart", "+18.4%"),
-    ],
+    initialColumns: createExampleConditions("advanced/multi-grid/horizontal").columns,
+    initialWidgets: createExampleConditions("advanced/multi-grid/horizontal").widgets,
   });
   const gridB = useDashboardGrid<ExampleWidgetData>({
     initialColumns: 12,
-    initialWidgets: [
-      createTransferWidget("b-table", "주문 표", 0, 0, 4, 2, "table", "1,284건"),
-    ],
+    initialWidgets: createTransferTargetConditions().widgets,
   });
   const [orientation, setOrientation] = useState<"horizontal" | "vertical">("horizontal");
   const [transferMode, setTransferMode] = useState<DashboardWidgetTransferMode>("move");
@@ -82,16 +78,7 @@ export function TransferPlayground() {
     const sequence = (paletteSequence.current[paletteId] ?? 0) + 1;
     paletteSequence.current[paletteId] = sequence;
     const id = `${paletteId}-${sequence}`;
-    return createTransferWidget(
-      id,
-      label,
-      0,
-      0,
-      previewLayout.w,
-      previewLayout.h,
-      kind,
-      kind === "kpi" ? "42" : kind === "chart" ? "+12.6%" : kind === "table" ? "320행" : "거부됨",
-    );
+    return createPaletteExampleWidget(kind, sequence);
   };
 
   const paletteDefinitions: ReadonlyArray<WidgetPaletteDefinition<ExampleWidgetData>> = [
@@ -112,9 +99,9 @@ export function TransferPlayground() {
     {
       id: "palette-table",
       label: text("표", "Table"),
-      description: text("6×2 데이터 목록", "6×2 data list"),
-      previewLayout: { w: 6, h: 2 },
-      createWidget: () => createPaletteWidget("palette-table", "신규 표", "table", { w: 6, h: 2 }),
+      description: text("4×2 데이터 목록", "4×2 data list"),
+      previewLayout: { w: 4, h: 2 },
+      createWidget: () => createPaletteWidget("palette-table", "신규 표", "table", { w: 4, h: 2 }),
     },
     {
       id: "palette-restricted",
