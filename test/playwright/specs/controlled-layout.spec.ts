@@ -69,8 +69,15 @@ test("applies arrange atomically while retaining widget DOM and content", { tag:
 
 test("commits Float compaction and retains it when Float returns", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1400 });
+  await page.route(/\/src\/gridstack\/adapter\.ts(?:\?|$)/, async route => {
+    await new Promise(resolve => setTimeout(resolve, 750));
+    await route.continue();
+  });
   await page.goto("/examples/advanced/float");
   const widget = page.getByTestId("dashboard-widget-widget-9");
+  await expect(widget).toBeVisible();
+  await expectSynchronized(page);
+  await page.evaluate(() => document.fonts.ready);
   await widget.scrollIntoViewIfNeeded();
   const box = await widget.locator(".comins-grid-layout-widget__title").boundingBox();
   if (!box) throw new Error("Missing title");
