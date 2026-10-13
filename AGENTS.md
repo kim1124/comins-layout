@@ -1,10 +1,10 @@
-<!-- comins-reference:managed-start contract=v1.10 -->
+<!-- comins-reference:managed-start contract=v1.11 -->
 # Comins Module AGENTS.md
 
 ## Common Policy
 
 - Before changing this repository, read the canonical
-  [Comins Contract v1.10](https://github.com/kim1124/comins-governance/blob/main/COMINS_CONTRACT.md)
+  [Comins Contract v1.11](https://github.com/kim1124/comins-governance/blob/main/COMINS_CONTRACT.md)
   or, for explicitly approved local-only adoption, its matching version in the
   verified Governance checkout, once per run. For inspection-only work, load it only when a Contract stage
   is relevant. Stop if it is unavailable or its heading does not match this
