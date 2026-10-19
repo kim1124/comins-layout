@@ -188,6 +188,29 @@ test('keyboard tabs and rapid switches keep one engine and fit a narrow viewport
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
 });
 
+test('canonical route effects preserve a newer browser navigation @firefox-parity @mobile-touch', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/examples/widget/basic/vue');
+  await expect(page.getByRole('tab', { name: 'Vue 3', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-widget-id]')).toHaveCount(10);
+  // A newer browser navigation can arrive after the preceding route commits
+  // but before its passive effects run, as during rapid framework switches.
+  await page.evaluate(() => {
+    const observer = new MutationObserver(() => {
+      if (document.getElementById('framework-tab-react')?.getAttribute('aria-selected') !== 'true') return;
+      observer.disconnect();
+      history.pushState(null, '', '/examples/widget/basic/vue');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+    observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['aria-selected'] });
+  });
+  await page.getByRole('tab', { name: 'React', exact: true }).click();
+  await expect(page).toHaveURL(/\/vue$/);
+  await expect(page.getByRole('tab', { name: 'Vue 3', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await page.getByRole('button', { name: '코드 보기', exact: true }).click();
+  await expect(page.getByRole('region', { name: '예제 소스' })).toContainText('comins-grid-layout/vue');
+});
+
 test("Vue API details expose emits and slots rather than React callbacks", async ({ page }) => {
   await page.goto('/api#api-dashboard-rendering');
   await page.getByLabel('예제 프레임워크').selectOption('vue');

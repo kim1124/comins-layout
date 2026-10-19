@@ -1,5 +1,9 @@
 # comins-grid-layout
 
+## Unreleased
+
+- Prevent stale Playground route-normalization effects from overwriting newer React/Vue navigation during rapid framework switches.
+
 ## 0.3.0
 
 - Reset stale resize-hover ownership during controlled column transitions so subsequent widgets retain working resize handles.

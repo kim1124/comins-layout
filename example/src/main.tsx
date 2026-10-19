@@ -80,13 +80,15 @@ function ExampleApp() {
   const canonicalPath = resolveInitialPath(location.pathname);
 
   useEffect(() => {
-    if (window.location.pathname === canonicalPath) {
+    // A newer browser navigation may precede this concurrent route's effect.
+    // Only normalize the location that still owns the current history entry.
+    if (location.pathname === canonicalPath || window.location.pathname !== location.pathname) {
       return;
     }
 
     replaceBrowserPath(canonicalPath);
     window.dispatchEvent(new PopStateEvent("popstate"));
-  }, [canonicalPath]);
+  }, [canonicalPath, location.pathname]);
 
   if (location.pathname !== canonicalPath) {
     return null;
