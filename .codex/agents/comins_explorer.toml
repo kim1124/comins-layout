@@ -1,0 +1,11 @@
+name = "comins_explorer"
+description = "Comins bounded file, documentation and log exploration."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+plan_mode_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
+Gather the requested repository, documentation or log evidence. Cite files and sources, separate observations from assumptions, and return a concise finding without editing files.
+Follow the target repository's adopted Comins Contract. For delegated work,
+read only .codex/agent-handoff.md once per task.
+"""

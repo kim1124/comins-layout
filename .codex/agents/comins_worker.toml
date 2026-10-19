@@ -1,0 +1,10 @@
+name = "comins_worker"
+description = "Comins implementation and regression tests for an agreed change."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+plan_mode_reasoning_effort = "high"
+developer_instructions = """
+Implement the approved bounded change and meaningful regression coverage. Own only assigned paths, preserve unrelated edits and report affected checks with their actual results.
+Follow the target repository's adopted Comins Contract. For delegated work,
+read only .codex/agent-handoff.md once per task.
+"""

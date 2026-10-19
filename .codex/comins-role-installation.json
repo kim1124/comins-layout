@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "source": "comins-governance",
+  "contractVersion": "v1.12",
+  "sourceRevision": "68309e2d27d4727ee3727a651343963766ff067e",
+  "sourceState": "checkout-profile",
+  "files": [
+    {
+      "file": ".codex/agents/comins_architect.toml",
+      "sha256": "7e91eec19351292074c3143bdc72f470e74d1767b9975497d6566eb5facb4bea"
+    },
+    {
+      "file": ".codex/agents/comins_debugger.toml",
+      "sha256": "2198805b89a75f024cccf00da8d147d870abac15f198f44f538a35938ae4dc67"
+    },
+    {
+      "file": ".codex/agents/comins_explorer.toml",
+      "sha256": "cbea9eb8fe980da1e0f97ed7eca0b3f1c040120942b9eaa1290b245fee7f2f96"
+    },
+    {
+      "file": ".codex/agents/comins_integrator.toml",
+      "sha256": "6bf19be57338757209edc1c9e782298e9281b4c03780dc5ff6a741e2cbc1e7d0"
+    },
+    {
+      "file": ".codex/agents/comins_operator.toml",
+      "sha256": "2a8f7af08e35385f4c8e979e6dc89716e5304eaef3f48a35f453681ad091294b"
+    },
+    {
+      "file": ".codex/agents/comins_orchestrator.toml",
+      "sha256": "93ffb64209aa61c8fa9cd53c8ff93111398c2a3b3c966b7ae13adc68f02d809f"
+    },
+    {
+      "file": ".codex/agents/comins_planner.toml",
+      "sha256": "e5e1b9e1370b95051cfaaceb91e4a889df3c8a55772c4ec1e27de415aa37ccf4"
+    },
+    {
+      "file": ".codex/agents/comins_reviewer.toml",
+      "sha256": "9a763ac56674afc55397ce72f442693d7fc2cb07b20543567bc59d8044d5f287"
+    },
+    {
+      "file": ".codex/agents/comins_verifier.toml",
+      "sha256": "2bc0655cc511a76bc5c9968df29419c499eaf78980530387de03ea3e6935e8a7"
+    },
+    {
+      "file": ".codex/agents/comins_worker.toml",
+      "sha256": "f920af4dd54e76172068e4b67c33ab02abd42a1f66f1303e0cb1d17ff8a8ceb3"
+    },
+    {
+      "file": ".codex/agent-roles.md",
+      "sha256": "894ca55f78227650b97ac07fcdbdf88fd86bf68f0d472e19969287bf40a0be67"
+    },
+    {
+      "file": ".codex/agent-handoff.md",
+      "sha256": "23a74b0746d9417cb1d8f923667d32eff400201c210396e3f1723beb04ac1c81"
+    }
+  ],
+  "activation": "requires repository trust and a fresh supported session; not runtime verified"
+}
