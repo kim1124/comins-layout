@@ -11,7 +11,7 @@
 - Desktop Chrome is covered by the main Chromium project. Firefox coverage is limited to representative `@firefox-parity` engine-sensitive scenarios, and mobile coverage is limited to `@mobile-touch` cases on the Pixel 7 Chromium profile. Branded Edge is not directly automated.
 - `0.2.0` implements `externalDropTargets` and the typed, non-destructive `onWidgetExternalDrop` callback for same-document light DOM targets. Consumers retain deletion ownership through `removeWidget`; raw GridStack `removable` remains unsupported.
 - `0.2.1` documents palette copy and controlled Grid move/copy through `useDashboardDragIn`, `onWidgetDropRequest`, `insertDashboardWidgetAtLayout`, and `transferDashboardWidget`.
-- `0.2.1` keeps ineffective or duplicated APIs as deprecated compatibility surfaces. Their removal is deferred to the separately approved `0.3.0` boundary.
+- `0.3.0` retains the deprecated compatibility APIs with their `0.2.x` behavior. Removal is deferred to a separately approved future version.
 
 ## Explicit Support Boundaries
 

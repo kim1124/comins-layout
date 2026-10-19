@@ -13,15 +13,15 @@ export type DashboardGridOptionInput = DashboardInteractionOptions & {
   columns?: number;
   engineOptions?: DashboardGridEngineOptions;
   responsive?: DashboardResponsiveOptions;
-  /** @deprecated Use engineOptions.cellHeight. Planned for removal in 0.3.0. */
+  /** @deprecated Use engineOptions.cellHeight. Retained in 0.3.0; removal is deferred to a future version. */
   cellHeight?: GridStackOptions["cellHeight"];
-  /** @deprecated Use engineOptions.margin. Planned for removal in 0.3.0. */
+  /** @deprecated Use engineOptions.margin. Retained in 0.3.0; removal is deferred to a future version. */
   margin?: GridStackOptions["margin"];
 };
 
 /**
  * @deprecated Adapter-owned bridge type. Consumers should configure
- * DashboardGrid.acceptExternalWidgets. Planned for removal from the root export in 0.3.0.
+ * DashboardGrid.acceptExternalWidgets. Retained in the root export in 0.3.0; removal is deferred to a future version.
  */
 export type DashboardGridAdapterOptionOverrides = {
   acceptWidgets?: GridStackOptions["acceptWidgets"];
@@ -56,7 +56,7 @@ export function mapDashboardGridOptions(
   options: DashboardGridOptionInput = {},
   /**
    * @deprecated Adapter-owned bridge. Consumers should configure
-   * DashboardGrid.acceptExternalWidgets. Planned for removal in 0.3.0.
+   * DashboardGrid.acceptExternalWidgets. Retained in 0.3.0; removal is deferred to a future version.
    */
   adapterOverrides: DashboardGridAdapterOptionOverrides = {},
 ): GridStackOptions {
