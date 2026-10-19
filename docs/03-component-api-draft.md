@@ -46,7 +46,7 @@ type DashboardGridProps<TWidgetData = unknown> = {
 };
 ```
 
-`onWidgetDragStart`, `onWidgetDragStop`, `onWidgetResizeStart`, `onWidgetResizeStop`, and the title-only `onWidgetHeaderDoubleClick` alias remain deprecated compatibility props throughout `0.2.x`. Use the canonical lifecycle props above; removal is planned for `0.3.0`.
+`onWidgetDragStart`, `onWidgetDragStop`, `onWidgetResizeStart`, `onWidgetResizeStop`, and the title-only `onWidgetHeaderDoubleClick` alias remain deprecated compatibility props in `0.3.0`, preserving their `0.2.x` behavior. Use the canonical lifecycle props above; removal is deferred to a future version.
 
 ## DashboardExternalDropTarget
 
@@ -218,7 +218,7 @@ dashboard.commands.restoreLayout(saved);
 
 ## Current Export Surface
 
-`DashboardGrid`, `DashboardGridHandle`, `DashboardWidgetShell`, `DashboardWidgetActionLabels`, `useDashboardGrid`, `useDashboardDragIn`, transfer/state helpers, types, resize scheduler, and option mapper are public exports. GridStack adapter creation remains internal to the package boundary. `DashboardGridAdapterOptionOverrides` and the mapper's second argument are deprecated adapter-shaped compatibility exports planned for removal in `0.3.0`.
+`DashboardGrid`, `DashboardGridHandle`, `DashboardWidgetShell`, `DashboardWidgetActionLabels`, `useDashboardGrid`, `useDashboardDragIn`, transfer/state helpers, types, resize scheduler, and option mapper are public exports. GridStack adapter creation remains internal to the package boundary. `DashboardGridAdapterOptionOverrides` and the mapper's second argument are deprecated adapter-shaped compatibility exports retained in `0.3.0`; removal is deferred to a future version.
 
 ## Palette And Grid Transfer
 

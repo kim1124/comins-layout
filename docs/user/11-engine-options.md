@@ -46,7 +46,7 @@ Static mode is not application-wide read-only mode: consumer-owned input, remove
 
 `dragHandle` restricts where dragging starts and is separate from resize handles. `alwaysShowResizeHandle` controls handle visibility, not whether resizing is allowed.
 
-The `lazyLoad` engine field is a deprecated compatibility mapping retained throughout `0.2.x`. It does not defer React content; use `lazyRenderWidget` and widget `lazyLoad` as described in [Lazy Rendering](./09-lazy-rendering.md).
+The `lazyLoad` engine field is a deprecated compatibility mapping retained in `0.3.0`, preserving its `0.2.x` behavior; removal is deferred to a future version. It does not defer React content; use `lazyRenderWidget` and widget `lazyLoad` as described in [Lazy Rendering](./09-lazy-rendering.md).
 
 Invalid supported configuration throws `DashboardGridConfigurationError`. Unsupported GridStack options are intentionally not passed through. Use the advanced handle only when a required operation cannot be represented by component props, and keep controlled state synchronized afterward.
 

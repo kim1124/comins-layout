@@ -53,13 +53,13 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   onWidgetResizeFrame?: (event: DashboardWidgetResizeFrameEvent) => void;
   onWidgetExternalDrop?: (event: DashboardWidgetExternalDropEvent) => void;
   onWidgetDropRequest?: (request: DashboardWidgetDropRequest<TData>) => void;
-  /** @deprecated Use onBeforeMove. Planned for removal in 0.3.0. */
+  /** @deprecated Use onBeforeMove. Retained in 0.3.0; removal is deferred to a future version. */
   onWidgetDragStart?: (event: DashboardWidgetInteractionEvent) => void;
-  /** @deprecated Use onAfterMove. Planned for removal in 0.3.0. */
+  /** @deprecated Use onAfterMove. Retained in 0.3.0; removal is deferred to a future version. */
   onWidgetDragStop?: (event: DashboardWidgetInteractionEvent) => void;
-  /** @deprecated Use onBeforeResize. Planned for removal in 0.3.0. */
+  /** @deprecated Use onBeforeResize. Retained in 0.3.0; removal is deferred to a future version. */
   onWidgetResizeStart?: (event: DashboardWidgetInteractionEvent) => void;
-  /** @deprecated Use onAfterResize. Planned for removal in 0.3.0. */
+  /** @deprecated Use onAfterResize. Retained in 0.3.0; removal is deferred to a future version. */
   onWidgetResizeStop?: (event: DashboardWidgetInteractionEvent) => void;
   onBeforeMove?: (event: DashboardWidgetInteractionEvent) => void;
   onMove?: (event: DashboardWidgetInteractionEvent) => void;
@@ -78,7 +78,7 @@ export type DashboardGridProps<TData = unknown> = DashboardInteractionOptions & 
   onRemoveWidget?: (id: string) => void;
   /**
    * @deprecated This is a title-only legacy alias. Use onTitleDoubleClick.
-   * Planned for removal in 0.3.0.
+   * Retained in 0.3.0; removal is deferred to a future version.
    */
   onWidgetHeaderDoubleClick?: (id: string) => void;
 };

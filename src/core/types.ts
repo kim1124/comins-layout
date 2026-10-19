@@ -34,7 +34,7 @@ export type DashboardGridEngineOptions = {
   /**
    * @deprecated GridStack native lazy loading does not defer React-owned widget content.
    * Use DashboardGrid.lazyRenderWidget with DashboardWidget.lazyLoad instead.
-   * This option remains mapped for 0.2.x compatibility and is planned for removal in 0.3.0.
+   * This option remains mapped for compatibility in 0.3.0; removal is deferred to a future version.
    */
   lazyLoad?: boolean;
   dragHandle?: string;
