@@ -57,7 +57,7 @@
     "./dist/styles.css"
   ],
   "dependencies": {
-    "gridstack": "^13.2.0"
+    "gridstack": "^14.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
